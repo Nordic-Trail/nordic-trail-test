@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NORDIC TRAIL</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#101b17;color:#f2f0e7;font-family:Arial,sans-serif}
+header{padding:18px;background:#172720;border-bottom:1px solid #35483c}
+.brand{font-size:24px;font-weight:800;letter-spacing:3px}
+.sub{font-size:12px;color:#aab8a9;margin-top:5px}
+main{padding:14px}
+h2{font-size:17px;margin:4px 0 12px}
+select,input,button{width:100%;padding:12px;margin:5px 0;border-radius:9px;border:1px solid #536657;background:#202f26;color:#fff;font-size:15px}
+button{background:#b7c58b;color:#172219;font-weight:bold;border:0}
+button.secondary{background:#293a30;color:#f2f0e7;border:1px solid #536657}
+#map{height:48vh;min-height:300px;border-radius:12px;border:1px solid #536657;margin-top:12px}
+.hint{font-size:13px;color:#b8c5b7;line-height:1.5}
+#points{font-size:13px;line-height:1.6}
+footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">NORDIC TRAIL</div>
+  <div class="sub">EXPLORE • RESPECT • DISCOVER — SWEDEN</div>
+</header>
+<main>
+  <h2>Dodaj punkt na mapie</h2>
+  <p class="hint">Wybierz rodzaj punktu, a następnie dotknij odpowiedniego miejsca na mapie.</p>
+  <select id="kind">
+    <option value="gate">🚧 Brama / szlaban</option>
+    <option value="closed">⛔ Droga zamknięta / nieprzejezdna</option>
+    <option value="place">📍 Ciekawe miejsce</option>
+  </select>
+  <input id="note" maxlength="120" placeholder="Opis punktu (opcjonalnie)">
+  <div id="map"></div>
+  <button id="export">Eksportuj punkty do GPX</button>
+  <button id="clear" class="secondary">Usuń wszystkie moje punkty</button>
+  <h2 style="margin-top:22px">Moje zapisane punkty</h2>
+  <div id="points">Wczytywanie…</div>
+  <p class="hint">Punkty są przechowywane w tej przeglądarce na tym urządzeniu. Nie są publikowane innym użytkownikom.</p>
+</main>
+<footer>Map data © OpenStreetMap contributors</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // NORDIC TRAIL - polaczenie z Supabase
+const SUPABASE_URL = 'https://kwhkxedmtehqplvnmjka.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_9NwkykVx5UuNhnyPlD5vFw_t7zfqSvE';
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+const map=L.map('map').setView([62.2,15.2],5);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+ maxZoom:19,
+ attribution:'© OpenStreetMap contributors'
+}).addTo(map);
+
+const colors={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
+const labels={
+ gate:'Brama / szlaban',
+ closed:'Droga zamknięta / nieprzejezdna',
+ place:'Ciekawe miejsce'
+};
+  
+const statuses={
+  gate:['Otwarty','Zamknięty','Nieznany'],
+  closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],
+  place:['Dostępne','Niedostępne']
+};
+
+let points=[];
+try{points=JSON.parse(localStorage.getItem('nordicTrailPoints')||'[]')}catch(e){}
+const markers=L.layerGroup().addTo(map);
+
+function save(){
+ localStorage.setItem('nordicTrailPoints',JSON.stringify(points));
+ render();
+}
+async function loadPublicPoints(){
+  const {data, error} = await db
+    .from('map_points')
+    .select('id,kind,status,note,lat,lon,created_at');
+
+  if(error){
+    console.error('Błąd pobierania punktów:', error.message);
+    return;
+  }
+
+  console.log('Pobrano punktów z Supabase:', data.length);
+}  
+function render(){
+ markers.clearLayers();
+ const list=document.getElementById('points');
+ list.replaceChildren();
+ if(!points.length){
+   list.textContent='Brak punktów. Dotknij mapy, aby dodać pierwszy.';
+   return;
+ }
+ points.forEach((p,i)=>{
+  
+
+  
+const icons={gate:'🚧',closed:'⛔',place:'🌲'};
+   const statusColors={
+  gate:{
+    'Otwarty':'#22c55e',
+    'Zamknięty':'#ef4444',
+    'Nieznany':'#eab308'
+  }
+};
+const statusColor=statusColors[p.kind]?.[p.status];
+const icon=L.divIcon({
+  className:'',
+  html:`<div style="width:38px;height:38px;border:3px solid ${statusColor || 'white'};border-radius:50%;background:#172720;display:flex;align-items:center;justify-content:center;font-size:21px;box-shadow:0 2px 8px #000">${icons[p.kind]||'📍'}</div>`,
+  iconSize:[38,38],
+  iconAnchor:[19,19]
+});
+const marker=L.marker([p.lat,p.lon],{icon}).addTo(markers);
+
+   const popup=document.createElement('div');
+   const title=document.createElement('strong');
+   title.textContent=labels[p.kind];
+   popup.appendChild(title);
+   const desc=document.createElement('p');
+   desc.textContent=p.note||'Bez opisu';
+   popup.appendChild(desc);
+   
+if(p.status){
+  const statusInfo=document.createElement('p');
+  statusInfo.textContent='Status: '+p.status;
+  popup.appendChild(statusInfo);
+}
+if(p.date){
+  const dateInfo=document.createElement('div');
+  dateInfo.textContent='Zgłoszono: '+
+    new Date(p.date).toLocaleString('pl-PL');
+  popup.appendChild(dateInfo);
+}
+
+if(p.updatedAt){
+  const updateInfo=document.createElement('div');
+  updateInfo.textContent='Zaktualizowano: '+
+    new Date(p.updatedAt).toLocaleString('pl-PL');
+  popup.appendChild(updateInfo);
+}
+
+   const coords=document.createElement('div');
+   coords.textContent=p.lat.toFixed(5)+', '+p.lon.toFixed(5);
+   popup.appendChild(coords);
+   
+const popupEdit=document.createElement('button');
+popupEdit.textContent='Zmień status';
+popupEdit.style.cssText='display:block;margin-top:12px;padding:9px;cursor:pointer;';
+popupEdit.onclick=()=>{
+  const options=statuses[p.kind];
+  const choice=prompt(
+    'Aktualny status: '+(p.status||'Brak')+'\n\n'+
+    options.map((s,i)=>(i+1)+'. '+s).join('\n')+
+    '\n\nWpisz numer nowego statusu:'
+  );
+  if(choice===null)return;
+  const index=Number(choice)-1;
+  if(!Number.isInteger(index)||!options[index]){
+    alert('Nieprawidłowy numer statusu');
+    return;
+  }
+  p.status=options[index];
+  p.updatedAt=new Date().toISOString();
+  save();
+  render();
+};
+popup.appendChild(popupEdit);
+
+   marker.bindPopup(popup);
+
+   const row=document.createElement('div');
+   row.style.cssText='padding:9px 0;border-bottom:1px solid #35483c';
+   const text=document.createElement('div');
+   text.textContent=(i+1)+'. '+labels[p.kind]+
+  ' — '+(p.note||'Bez opisu')+
+  ' | Status: '+(p.status||'Brak danych');
+   row.appendChild(text);
+   
+const edit=document.createElement('button');
+edit.className='secondary';
+edit.textContent='Zmień status';
+edit.onclick=()=>{
+  const options=statuses[p.kind];
+  const choice=prompt(
+    'Aktualny status: '+(p.status||'Brak')+'\n\n'+
+    options.map((s,i)=>(i+1)+'. '+s).join('\n')+
+    '\n\nWpisz numer nowego statusu:'
+  );
+  if(choice===null)return;
+  const index=Number(choice)-1;
+  if(!Number.isInteger(index)||!options[index]){
+    alert('Nieprawidłowy numer statusu');
+    return;
+  }
+  p.status=options[index];
+  
+p.updatedAt=new Date().toISOString();
+
+  save();
+  render();
+};
+row.appendChild(edit);
+
+   const del=document.createElement('button');
+   del.className='secondary';
+   del.textContent='Usuń punkt';
+   del.onclick=()=>{points.splice(i,1);save()};
+   row.appendChild(del);
+   list.appendChild(row);
+ });
+}
+map.on('click',e=>{
+ const kind=document.getElementById('kind').value;
+ const note=document.getElementById('note').value.trim();
+ 
+const status=prompt(
+  'Wybierz status:\n'+
+  statuses[kind].map((s,i)=>(i+1)+'. '+s).join('\n')+
+  '\n\nWpisz numer statusu:'
+);
+if(status===null)return;
+const statusIndex=Number(status)-1;
+if(!Number.isInteger(statusIndex) || !statuses[kind][statusIndex]){
+  alert('Nieprawidłowy numer statusu');
+  return;
+}
+points.push({
+  kind,note,
+  status:statuses[kind][statusIndex],
+  date:new Date().toISOString(),
+  lat:Number(e.latlng.lat.toFixed(6)),
+  lon:Number(e.latlng.lng.toFixed(6))
+});
+
+ document.getElementById('note').value='';
+ save();
+});
+document.getElementById('clear').onclick=()=>{
+ if(confirm('Usunąć wszystkie zapisane punkty?')){
+   points=[];save();
+ }
+};
+document.getElementById('export').onclick=()=>{
+ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+ const wpts=points.map(p=>
+  `<wpt lat="${p.lat}" lon="${p.lon}"><name>${esc(labels[p.kind])}</name><desc>${esc(p.note||'')}</desc></wpt>`
+ ).join('\n');
+ const xml=`<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="NORDIC TRAIL" xmlns="http://www.topografix.com/GPX/1/1">
+${wpts}
+</gpx>`;
+ const url=URL.createObjectURL(new Blob([xml],{type:'application/gpx+xml'}));
+ const a=document.createElement('a');
+ a.href=url;a.download='nordic-trail.gpx';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+render();
+  loadPublicPoints();
+</script>
+</body>
+</html>
