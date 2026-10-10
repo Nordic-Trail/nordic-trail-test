@@ -49,7 +49,7 @@ footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
     Wyloguj się
   </button>
 
-  <p id="authStatus" class="hint">
+  <p id="authStatus" class="hint" role="status" aria-live="polite">
     Nie jesteś zalogowany
   </p>
   </div>
@@ -66,7 +66,9 @@ footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
   <button id="clear" class="secondary">Usuń wszystkie moje punkty</button>
   <h2 style="margin-top:22px">Moje zapisane punkty</h2>
   <div id="points">Wczytywanie…</div>
-  <p class="hint">Punkty są przechowywane w tej przeglądarce na tym urządzeniu. Nie są publikowane innym użytkownikom.</p>
+  <p class="hint">Twoje punkty są zapisywane tylko w tej przeglądarce. Nie są publikowane innym użytkownikom.</p>
+  <h2 style="margin-top:22px">Punkty publiczne (tylko do odczytu)</h2>
+  <div id="publicPoints" class="hint">Wczytywanie punktów publicznych…</div>
 </main>
 <footer>Map data © OpenStreetMap contributors</footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -99,6 +101,8 @@ const statuses={
 };
 
 let points=[];
+let publicPoints=[];
+let currentUser=null;
 try{points=JSON.parse(localStorage.getItem('nordicTrailPoints')||'[]')}catch(e){}
 const markers=L.layerGroup().addTo(map);
 
@@ -107,21 +111,50 @@ function save(){
  render();
 }
 async function loadPublicPoints(){
-  const {data, error} = await db
-    .from('map_points')
-    .select('id,kind,status,note,lat,lon,created_at');
-
-  if(error){
-    console.error('Błąd pobierania punktów:', error.message);
-    return;
-  }
-
-  console.log('Pobrano punktów z Supabase:', data.length);
-  if (data && data.length > 0) {
-  points = data;
+  const list=document.getElementById('publicPoints');
+  const {data,error}=await db.from('map_points').select('id,kind,status,note,lat,lon,created_at').limit(500);
+  if(error){console.error('Błąd pobierania punktów:',error.message);list.textContent='Nie udało się pobrać punktów publicznych.';return;}
+  publicPoints=(data||[]).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon)));
+  list.textContent=publicPoints.length ? `Punkty publiczne: ${publicPoints.length}. Można je przeglądać, ale nie edytować.` : 'Brak punktów publicznych.';
   render();
 }
-}  
+const authStatus=document.getElementById('authStatus');
+const loginBtn=document.getElementById('loginBtn');
+const logoutBtn=document.getElementById('logoutBtn');
+function updateAuthUI(){
+  authStatus.textContent=currentUser ? 'Zalogowano: '+currentUser.email : 'Nie jesteś zalogowany';
+  loginBtn.style.display=currentUser?'none':'';
+  logoutBtn.style.display=currentUser?'':'none';
+}
+async function refreshAuth(){
+  const {data,error}=await db.auth.getUser();
+  currentUser=error?null:data.user;
+  updateAuthUI();
+}
+loginBtn.onclick=async()=>{
+  const email=document.getElementById('loginEmail').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){authStatus.textContent='Wpisz poprawny adres e-mail.';return;}
+  loginBtn.disabled=true;
+  authStatus.textContent='Wysyłanie linku logowania…';
+  try{
+    const {error}=await db.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:'https://nordic-trail.github.io/nordic-trail-test/'}});
+    authStatus.textContent=error?'Nie udało się wysłać linku. Sprawdź konto i spróbuj później.':'Jeśli konto jest uprawnione, otrzymasz e-mail z linkiem logowania.';
+    if(error)console.error('Logowanie:',error.message);
+  }catch(e){authStatus.textContent='Błąd połączenia. Spróbuj ponownie.';console.error(e);}
+  finally{loginBtn.disabled=false;}
+};
+logoutBtn.onclick=async()=>{
+  logoutBtn.disabled=true;
+  const {error}=await db.auth.signOut();
+  if(error){authStatus.textContent='Nie udało się wylogować.';console.error(error.message);}
+  else{currentUser=null;updateAuthUI();}
+  logoutBtn.disabled=false;
+};
+db.auth.onAuthStateChange((_event,session)=>{
+  currentUser=session?.user||null;
+  updateAuthUI();
+});
+refreshAuth();
 function render(){
  markers.clearLayers();
  const list=document.getElementById('points');
@@ -247,6 +280,17 @@ row.appendChild(edit);
    row.appendChild(del);
    list.appendChild(row);
  });
+// Punkty publiczne są tylko do odczytu; nigdy nie trafiają do lokalnej listy edycji.
+publicPoints.forEach(p=>{
+  const lat=Number(p.lat),lon=Number(p.lon);
+  const icons={gate:'🚧',closed:'⛔',place:'🌲'};
+  const icon=L.divIcon({className:'',html:`<div style="width:34px;height:34px;border:2px solid #9ec5ed;border-radius:50%;background:#172720;display:flex;align-items:center;justify-content:center;font-size:20px">${icons[p.kind]||'📍'}</div>`,iconSize:[34,34],iconAnchor:[17,17]});
+  const popup=document.createElement('div');
+  const title=document.createElement('strong');title.textContent='Punkt publiczny: '+(labels[p.kind]||'Punkt');popup.appendChild(title);
+  const desc=document.createElement('p');desc.textContent=p.note||'Bez opisu';popup.appendChild(desc);
+  const status=document.createElement('p');status.textContent='Status: '+(p.status||'Brak danych');popup.appendChild(status);
+  L.marker([lat,lon],{icon}).bindPopup(popup).addTo(markers);
+});
 }
 map.on('click',e=>{
  const kind=document.getElementById('kind').value;
