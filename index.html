@@ -304,7 +304,7 @@ ${wpts}
 // NORDIC TRAIL - logowanie e-mail i haslo
 
 const loginEmail = document.getElementById('loginEmail');
-const loginPassword = document.getElementById('loginPassword');
+
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const authStatus = document.getElementById('authStatus');
@@ -313,42 +313,43 @@ function updateAuthUI(user) {
   if (user) {
     authStatus.textContent = 'Zalogowano: ' + user.email;
     loginEmail.style.display = 'none';
-    loginPassword.style.display = 'none';
+    
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'block';
   } else {
     authStatus.textContent = 'Nie jesteś zalogowany';
     loginEmail.style.display = 'block';
-    loginPassword.style.display = 'block';
+    
     loginBtn.style.display = 'block';
     logoutBtn.style.display = 'none';
   }
 }
-
 loginBtn.onclick = async () => {
   const email = loginEmail.value.trim();
-  const password = loginPassword.value;
-
-  if (!email || !password) {
-    authStatus.textContent = 'Wpisz e-mail i hasło.';
+  
+  if (!email) {
+    authStatus.textContent = 'Wpisz adres e-mail.';
     return;
   }
 
   loginBtn.disabled = true;
   authStatus.textContent = 'Trwa logowanie...';
 
-  const { error } = await db.auth.signInWithPassword({
-    email,
-    password
-  });
+  const { error } = await db.auth.signInWithOtp({
+  email,
+  options: {
+    emailRedirectTo: 'https://nordic-trail.github.io/nordic-trail-test/'
+  }
+});
 
   loginBtn.disabled = false;
-  loginPassword.value = '';
+  
 
   if (error) {
-    authStatus.textContent =
-      'Logowanie nie powiodło się. Sprawdź e-mail i hasło.';
-  }
+  authStatus.textContent = 'Błąd: ' + error.message;
+} else {
+  authStatus.textContent = 'Sprawdź pocztę e-mail i kliknij link logowania.';
+}
 };
 
 logoutBtn.onclick = async () => {
