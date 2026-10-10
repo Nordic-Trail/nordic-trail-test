@@ -30,6 +30,29 @@ footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
   <div class="sub">EXPLORE • RESPECT • DISCOVER — SWEDEN</div>
 </header>
 <main>
+  <div id="authPanel" style="margin-bottom:18px">
+  <h2>Konto NORDIC TRAIL</h2>
+
+  <input
+    id="loginEmail"
+    type="email"
+    placeholder="Twój adres e-mail"
+    autocomplete="email"
+  >
+
+  <button id="loginBtn" type="button">
+    Zaloguj się przez e-mail
+  </button>
+
+  <button id="logoutBtn" type="button"
+    class="secondary" style="display:none">
+    Wyloguj się
+  </button>
+
+  <p id="authStatus" class="hint">
+    Nie jesteś zalogowany
+  </p>
+  </div>
   <h2>Dodaj punkt na mapie</h2>
   <p class="hint">Wybierz rodzaj punktu, a następnie dotknij odpowiedniego miejsca na mapie.</p>
   <select id="kind">
