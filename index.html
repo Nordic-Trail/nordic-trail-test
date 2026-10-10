@@ -123,43 +123,7 @@ async function loadPublicPoints(){
   list.textContent=publicPoints.length ? `Punkty publiczne: ${publicPoints.length}. Można je przeglądać, ale nie edytować.` : 'Brak punktów publicznych.';
   render();
 }
-const authStatus=document.getElementById('authStatus');
-const loginBtn=document.getElementById('loginBtn');
-const logoutBtn=document.getElementById('logoutBtn');
-function updateAuthUI(){
-  authStatus.textContent=currentUser ? 'Zalogowano: '+currentUser.email : 'Nie jesteś zalogowany';
-  loginBtn.style.display=currentUser?'none':'';
-  logoutBtn.style.display=currentUser?'':'none';
-}
-async function refreshAuth(){
-  const {data,error}=await db.auth.getUser();
-  currentUser=error?null:data.user;
-  updateAuthUI();
-}
-loginBtn.onclick=async()=>{
-  const email=document.getElementById('loginEmail').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){authStatus.textContent='Wpisz poprawny adres e-mail.';return;}
-  loginBtn.disabled=true;
-  authStatus.textContent='Wysyłanie linku logowania…';
-  try{
-    const {error}=await db.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:'https://nordic-trail.github.io/nordic-trail-test/'}});
-    authStatus.textContent=error?'Nie udało się wysłać linku. Sprawdź konto i spróbuj później.':'Jeśli konto jest uprawnione, otrzymasz e-mail z linkiem logowania.';
-    if(error)console.error('Logowanie:',error.message);
-  }catch(e){authStatus.textContent='Błąd połączenia. Spróbuj ponownie.';console.error(e);}
-  finally{loginBtn.disabled=false;}
-};
-logoutBtn.onclick=async()=>{
-  logoutBtn.disabled=true;
-  const {error}=await db.auth.signOut();
-  if(error){authStatus.textContent='Nie udało się wylogować.';console.error(error.message);}
-  else{currentUser=null;updateAuthUI();}
-  logoutBtn.disabled=false;
-};
-db.auth.onAuthStateChange((_event,session)=>{
-  currentUser=session?.user||null;
-  updateAuthUI();
-});
-refreshAuth();
+
 function render(){
  markers.clearLayers();
  const list=document.getElementById('points');
