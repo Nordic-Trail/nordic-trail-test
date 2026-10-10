@@ -342,7 +342,72 @@ ${wpts}
  a.href=url;a.download='nordic-trail.gpx';a.click();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
-render();
+// NORDIC TRAIL - logowanie e-mail i haslo
+
+const loginEmail = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const authStatus = document.getElementById('authStatus');
+
+function updateAuthUI(user) {
+  if (user) {
+    authStatus.textContent = 'Zalogowano: ' + user.email;
+    loginEmail.style.display = 'none';
+    loginPassword.style.display = 'none';
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'block';
+  } else {
+    authStatus.textContent = 'Nie jesteś zalogowany';
+    loginEmail.style.display = 'block';
+    loginPassword.style.display = 'block';
+    loginBtn.style.display = 'block';
+    logoutBtn.style.display = 'none';
+  }
+}
+
+loginBtn.onclick = async () => {
+  const email = loginEmail.value.trim();
+  const password = loginPassword.value;
+
+  if (!email || !password) {
+    authStatus.textContent = 'Wpisz e-mail i hasło.';
+    return;
+  }
+
+  loginBtn.disabled = true;
+  authStatus.textContent = 'Trwa logowanie...';
+
+  const { error } = await db.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  loginBtn.disabled = false;
+  loginPassword.value = '';
+
+  if (error) {
+    authStatus.textContent =
+      'Logowanie nie powiodło się. Sprawdź e-mail i hasło.';
+  }
+};
+
+logoutBtn.onclick = async () => {
+  const { error } = await db.auth.signOut();
+
+  if (error) {
+    authStatus.textContent = 'Nie udało się wylogować.';
+  }
+};
+
+db.auth.onAuthStateChange((_event, session) => {
+  updateAuthUI(session?.user ?? null);
+});
+
+db.auth.getUser().then(({ data, error }) => {
+  if (!error) updateAuthUI(data.user);
+});
+  render();
   loadPublicPoints();
 </script>
 </body>
