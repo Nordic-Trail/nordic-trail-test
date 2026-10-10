@@ -94,6 +94,10 @@ async function loadPublicPoints(){
   }
 
   console.log('Pobrano punktów z Supabase:', data.length);
+  if (data && data.length > 0) {
+  points = data;
+  render();
+}
 }  
 function render(){
  markers.clearLayers();
