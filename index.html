@@ -123,11 +123,11 @@ function render(){
  markers.clearLayers();
  const list=document.getElementById('points');
  list.replaceChildren();
- if(!points.length){
+ if(!points.length && !publicPoints.length){
    list.textContent='Brak punktów. Dotknij mapy, aby dodać pierwszy.';
    return;
  }
- points.forEach((p,i)=>{
+ [...points, ...publicPoints].forEach((p,i)=>{
   
 
   
