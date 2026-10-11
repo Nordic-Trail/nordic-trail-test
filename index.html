@@ -256,7 +256,7 @@ publicPoints.forEach(p=>{
   L.marker([lat,lon],{icon}).bindPopup(popup).addTo(markers);
 });
 }
-map.on('click',e=>{
+map.on('click', async e=>{
  const kind=document.getElementById('kind').value;
  const note=document.getElementById('note').value.trim();
  
@@ -278,7 +278,30 @@ points.push({
   lat:Number(e.latlng.lat.toFixed(6)),
   lon:Number(e.latlng.lng.toFixed(6))
 });
+  const newPoint = points[points.length - 1];
+  const { data: { user }, error: authError } = await db.auth.getUser();
 
+  if (authError || !user) {
+    alert('Punkt zapisano lokalnie. Zaloguj się, aby opublikować go na wspólnej mapie.');
+  } else {
+  const { error: insertError } = await db
+  .from('map_points')
+  .insert({
+    kind: newPoint.kind,
+    status: newPoint.status,
+    note: newPoint.note,
+    lat: newPoint.lat,
+    lon: newPoint.lon
+  });
+
+if (insertError) {
+  console.error('Błąd publikowania:', insertError);
+  alert('Punkt zapisano lokalnie, ale nie udało się go opublikować.');
+} else {
+  alert('Punkt opublikowany na wspólnej mapie!');
+  await loadPublicPoints();
+}
+}
  document.getElementById('note').value='';
  save();
 });
