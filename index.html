@@ -365,14 +365,27 @@ loginBtn.onclick = async () => {
   }
 });
 
-  loginBtn.disabled = false;
-  
-
   if (error) {
-  authStatus.textContent = 'Błąd: ' + error.message;
+  loginBtn.disabled = false;
+
+  if (error.status === 429 ||
+      error.code === 'over_email_send_rate_limit') {
+    authStatus.textContent =
+      'Limit wiadomości e-mail został osiągnięty. Spróbuj ponownie później.';
+  } else {
+    authStatus.textContent = 'Błąd: ' + error.message;
+  }
 } else {
-  authStatus.textContent = 'Sprawdź pocztę e-mail i kliknij link logowania.';
-}
+  authStatus.textContent =
+    'Sprawdź pocztę e-mail i kliknij link logowania.';
+
+  // Blokada ponownego wysłania linku przez 60 sekund
+  loginBtn.disabled = true;
+
+  setTimeout(() => {
+    loginBtn.disabled = false;
+  }, 60000);
+  }-
 };
 
 logoutBtn.onclick = async () => {
