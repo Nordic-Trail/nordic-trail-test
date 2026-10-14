@@ -374,8 +374,10 @@ loginBtn.onclick = async () => {
       'Limit wiadomości e-mail został osiągnięty. Spróbuj ponownie później.';
   } else {
     authStatus.textContent = 'Błąd: ' + error.message;
+      }
   }
 } else {
+
   authStatus.textContent =
     'Sprawdź pocztę e-mail i kliknij link logowania.';
 
@@ -385,7 +387,7 @@ loginBtn.onclick = async () => {
   setTimeout(() => {
     loginBtn.disabled = false;
   }, 60000);
-  }-
+  }
 };
 
 logoutBtn.onclick = async () => {
