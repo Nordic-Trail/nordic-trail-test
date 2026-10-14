@@ -72,7 +72,15 @@ footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
 </main>
 <footer>Map data © OpenStreetMap contributors</footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
+  <script>
+  window.onerror = function(message, source, line) {
+  alert('Błąd JavaScript w linii ' + line + ': ' + message);
+};
+
+window.addEventListener('unhandledrejection', function(event) {
+  alert('Błąd aplikacji: ' + String(event.reason));
+});
+
   // NORDIC TRAIL - polaczenie z Supabase
 const SUPABASE_URL = 'https://kwhkxedmtehqplvnmjka.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_9NwkykVx5UuNhnyPlD5vFw_t7zfqSvE';
@@ -375,7 +383,7 @@ loginBtn.onclick = async () => {
   } else {
     authStatus.textContent = 'Błąd: ' + error.message;
       }
-  }
+  
 } else {
 
   authStatus.textContent =
