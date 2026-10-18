@@ -127,7 +127,26 @@ publicPoints=(data||[]).filter(p=>p.review_status==='approved'&&Number.isFinite(
   list.textContent=publicPoints.length ? `Punkty publiczne: ${publicPoints.length}. Można je przeglądać, ale nie edytować.` : 'Brak punktów publicznych.';
   render();
 }
+async function loadMyPendingPoints() {
+  if (!currentUser) {
+    myPendingPoints = [];
+    return;
+  }
 
+  const { data, error } = await db
+    .from('map_points')
+    .select('id,kind,status,note,lat,lon,created_at,review_status')
+    .eq('user_id', currentUser.id)
+    .eq('review_status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Błąd pobierania zgłoszeń:', error.message);
+    return;
+  }
+
+  myPendingPoints = data || [];
+}
 function render(){
  markers.clearLayers();
  const list=document.getElementById('points');
