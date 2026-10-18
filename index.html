@@ -150,6 +150,26 @@ async function loadMyPendingPoints() {
   }
 
   myPendingPoints = data || [];
+  const list = document.getElementById('myPendingPoints');
+list.replaceChildren();
+
+if (myPendingPoints.length === 0) {
+  list.textContent = 'Brak zgłoszeń oczekujących na weryfikację.';
+} else {
+  myPendingPoints.forEach(p => {
+    const item = document.createElement('p');
+    const kindName = {
+      gate: 'Szlaban',
+      closed: 'Droga zamknięta',
+      place: 'Ciekawe miejsce'
+    };
+
+    item.textContent =
+      `${kindName[p.kind] || 'Punkt'} — ${p.status} — Oczekuje na weryfikację`;
+
+    list.appendChild(item);
+  });
+}
 }
 function render(){
  markers.clearLayers();
