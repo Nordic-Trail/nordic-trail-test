@@ -312,6 +312,35 @@ publicPoints.forEach(p=>{
   const title=document.createElement('strong');title.textContent='Punkt publiczny: '+(labels[p.kind]||'Punkt');popup.appendChild(title);
   const desc=document.createElement('p');desc.textContent=p.note||'Bez opisu';popup.appendChild(desc);
   const status=document.createElement('p');status.textContent='Status: '+(p.status||'Brak danych');popup.appendChild(status);
+  const reportBtn = document.createElement('button');
+reportBtn.textContent = 'Zgłoś zmianę';
+reportBtn.className = 'secondary';
+
+reportBtn.onclick = async () => {
+  if (!currentUser) {
+    alert('Zaloguj się, aby zgłosić zmianę.');
+    return;
+  }
+
+  if (!confirm('Zgłosić, że blokada już nie istnieje?')) return;
+
+  const { error } = await db.from('point_reports').insert({
+    point_id: p.id,
+    report_type: 'gate_removed',
+    note: 'Zgłoszenie usunięcia blokady'
+  });
+
+  if (error) {
+    alert('Nie udało się wysłać zgłoszenia: ' + error.message);
+    return;
+  }
+
+  alert('Zgłoszenie przesłane do weryfikacji.');
+};
+
+if (p.kind === 'gate' || p.kind === 'closed') {
+  popup.appendChild(reportBtn);
+}
   L.marker([lat,lon],{icon}).bindPopup(popup).addTo(markers);
 });
 }
