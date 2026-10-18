@@ -390,6 +390,7 @@ function updateAuthUI(user) {
   loadMyPendingPoints();
 } else {
   myPendingPoints = [];
+    document.getElementById('myPendingPoints').textContent = 'Zaloguj się, aby zobaczyć swoje zgłoszenia.';
 }
   if (user) {
     authStatus.textContent = 'Zalogowano: ' + user.email;
