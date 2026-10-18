@@ -110,6 +110,7 @@ const statuses={
 
 let points=[];
 let publicPoints=[];
+    let myPendingPoints=[];
 let currentUser=null;
 try{points=JSON.parse(localStorage.getItem('nordicTrailPoints')||'[]')}catch(e){}
 const markers=L.layerGroup().addTo(map);
