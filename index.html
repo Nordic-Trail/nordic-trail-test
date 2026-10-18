@@ -125,7 +125,7 @@ function save(){
 }
 async function loadPublicPoints(){
   const list=document.getElementById('publicPoints');
-  const {data,error}=await db.from('map_points').select('id,kind,status,note,lat,lon,created_at,review_status')    .limit(500);
+  const {data,error}=await db.from('map_points').select('id,kind,status,note,lat,lon,created_at,review_status')    .eq('review_status', 'approved').limit(500);
   if(error){console.error('Błąd pobierania punktów:',error.message);list.textContent='Nie udało się pobrać punktów publicznych.';return;}
 publicPoints=(data||[]).filter(p=>p.review_status==='approved'&&Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lon)));
   list.textContent=publicPoints.length ? `Punkty publiczne: ${publicPoints.length}. Można je przeglądać, ale nie edytować.` : 'Brak punktów publicznych.';
