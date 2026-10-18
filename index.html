@@ -136,11 +136,11 @@ async function loadMyPendingPoints() {
     myPendingPoints = [];
     return;
   }
-
+const requestedUserId = currentUser.id;
   const { data, error } = await db
     .from('map_points')
     .select('id,kind,status,note,lat,lon,created_at,review_status')
-    .eq('user_id', currentUser.id)
+    .eq('user_id', requestedUserId)
     .eq('review_status', 'pending')
     .order('created_at', { ascending: false });
 
