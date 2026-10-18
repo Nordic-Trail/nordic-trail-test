@@ -342,6 +342,7 @@ const logoutBtn = document.getElementById('logoutBtn');
 const authStatus = document.getElementById('authStatus');
 
 function updateAuthUI(user) {
+    currentUser = user;
   if (user) {
     authStatus.textContent = 'Zalogowano: ' + user.email;
     loginEmail.style.display = 'none';
