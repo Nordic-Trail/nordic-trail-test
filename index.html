@@ -141,7 +141,7 @@ const requestedUserId = currentUser.id;
     .from('map_points')
     .select('id,kind,status,note,lat,lon,created_at,review_status')
     .eq('user_id', requestedUserId)
-    .eq('review_status', 'pending')
+    
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -154,7 +154,7 @@ const requestedUserId = currentUser.id;
 list.replaceChildren();
 
 if (myPendingPoints.length === 0) {
-  list.textContent = 'Brak zgłoszeń oczekujących na weryfikację.';
+  list.textContent = 'Brak zgłoszeń w historii.';
 } else {
   myPendingPoints.forEach(p => {
     const item = document.createElement('p');
@@ -164,8 +164,15 @@ if (myPendingPoints.length === 0) {
       place: 'Ciekawe miejsce'
     };
 
-    item.textContent =
-      `${kindName[p.kind] || 'Punkt'} — ${p.status} — Oczekuje na weryfikację`;
+    const statusName = {
+  pending: 'Oczekuje na weryfikację',
+  approved: 'Zatwierdzone',
+  rejected: 'Odrzucone'
+};
+
+item.textContent =
+  `${kindName[p.kind] || 'Punkt'} — ${p.status} — ${statusName[p.review_status] || 'Status nieznany'}`;
+  
 
     list.appendChild(item);
   });
