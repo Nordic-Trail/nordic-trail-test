@@ -94,6 +94,7 @@ const db = window.supabase.createClient(
   SUPABASE_KEY
 );
 const map=L.map('map').setView([62.2,15.2],5);
+    map.attributionControl.setPrefix('');
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
  maxZoom:19,
  attribution:'© OpenStreetMap contributors'
