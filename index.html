@@ -323,12 +323,49 @@ reportBtn.onclick = async () => {
     return;
   }
 
-  if (!confirm('Zgłosić, że blokada już nie istnieje?')) return;
+  const reportTypes = {
+  '1': 'gate_removed',
+  '2': 'gate_status',
+  '3': 'closure_risk',
+  '4': 'private_road',
+  '5': 'incorrect_info',
+  '6': 'other'
+};
 
+const choice = prompt(
+  'Co chcesz zgłosić?\n' +
+  '1. Blokada została usunięta\n' +
+  '2. Zmiana statusu szlabanu\n' +
+  '3. Ryzyko zamknięcia drogi\n' +
+  '4. Droga prywatna\n' +
+  '5. Błędne informacje\n' +
+  '6. Inna zmiana\n\n' +
+  'Wpisz numer od 1 do 6:'
+);
+
+if (choice === null) return;
+
+const reportType = reportTypes[choice.trim()];
+
+if (!reportType) {
+  alert('Nieprawidłowy numer zgłoszenia.');
+  return;
+}
+
+  const reportNote = prompt(
+  'Opisz zauważoną zmianę (minimum 10 znaków):'
+);
+
+if (reportNote === null) return;
+
+if (reportNote.trim().length < 10) {
+  alert('Opis musi mieć co najmniej 10 znaków.');
+  return;
+}
   const { error } = await db.from('point_reports').insert({
     point_id: p.id,
-    report_type: 'gate_removed',
-    note: 'Zgłoszenie usunięcia blokady'
+    report_type: reportType,
+    note: reportNote
   });
 
   if (error) {
