@@ -369,9 +369,14 @@ if (reportNote.trim().length < 10) {
   });
 
   if (error) {
-    alert('Nie udało się wysłać zgłoszenia: ' + error.message);
-    return;
+  if (error.code === '23505') {
+    alert('Takie zgłoszenie oczekuje już na weryfikację.');
+  } else {
+    alert('Nie udało się wysłać zgłoszenia. Spróbuj ponownie później.');
+    console.error('Błąd zgłoszenia:', error);
   }
+  return;
+}
 
   alert('Zgłoszenie przesłane do weryfikacji.');
 };
