@@ -21,6 +21,13 @@ button.secondary{background:#293a30;color:#f2f0e7;border:1px solid #536657}
 #map{height:48vh;min-height:300px;border-radius:12px;border:1px solid #536657;margin-top:12px}
 .hint{font-size:13px;color:#b8c5b7;line-height:1.5}
 #points{font-size:13px;line-height:1.6}
+#adminPanel{margin-top:24px;padding:16px;background:#1b2a21;border:1px solid #677b50;border-radius:12px}
+#adminPanel[hidden]{display:none}
+.admin-item{border-top:1px solid #35483c;padding:14px 0}
+.admin-item p{margin:6px 0;overflow-wrap:anywhere}
+.admin-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.admin-actions button{margin:0}
+button:disabled{opacity:.55;cursor:not-allowed}
 footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
 </style>
 </head>
@@ -73,6 +80,14 @@ footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
 </div>
   <h2 style="margin-top:22px">Punkty publiczne (tylko do odczytu)</h2>
   <div id="publicPoints" class="hint">Wczytywanie punktów publicznych…</div>
+  <section id="adminPanel" hidden aria-label="Panel administratora">
+    <h2>Panel administratora — weryfikacja nowych punktów</h2>
+    <p class="hint">Punkty trafiają na mapę publiczną dopiero po zatwierdzeniu. Uprawnienia weryfikuje Supabase.</p>
+    <button id="adminRefresh" class="secondary" type="button">Odśwież oczekujące punkty</button>
+    <p id="adminStatus" class="hint" role="status" aria-live="polite"></p>
+    <div id="adminPendingPoints"></div>
+    <p class="hint">Moderacja zgłoszeń zmian istniejących punktów zostanie dodana oddzielnie.</p>
+  </section>
 </main>
 <footer>Map data © OpenStreetMap contributors</footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -455,6 +470,120 @@ ${wpts}
  a.href=url;a.download='nordic-trail.gpx';a.click();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
+
+/* Panel administratora: rolę weryfikują serwerowe RPC, nie sam interfejs. */
+const adminPanel=document.getElementById('adminPanel');
+const adminStatus=document.getElementById('adminStatus');
+const adminPendingList=document.getElementById('adminPendingPoints');
+const adminRefresh=document.getElementById('adminRefresh');
+const adminReviewMarkers=L.layerGroup().addTo(map);
+let adminRequestId=0,adminBusy=false;
+function adminText(tag,value,css){
+ const element=document.createElement(tag);
+ element.textContent=String(value ?? '');
+ if(css)element.className=css;
+ return element;
+}
+function resetAdminPanel(){
+ ++adminRequestId;
+ adminPanel.hidden=true;
+ adminStatus.textContent='';
+ adminPendingList.replaceChildren();
+ adminReviewMarkers.clearLayers();
+}
+function previewAdminPoint(point){
+ const lat=Number(point.lat),lon=Number(point.lon);
+ if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat < -90||lat > 90||lon < -180||lon > 180){
+   adminStatus.textContent='Nieprawidłowe współrzędne punktu.';
+   return;
+ }
+ adminReviewMarkers.clearLayers();
+ const marker=L.circleMarker([lat,lon],{radius:12,color:'#e5b65c',weight:3,fillOpacity:.35}).addTo(adminReviewMarkers);
+ const popup=document.createElement('div');
+ popup.appendChild(adminText('strong','Punkt oczekujący na moderację'));
+ popup.appendChild(adminText('p',point.note||'Bez opisu'));
+ marker.bindPopup(popup).openPopup();
+ map.setView([lat,lon],13);
+ document.getElementById('map').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function renderAdminPoints(items){
+ adminPendingList.replaceChildren();
+ if(!items.length){adminPendingList.appendChild(adminText('p','Brak oczekujących punktów.','hint'));return;}
+ for(const point of items){
+   const card=document.createElement('article');
+   card.className='admin-item';
+   card.appendChild(adminText('strong',(labels[point.kind]||'Punkt')+' — ID: '+point.id));
+   card.appendChild(adminText('p','Status: '+(point.status||'Nieznany')));
+   card.appendChild(adminText('p','Opis: '+(point.note||'Bez opisu')));
+   const lat=Number(point.lat),lon=Number(point.lon);
+   card.appendChild(adminText('p','Lokalizacja: '+(Number.isFinite(lat)&&Number.isFinite(lon) ? lat.toFixed(5)+', '+lon.toFixed(5) : 'Błędne współrzędne'),'hint'));
+   if(point.created_at){
+     const d=new Date(point.created_at);
+     if(!Number.isNaN(d.getTime()))card.appendChild(adminText('p','Dodano: '+d.toLocaleString('pl-PL'),'hint'));
+   }
+   const preview=document.createElement('button');
+   preview.type='button';preview.className='secondary';preview.textContent='Pokaż na mapie';
+   preview.onclick=()=>previewAdminPoint(point);
+   card.appendChild(preview);
+   const actions=document.createElement('div');
+   actions.className='admin-actions';
+   for(const [decision,caption] of [['approved','Zatwierdź'],['rejected','Odrzuć']]){
+     const btn=document.createElement('button');
+     btn.type='button';if(decision==='rejected')btn.className='secondary';
+     btn.textContent=caption;
+     btn.onclick=()=>moderateAdminPoint(point,decision);
+     actions.appendChild(btn);
+   }
+   card.appendChild(actions);
+   adminPendingList.appendChild(card);
+ }
+}
+async function loadAdminPoints(){
+ const userId=currentUser?.id;
+ if(!userId){resetAdminPanel();return;}
+ const requestId=++adminRequestId,wasVisible=!adminPanel.hidden;
+ if(wasVisible)adminStatus.textContent='Odświeżanie…';
+ try{
+   const {data,error}=await db.rpc('admin_pending_map_points');
+   if(requestId!==adminRequestId||userId!==currentUser?.id)return;
+   if(error)throw error;
+   if(!Array.isArray(data))throw new Error('Nieoczekiwany format listy');
+   adminPanel.hidden=false;
+   adminStatus.textContent='Oczekujące punkty: '+data.length;
+   adminReviewMarkers.clearLayers();
+   renderAdminPoints(data);
+ }catch(error){
+   if(requestId!==adminRequestId||userId!==currentUser?.id)return;
+   if(wasVisible){
+     console.error('Błąd listy administratora:',error);
+     adminStatus.textContent='Nie udało się pobrać listy. Sprawdź połączenie i uprawnienia.';
+   }else resetAdminPanel();
+ }
+}
+async function moderateAdminPoint(point,decision){
+ if(adminBusy||!currentUser)return;
+ const action=decision==='approved'?'zatwierdzić':'odrzucić';
+ if(!confirm('Czy na pewno chcesz '+action+' punkt ID '+point.id+'?'))return;
+ adminBusy=true;adminRefresh.disabled=true;
+ adminPendingList.querySelectorAll('button').forEach(b=>b.disabled=true);
+ adminStatus.textContent='Zapisywanie decyzji…';
+ try{
+   const {error}=await db.rpc('moderate_map_point',{p_point_id:point.id,p_decision:decision});
+   if(error)throw error;
+   await loadAdminPoints();
+   await loadPublicPoints();
+   if(currentUser)await loadMyPendingPoints();
+   if(!adminPanel.hidden)adminStatus.textContent='Decyzja zapisana. Lista odświeżona.';
+ }catch(error){
+   console.error('Błąd moderacji:',error);
+   if(!adminPanel.hidden)adminStatus.textContent='Nie udało się zapisać decyzji. Odśwież listę i sprawdź uprawnienia.';
+ }finally{
+   adminBusy=false;adminRefresh.disabled=false;
+   adminPendingList.querySelectorAll('button').forEach(b=>b.disabled=false);
+ }
+}
+adminRefresh.onclick=()=>{if(!adminBusy)loadAdminPoints();};
+
 // NORDIC TRAIL - logowanie e-mail i haslo
 
 const loginEmail = document.getElementById('loginEmail');
@@ -465,6 +594,7 @@ const authStatus = document.getElementById('authStatus');
 
 function updateAuthUI(user) {
     currentUser = user;
+    loadAdminPoints();
   if (user) {
   loadMyPendingPoints();
 } else {
