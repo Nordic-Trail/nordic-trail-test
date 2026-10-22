@@ -100,6 +100,22 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
  attribution:'© OpenStreetMap contributors'
 }).addTo(map);
 
+function reportOptionsForKind(kind) {
+ return kind === 'gate' ? [
+  ['gate_removed', 'Szlabanu już nie ma (został fizycznie usunięty)'],
+  ['gate_status', 'Zmiana stanu bramy lub szlabanu'],
+  ['closure_risk', 'Ryzyko zamknięcia drogi'],
+  ['private_road', 'Droga prywatna lub ograniczony dostęp'],
+  ['incorrect_info', 'Nieprawidłowe informacje'],
+  ['other', 'Inna zmiana']
+] : [
+  ['road_unblocked', 'Droga została fizycznie odblokowana'],
+  ['closure_risk', 'Ryzyko ponownego zamknięcia drogi'],
+  ['private_road', 'Droga prywatna lub ograniczony dostęp'],
+  ['incorrect_info', 'Nieprawidłowe informacje'],
+  ['other', 'Inna zmiana']
+];
+}
 const colors={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
 const labels={
  gate:'Brama / szlaban',
@@ -325,20 +341,7 @@ reportBtn.onclick = async () => {
 
   // Osobne zgłoszenia dla szlabanu i fizycznie zablokowanej drogi.
 // Nie oznaczają automatycznie legalnego przejazdu.
-const reportOptions = p.kind === 'gate' ? [
-  ['gate_removed', 'Szlabanu już nie ma (został fizycznie usunięty)'],
-  ['gate_status', 'Zmiana stanu bramy lub szlabanu'],
-  ['closure_risk', 'Ryzyko zamknięcia drogi'],
-  ['private_road', 'Droga prywatna lub ograniczony dostęp'],
-  ['incorrect_info', 'Nieprawidłowe informacje'],
-  ['other', 'Inna zmiana']
-] : [
-  ['road_unblocked', 'Droga została fizycznie odblokowana'],
-  ['closure_risk', 'Ryzyko ponownego zamknięcia drogi'],
-  ['private_road', 'Droga prywatna lub ograniczony dostęp'],
-  ['incorrect_info', 'Nieprawidłowe informacje'],
-  ['other', 'Inna zmiana']
-];
+const reportOptions = reportOptionsForKind(p.kind);
 
 const choice = prompt(
   'Co chcesz zgłosić?\n' +
