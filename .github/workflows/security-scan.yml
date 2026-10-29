@@ -51,7 +51,26 @@ jobs:
           if [ "$result" -eq 0 ]; then
             echo 'PASS: No secrets detected by Gitleaks.'
           elif [ "$result" -eq 1 ]; then
-            echo 'FAIL: Potential secrets detected. Details intentionally hidden.'
+            python3 - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import PurePosixPath
+
+          with open('/tmp/nordic-trail-gitleaks.json', encoding='utf-8') as report:
+              findings = json.load(report)
+          print(f'FAIL: {len(findings)} potential findings; secret values withheld.')
+          groups = Counter(
+              (str(item.get('RuleID', 'unknown'))[:80],
+               str(PurePosixPath(item.get('File') or 'unknown'))[:160],
+               str(item.get('Commit') or 'unknown')[:8])
+              for item in findings
+          )
+          for (rule, filename, commit), count in sorted(groups.items())[:50]:
+              safe = lambda s: ''.join(ch if ch.isalnum() or ch in '._/-' else '_' for ch in s)
+              print(f'Rule={safe(rule)} File={safe(filename)} Commit={safe(commit)} Count={count}')
+          if len(groups) > 50:
+              print(f'Additional groups omitted: {len(groups)-50}')
+          PY
             exit 1
           else
             echo 'ERROR: Scanner did not complete successfully.'
