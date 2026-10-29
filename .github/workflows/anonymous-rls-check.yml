@@ -36,8 +36,8 @@ jobs:
           base = url_match.group(1)
           key = key_match.group(1)
 
-          def check(label, table, filters, expect_public=False):
-              query = urlencode({"select": "id", **filters})
+          def check(label, table, filters, expect_public=False, column="id"):
+              query = urlencode({"select": column, **filters})
               req = Request(
                   f"{base}/rest/v1/{table}?{query}",
                   method="HEAD",
@@ -76,7 +76,7 @@ jobs:
               check("Unapproved map points", "map_points", {"review_status": "neq.approved"}),
               check("Non-public map points", "map_points", {"visibility": "neq.public"}),
               check("Point reports", "point_reports", {}),
-              check("Administrator memberships", "app_admins", {}),
+              check("Administrator memberships", "app_admins", {}, column="user_id"),
               check("Moderation history", "moderation_history", {}),
               check("Point moderation history", "point_moderation_history", {}),
           ]
