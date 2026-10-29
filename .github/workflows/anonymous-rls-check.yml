@@ -1,0 +1,87 @@
+name: NORDIC TRAIL - Anonymous API RLS Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  anon-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout application
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+
+      - name: Check anonymous read access without retrieving row bodies
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError, URLError
+
+          source = Path("index.html").read_text(encoding="utf-8")
+          url_match = re.search(r"const\s+SUPABASE_URL\s*=\s*['\"](https://[a-z0-9-]+\.supabase\.co)['\"]", source)
+          key_match = re.search(r"const\s+SUPABASE_KEY\s*=\s*['\"](sb_publishable_[A-Za-z0-9_-]+)['\"]", source)
+          if not (url_match and key_match):
+              print("ERROR: Public Supabase configuration not recognized.")
+              sys.exit(2)
+          base = url_match.group(1)
+          key = key_match.group(1)
+
+          def check(label, table, filters, expect_public=False):
+              query = urlencode({"select": "id", **filters})
+              req = Request(
+                  f"{base}/rest/v1/{table}?{query}",
+                  method="HEAD",
+                  headers={
+                      "apikey": key,
+                      "Prefer": "count=exact",
+                      "Range": "0-0",
+                      "Accept": "application/json",
+                  },
+              )
+              try:
+                  with urlopen(req, timeout=15) as response:
+                      status = response.status
+                      content_range = response.headers.get("Content-Range", "")
+              except HTTPError as exc:
+                  status = exc.code
+                  content_range = ""
+                  exc.close()
+              except (URLError, TimeoutError):
+                  print(f"ERROR: {label}: network or timeout error.")
+                  return False
+
+              if expect_public:
+                  passed = status in (200, 206) and "/" in content_range
+              elif status in (401, 403):
+                  passed = True
+              elif status in (200, 206):
+                  passed = content_range.endswith("/0")
+              else:
+                  passed = False
+              print(f"{'PASS' if passed else 'FAIL'}: {label}; HTTP {status}; no row bodies retrieved.")
+              return passed
+
+          results = [
+              check("API connectivity and count metadata", "map_points", {"review_status": "eq.approved"}, True),
+              check("Unapproved map points", "map_points", {"review_status": "neq.approved"}),
+              check("Non-public map points", "map_points", {"visibility": "neq.public"}),
+              check("Point reports", "point_reports", {}),
+              check("Administrator memberships", "app_admins", {}),
+              check("Moderation history", "moderation_history", {}),
+              check("Point moderation history", "point_moderation_history", {}),
+          ]
+          if not all(results):
+              print("FAIL: Anonymous API access requires investigation.")
+              sys.exit(1)
+          print("PASS: No unauthorized anonymous reads detected in the tested tables and filters.")
+          PY
