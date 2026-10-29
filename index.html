@@ -71,6 +71,12 @@ footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
 <div id="myPendingPoints" class="hint">
   Wczytywanie zgłoszeń...
 </div>
+  <section id="adminModeration" style="display:none;margin-top:24px;border:1px solid #536657;border-radius:12px;padding:14px">
+    <h2>Moderacja punktów — administrator</h2>
+    <p id="adminModerationStatus" class="hint" role="status" aria-live="polite"></p>
+    <button id="adminModerationRefresh" type="button" class="secondary">Odśwież oczekujące punkty</button>
+    <div id="adminModerationList" class="hint"></div>
+  </section>
   <h2 style="margin-top:22px">Punkty publiczne (tylko do odczytu)</h2>
   <div id="publicPoints" class="hint">Wczytywanie punktów publicznych…</div>
 </main>
@@ -463,8 +469,80 @@ const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const authStatus = document.getElementById('authStatus');
 
+// Dostęp do kolejki sprawdza funkcja SECURITY DEFINER w Supabase.
+const adminModeration = document.getElementById('adminModeration');
+const adminModerationStatus = document.getElementById('adminModerationStatus');
+const adminModerationList = document.getElementById('adminModerationList');
+const adminModerationRefresh = document.getElementById('adminModerationRefresh');
+let moderationRequestId = 0;
+let moderationBusy = false;
+
+async function loadAdminModeration() {
+  if (!currentUser || moderationBusy) return;
+  const requestId = ++moderationRequestId;
+  const userId = currentUser.id;
+  adminModerationRefresh.disabled = true;
+  adminModerationStatus.textContent = 'Sprawdzanie uprawnień i pobieranie kolejki…';
+  const { data, error } = await db.rpc('admin_pending_map_points');
+  adminModerationRefresh.disabled = false;
+  if (requestId !== moderationRequestId || currentUser?.id !== userId) return;
+  if (error) {
+    adminModeration.style.display = 'none';
+    adminModerationList.replaceChildren();
+    // Nie ujawniamy szczegółów zapytań ani rekordów kontom bez dostępu.
+    return;
+  }
+  adminModeration.style.display = 'block';
+  adminModerationList.replaceChildren();
+  adminModerationStatus.textContent = data?.length
+    ? 'Oczekujące punkty: ' + data.length
+    : 'Brak punktów oczekujących na moderację.';
+  (data || []).forEach(p => {
+    const item = document.createElement('div');
+    item.style.cssText = 'border-top:1px solid #536657;padding:12px 0';
+    const description = document.createElement('p');
+    description.textContent = 'ID ' + p.id + ' · ' + (labels[p.kind] || p.kind) +
+      ' · ' + (p.status || '') + ' · ' + (p.note || 'Bez opisu');
+    item.appendChild(description);
+    for (const [decision, caption] of [['approved','Zatwierdź'],['rejected','Odrzuć']]) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = decision === 'rejected' ? 'secondary' : '';
+      button.textContent = caption + ' (ID ' + p.id + ')';
+      button.onclick = async () => {
+        if (moderationBusy || !currentUser || !confirm(caption + ' punkt ID ' + p.id + '?')) return;
+        moderationBusy = true;
+        adminModerationRefresh.disabled = true;
+        adminModerationStatus.textContent = 'Zapisywanie decyzji…';
+        const result = await db.rpc('moderate_map_point', {
+          p_point_id: p.id, p_decision: decision
+        });
+        moderationBusy = false;
+        adminModerationRefresh.disabled = false;
+        if (result.error) {
+          adminModerationStatus.textContent = 'Nie udało się zapisać decyzji. Odśwież listę i spróbuj ponownie.';
+          return;
+        }
+        adminModerationStatus.textContent = 'Decyzja zapisana.';
+        await loadAdminModeration();
+        await loadPublicPoints();
+        await loadMyPendingPoints();
+      };
+      item.appendChild(button);
+    }
+    adminModerationList.appendChild(item);
+  });
+}
+adminModerationRefresh.onclick = loadAdminModeration;
+
 function updateAuthUI(user) {
     currentUser = user;
+  ++moderationRequestId;
+  adminModeration.style.display = 'none';
+  adminModerationList.replaceChildren();
+  if (user) {
+    loadAdminModeration();
+  }
   if (user) {
   loadMyPendingPoints();
 } else {
