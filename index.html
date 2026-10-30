@@ -127,6 +127,7 @@ let publicPoints=[];
     let myPendingPoints=[];
 let currentUser=null;
 let cloudRequestId=0;
+let cloudPrivatePoints=[];
 try{points=JSON.parse(localStorage.getItem('nordicTrailPoints')||'[]')}catch(e){}
 const markers=L.layerGroup().addTo(map);
 
@@ -193,14 +194,15 @@ item.textContent =
 async function loadCloudDrafts(){
   const list=document.getElementById('cloudDrafts'), requestId=++cloudRequestId, userId=currentUser?.id;
   list.replaceChildren();
-  if(!userId){list.textContent='Zaloguj się, aby zobaczyć punkty.';return;}
+  if(!userId){cloudPrivatePoints=[];render();list.textContent='Zaloguj się, aby zobaczyć punkty.';return;}
   list.textContent='Pobieranie…';
   const {data,error}=await db.from('map_points')
     .select('id,kind,status,note,lat,lon,review_status')
     .eq('user_id',userId).eq('visibility','private').limit(500);
   if(requestId!==cloudRequestId||currentUser?.id!==userId)return;
   list.replaceChildren();
-  if(error){list.textContent='Błąd pobierania punktów.';return;}
+  if(error){cloudPrivatePoints=[];render();list.textContent='Błąd pobierania punktów.';return;}
+  cloudPrivatePoints=data||[];render();
   if(!data?.length){list.textContent='Brak prywatnych punktów.';return;}
   for(const p of data){
     const row=document.createElement('div');
@@ -246,7 +248,7 @@ function render(){
  markers.clearLayers();
  const list=document.getElementById('points');
  list.replaceChildren();
- if(!points.length && !publicPoints.length){
+ if(!points.length && !publicPoints.length && !cloudPrivatePoints.length){
    list.textContent='Brak punktów. Dotknij mapy, aby dodać pierwszy.';
    return;
  }
@@ -367,6 +369,21 @@ row.appendChild(edit);
    row.appendChild(del);
    list.appendChild(row);
  });
+// Prywatna warstwa punktów przypisanych do konta.
+cloudPrivatePoints.forEach(p=>{
+ const lat=Number(p.lat),lon=Number(p.lon);
+ if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
+ const icons={gate:'🚧',closed:'⛔',place:'🌲'};
+ const icon=L.divIcon({className:'',html:`<div style="34px;height:34px;border:2px solid #f5c76a;border-radius:50%;background:#172720;display:flex;align-items:center;justify-content:center;font-size:20px">${icons[p.kind]||'📍'}</div>`,iconSize:[34,34],iconAnchor:[17,17]});
+ const popup=document.createElement('div');
+ const title=document.createElement('strong');
+ title.textContent='Mój punkt — '+p.review_status;
+ popup.appendChild(title);
+ const desc=document.createElement('p');
+ desc.textContent=(labels[p.kind]||p.kind)+' — '+p.status+' — '+(p.note||'Bez opisu');
+ popup.appendChild(desc);
+ L.marker([lat,lon],{icon}).bindPopup(popup).addTo(markers);
+});
 // Punkty publiczne są tylko do odczytu; nigdy nie trafiają do lokalnej listy edycji.
 publicPoints.forEach(p=>{
   const lat=Number(p.lat),lon=Number(p.lon);
