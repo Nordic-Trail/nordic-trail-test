@@ -495,7 +495,8 @@ if (insertError) {
   alert('Punkt zapisano lokalnie, ale nie na koncie. Sprawdź migrację Supabase.');
 } else {
   alert('Punkt zapisano prywatnie na koncie. Nie wysłano go do moderatora.');
-  await loadPublicPoints();
+  await loadCloudDrafts();
+  await loadMyPendingPoints();
 }
 }
  document.getElementById('note').value='';
