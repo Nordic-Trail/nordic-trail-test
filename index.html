@@ -214,7 +214,7 @@ async function loadCloudDrafts(){
       edit.onclick=async()=>{
         if(currentUser?.id!==userId)return;
         const opts=statuses[p.kind]||[];
-        const choice=prompt('Numer statusu:\\n'+opts.map((v,i)=>(i+1)+'. '+v).join('\\n'));
+        const choice=prompt('Numer statusu:\n'+opts.map((v,i)=>(i+1)+'. '+v).join('\n'));
         if(choice===null)return;
         const status=opts[Number(choice)-1];
         if(!status||!Number.isInteger(Number(choice))){alert('Nieprawidłowy status');return;}
