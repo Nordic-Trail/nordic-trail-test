@@ -465,42 +465,31 @@ if(!Number.isInteger(statusIndex) || !statuses[kind][statusIndex]){
   alert('Nieprawidłowy numer statusu');
   return;
 }
-points.push({
-  kind,note,
-  status:statuses[kind][statusIndex],
+const newPoint={
+  kind,note,status:statuses[kind][statusIndex],
   date:new Date().toISOString(),
-  lat:Number(e.latlng.lat.toFixed(6)),
-  lon:Number(e.latlng.lng.toFixed(6))
-});
-  const newPoint = points[points.length - 1];
-  const { data: { user }, error: authError } = await db.auth.getUser();
-
-  if (authError || !user) {
-    alert('Punkt zapisano lokalnie. Zaloguj się, aby zapisać prywatny punkt na koncie.');
-  } else {
-  const { error: insertError } = await db
-  .from('map_points')
-  .insert({
-    kind: newPoint.kind,
-    status: newPoint.status,
-    note: newPoint.note,
-    lat: newPoint.lat,
-    lon: newPoint.lon,
-    review_status: 'draft',
-    visibility: 'private'
+  lat:Number(e.latlng.lat.toFixed(6)),lon:Number(e.latlng.lng.toFixed(6))
+};
+const {data:authData,error:authError}=await db.auth.getUser();
+const user=authError?null:authData?.user;
+if(!user){
+  points.push(newPoint);save();
+  alert('Punkt zapisano lokalnie w tej przeglądarce.');
+}else{
+  const {error:insertError}=await db.from('map_points').insert({
+    kind:newPoint.kind,status:newPoint.status,note:newPoint.note,
+    lat:newPoint.lat,lon:newPoint.lon,review_status:'draft',visibility:'private'
   });
-
-if (insertError) {
-  console.error('Błąd zapisu szkicu:', insertError);
-  alert('Punkt zapisano lokalnie, ale nie na koncie. Sprawdź migrację Supabase.');
-} else {
-  alert('Punkt zapisano prywatnie na koncie. Nie wysłano go do moderatora.');
-  await loadCloudDrafts();
-  await loadMyPendingPoints();
+  if(insertError){
+    console.error('Błąd zapisu szkicu:',insertError.message);
+    points.push(newPoint);save();
+    alert('Nie udało się zapisać na koncie. Punkt zachowano lokalnie.');
+  }else{
+    alert('Punkt zapisano prywatnie na koncie, bez zgłoszenia do moderacji.');
+    await loadCloudDrafts();await loadMyPendingPoints();
+  }
 }
-}
- document.getElementById('note').value='';
- save();
+document.getElementById('note').value='';
 });
 document.getElementById('clear').onclick=()=>{
  if(confirm('Usunąć wszystkie zapisane punkty?')){
