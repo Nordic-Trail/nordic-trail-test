@@ -66,7 +66,10 @@ footer{text-align:center;color:#9baa9b;font-size:11px;padding:18px}
   <button id="clear" class="secondary">Usuń wszystkie moje punkty</button>
   <h2 style="margin-top:22px">Moje zapisane punkty</h2>
   <div id="points">Wczytywanie…</div>
-  <p class="hint">Twoje punkty są zapisywane tylko w tej przeglądarce. Nie są publikowane innym użytkownikom.</p>
+  <p class="hint">Ta lista jest lokalna; edycja lub usunięcie nie zmienia punktów zapisanych na koncie.</p>
+  <h2 style="margin-top:22px">Prywatne punkty na koncie</h2>
+  <div id="cloudDrafts">Zaloguj się, aby zobaczyć punkty.</div>
+  <button id="refreshCloudDrafts" type="button" class="secondary">Odśwież</button>
   <h2 style="margin-top:22px">Moje zgłoszenia</h2>
 <div id="myPendingPoints" class="hint">
   Wczytywanie zgłoszeń...
@@ -123,6 +126,7 @@ let points=[];
 let publicPoints=[];
     let myPendingPoints=[];
 let currentUser=null;
+let cloudRequestId=0;
 try{points=JSON.parse(localStorage.getItem('nordicTrailPoints')||'[]')}catch(e){}
 const markers=L.layerGroup().addTo(map);
 
@@ -172,7 +176,8 @@ if (myPendingPoints.length === 0) {
     };
 
     const statusName = {
-  pending: 'Oczekuje na weryfikację',
+  draft: 'Prywatny szkic',
+   pending: 'Oczekuje na weryfikację',
   approved: 'Zatwierdzone',
   rejected: 'Odrzucone'
 };
@@ -185,6 +190,58 @@ item.textContent =
   });
 }
 }
+async function loadCloudDrafts(){
+  const list=document.getElementById('cloudDrafts'), requestId=++cloudRequestId, userId=currentUser?.id;
+  list.replaceChildren();
+  if(!userId){list.textContent='Zaloguj się, aby zobaczyć punkty.';return;}
+  list.textContent='Pobieranie…';
+  const {data,error}=await db.from('map_points')
+    .select('id,kind,status,note,lat,lon,review_status')
+    .eq('user_id',userId).eq('visibility','private').limit(500);
+  if(requestId!==cloudRequestId||currentUser?.id!==userId)return;
+  list.replaceChildren();
+  if(error){list.textContent='Błąd pobierania punktów.';return;}
+  if(!data?.length){list.textContent='Brak prywatnych punktów.';return;}
+  for(const p of data){
+    const row=document.createElement('div');
+    row.style.cssText='padding:10px 0;border-bottom:1px solid #536657';
+    const info=document.createElement('p');
+    info.textContent=(labels[p.kind]||p.kind)+' — '+p.status+' — '+p.review_status+' — '+(p.note||'Bez opisu');
+    row.appendChild(info);
+    if(p.review_status==='draft'){
+      const edit=document.createElement('button');
+      edit.type='button';edit.className='secondary';edit.textContent='Zmień status';
+      edit.onclick=async()=>{
+        if(currentUser?.id!==userId)return;
+        const opts=statuses[p.kind]||[];
+        const choice=prompt('Numer statusu:\\n'+opts.map((v,i)=>(i+1)+'. '+v).join('\\n'));
+        if(choice===null)return;
+        const status=opts[Number(choice)-1];
+        if(!status||!Number.isInteger(Number(choice))){alert('Nieprawidłowy status');return;}
+        edit.disabled=true;
+        const {error:e}=await db.rpc('update_private_map_point',{
+          p_point_id:p.id,p_kind:p.kind,p_status:status,p_note:p.note,p_lat:p.lat,p_lon:p.lon
+        });
+        if(e)alert('Nie udało się zmienić punktu. Sprawdź migrację Supabase.');
+        await loadCloudDrafts();
+      };
+      row.appendChild(edit);
+      const send=document.createElement('button');
+      send.type='button';send.textContent='Zgłoś do publikacji';
+      send.onclick=async()=>{
+        if(currentUser?.id!==userId||!confirm('Zgłosić punkt? Moderator zobaczy opis i lokalizację.'))return;
+        send.disabled=true;
+        const {error:e}=await db.rpc('submit_map_point_for_review',{p_point_id:p.id});
+        if(e)alert('Nie udało się zgłosić punktu. Sprawdź migrację Supabase.');
+        else alert('Punkt przesłany do weryfikacji.');
+        await loadCloudDrafts();await loadMyPendingPoints();
+      };
+      row.appendChild(send);
+    }
+    list.appendChild(row);
+  }
+}
+document.getElementById('refreshCloudDrafts').onclick=loadCloudDrafts;
 function render(){
  markers.clearLayers();
  const list=document.getElementById('points');
@@ -419,7 +476,7 @@ points.push({
   const { data: { user }, error: authError } = await db.auth.getUser();
 
   if (authError || !user) {
-    alert('Punkt zapisano lokalnie. Zaloguj się, aby opublikować go na wspólnej mapie.');
+    alert('Punkt zapisano lokalnie. Zaloguj się, aby zapisać prywatny punkt na koncie.');
   } else {
   const { error: insertError } = await db
   .from('map_points')
@@ -428,14 +485,16 @@ points.push({
     status: newPoint.status,
     note: newPoint.note,
     lat: newPoint.lat,
-    lon: newPoint.lon
+    lon: newPoint.lon,
+    review_status: 'draft',
+    visibility: 'private'
   });
 
 if (insertError) {
-  console.error('Błąd publikowania:', insertError);
-  alert('Punkt zapisano lokalnie, ale nie udało się go opublikować.');
+  console.error('Błąd zapisu szkicu:', insertError);
+  alert('Punkt zapisano lokalnie, ale nie na koncie. Sprawdź migrację Supabase.');
 } else {
-  alert('Punkt przesłany do weryfikacji. Będzie widoczny publicznie po zatwierdzeniu.');
+  alert('Punkt zapisano prywatnie na koncie. Nie wysłano go do moderatora.');
   await loadPublicPoints();
 }
 }
@@ -538,6 +597,8 @@ adminModerationRefresh.onclick = loadAdminModeration;
 function updateAuthUI(user) {
     currentUser = user;
   ++moderationRequestId;
+  ++cloudRequestId;
+  loadCloudDrafts();
   adminModeration.style.display = 'none';
   adminModerationList.replaceChildren();
   if (user) {
