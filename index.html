@@ -605,6 +605,8 @@ function updateAuthUI(user) {
     currentUser = user;
   ++moderationRequestId;
   ++cloudRequestId;
+  cloudPrivatePoints=[];
+  render();
   loadCloudDrafts();
   adminModeration.style.display = 'none';
   adminModerationList.replaceChildren();
