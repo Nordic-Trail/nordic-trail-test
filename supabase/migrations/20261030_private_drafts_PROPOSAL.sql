@@ -1,5 +1,15 @@
 -- NORDIC TRAIL — migration proposal (NOT EXECUTED)
 -- Apply only after backup and review in a staging Supabase project.
+-- FAIL-CLOSED: this proposal must not be executed until both moderation
+-- functions have been audited and their public-only checks added.
+-- Remove this block ONLY in a reviewed final migration with both RPC fixes.
+DO $block$
+BEGIN
+  RAISE EXCEPTION
+    'STOP: incomplete migration. Review and secure admin_pending_point_reports and moderate_point_report before execution.';
+END
+$block$;
+
 BEGIN;
 
 ALTER TABLE public.map_points
@@ -90,7 +100,8 @@ COMMIT;
 
 -- IMPORTANT FOLLOW-UP (block deployment until completed):
 -- Existing admin_pending_point_reports() and moderate_point_report() must be
--- revised to restrict reports to approved/public points. A policy on
+-- revised to restrict reports to approved/public points.
+-- This file intentionally fails before any mutation until those fixes are included. A policy on
 -- point_reports alone does NOT secure SECURITY DEFINER moderation functions.
 -- Audit all other policies on map_points/point_reports and function EXECUTE grants.
 -- Preserve existing rejected/private records and all moderation history.
