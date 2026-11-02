@@ -27,3 +27,8 @@ Odczytać `pg_constraint` dla `point_reports` i sprawdzić aktualną politykę I
 - `point_reports_status_check`: `review_status IN ('pending','approved','rejected')`.
 - `point_reports_type_check`: `report_type IN ('gate_removed','gate_status','closure_risk','private_road','incorrect_info','other','road_unblocked')`.
 - Te wyniki **nie** potwierdzają polityki RLS ani wykonania testu INSERT. Indeksy unikalne należy sprawdzić osobno.
+
+## Potwierdzona polityka INSERT / RLS (odczyt SQL Editor, 2026-11-02)
+Polityka `Enable insert for authenticated users only` dla roli `authenticated` wymaga `user_id=auth.uid()`, `review_status='pending'` oraz istnienia punktu spełniającego **(approved/public) LUB (własny punkt)**. Ta alternatywa pozwala próbować zgłaszać prywatny własny punkt, co narusza decyzję produktu. Nie dowodzi to jeszcze powodzenia rzeczywistego INSERT — inne triggery i ograniczenia mogą go odrzucić.
+
+W kandydacie `20261102_private_drafts_UNIFIED_STAGING.sql` polityka została już zaproponowana do zastąpienia wersją wymagającą wyłącznie `approved/public`. Nie uruchomiono jej. Potrzebny staging i test kont A/B.
