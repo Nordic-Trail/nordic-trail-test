@@ -134,7 +134,10 @@ let cloudPrivatePoints=[];
 const markers=L.layerGroup().addTo(map);
 
 function save(){
- localStorage.setItem('nordicTrailPoints',JSON.stringify(points));
+ if(currentUser?.id){
+   localStorage.setItem('nordicTrailPoints:user:'+currentUser.id,JSON.stringify(points));
+ }
+ // Anonymous points remain in memory only.
  render();
 }
 async function loadPublicPoints(){
