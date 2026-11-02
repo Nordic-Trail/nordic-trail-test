@@ -128,7 +128,9 @@ let publicPoints=[];
 let currentUser=null;
 let cloudRequestId=0;
 let cloudPrivatePoints=[];
-try{points=JSON.parse(localStorage.getItem('nordicTrailPoints')||'[]')}catch(e){}
+// Legacy 'nordicTrailPoints' is preserved but quarantined: it is not displayed
+// across accounts. It must be recovered only through a deliberate future flow.
+// Guest points remain in memory only, until the tab is reloaded.
 const markers=L.layerGroup().addTo(map);
 
 function save(){
@@ -491,7 +493,7 @@ const {data:authData,error:authError}=await db.auth.getUser();
 const user=authError?null:authData?.user;
 if(!user){
   points.push(newPoint);save();
-  alert('Punkt zapisano lokalnie w tej przeglądarce.');
+  alert('Punkt zapisano tymczasowo. Bez logowania zniknie po odświeżeniu strony.');
 }else{
   const {error:insertError}=await db.from('map_points').insert({
     kind:newPoint.kind,status:newPoint.status,note:newPoint.note,
@@ -500,7 +502,7 @@ if(!user){
   if(insertError){
     console.error('Błąd zapisu szkicu:',insertError.message);
     points.push(newPoint);save();
-    alert('Nie udało się zapisać na koncie. Punkt zachowano lokalnie.');
+    alert('Nie udało się zapisać w chmurze. Punkt zachowano lokalnie dla tego konta na tym urządzeniu.');
   }else{
     alert('Punkt zapisano prywatnie na koncie, bez zgłoszenia do moderacji.');
     await loadCloudDrafts();await loadMyPendingPoints();
@@ -602,6 +604,17 @@ async function loadAdminModeration() {
 adminModerationRefresh.onclick = loadAdminModeration;
 
 function updateAuthUI(user) {
+    const previousUserId=currentUser?.id||null;
+    const nextUserId=user?.id||null;
+    if(previousUserId!==nextUserId){
+      points=[];
+      if(nextUserId){
+        try{
+          const stored=JSON.parse(localStorage.getItem('nordicTrailPoints:user:'+nextUserId)||'[]');
+          points=Array.isArray(stored)?stored:[];
+        }catch(e){points=[];}
+      }
+    }
     currentUser = user;
   ++moderationRequestId;
   ++cloudRequestId;
