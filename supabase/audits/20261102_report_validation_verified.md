@@ -19,3 +19,11 @@ Commit `f0dd2957e60ecb820d5b26df815437556d20b39d` na `feature/private-points-dra
 
 ## Następna kontrola
 Odczytać `pg_constraint` dla `point_reports` i sprawdzić aktualną politykę INSERT oraz unikalny indeks oczekujących zgłoszeń. Testy INSERT wykonać na izolowanym staging z kontami testowymi, nie na produkcyjnych danych.
+
+## Potwierdzone ograniczenia CHECK / FK (odczyt SQL Editor, 2026-11-02)
+- `point_reports_pkey`: PRIMARY KEY (id).
+- `point_reports_point_id_fkey`: FOREIGN KEY (point_id) REFERENCES map_points(id).
+- `point_reports_user_id_fkey`: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE RESTRICT.
+- `point_reports_status_check`: `review_status IN ('pending','approved','rejected')`.
+- `point_reports_type_check`: `report_type IN ('gate_removed','gate_status','closure_risk','private_road','incorrect_info','other','road_unblocked')`.
+- Te wyniki **nie** potwierdzają polityki RLS ani wykonania testu INSERT. Indeksy unikalne należy sprawdzić osobno.
