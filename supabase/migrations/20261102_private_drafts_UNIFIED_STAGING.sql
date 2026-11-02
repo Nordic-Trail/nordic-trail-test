@@ -2,7 +2,8 @@
 -- NOT EXECUTED. REVIEW AND TEST BEFORE PRODUCTION.
 -- Based on read-only audits through 2026-11-02.
 -- Preconditions: verified backup, isolated staging test, review of RPCs and grants.
--- This script does not touch existing map point rows or moderation history.
+-- This script does not modify existing map point rows or moderation history.
+-- CAUTION: staging candidate, not yet validated against a running PostgreSQL instance.
 BEGIN;
 
 -- Abort if unexpected point states are present. Never silently convert data.
@@ -10,7 +11,7 @@ DO $preflight$
 BEGIN
  IF EXISTS (
    SELECT 1 FROM public.map_points
-   WHERE NOT (
+   WHERE (review_status IS NULL OR visibility IS NULL) OR NOT (
      (review_status='pending' AND visibility='private') OR
      (review_status='approved' AND visibility='public') OR
      (review_status='rejected' AND visibility='private')
@@ -77,7 +78,8 @@ BEGIN
   IF (SELECT auth.uid()) IS NULL THEN
     RAISE EXCEPTION 'Wymagane logowanie' USING ERRCODE='42501';
   END IF;
-  IF p_kind NOT IN ('gate','closed','place')
+  IF p_kind IS NULL OR p_status IS NULL
+    OR p_kind NOT IN ('gate','closed','place')
     OR NOT (
       (p_kind='gate' AND p_status IN ('Otwarty','Zamknięty','Nieznany')) OR
       (p_kind='closed' AND p_status IN ('Przejezdna','Nieprzejezdna','Do sprawdzenia')) OR
@@ -173,7 +175,7 @@ BEGIN
  IF NOT FOUND THEN
    RAISE EXCEPTION 'Zgłoszenie nie istnieje';
  END IF;
- IF v_old_status <> 'pending' THEN
+ IF v_old_status IS DISTINCT FROM 'pending' THEN
    RAISE EXCEPTION 'Zgłoszenie zostało już rozpatrzone';
  END IF;
 
