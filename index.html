@@ -409,7 +409,7 @@ reportBtn.onclick = async () => {
   }
 
   const reportTypes = {
-  '1': 'gate_removed',
+  '1': p.kind === 'closed' ? 'road_unblocked' : 'gate_removed',
   '2': 'gate_status',
   '3': 'closure_risk',
   '4': 'private_road',
