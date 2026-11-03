@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NORDIC TRAIL — izolowane testy staging</title>
+<style>body{font:16px system-ui,sans-serif;max-width:780px;margin:2rem auto;padding:0 1rem;line-height:1.5;background:#f6f8f7;color:#17241e}section{background:white;padding:1rem 1.3rem;margin:1rem 0;border:1px solid #d8e1dc;border-radius:10px}label{display:block;margin:.65rem 0}input,select,textarea,button{font:inherit;padding:.5rem;max-width:100%;box-sizing:border-box}input,textarea{width:100%}button{margin:.25rem .35rem .25rem 0;cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#edf2ef;padding:1rem;border-radius:8px}small{color:#4a5e52}.warning{border-left:4px solid #aa7110;padding-left:.8rem}fieldset{border:0;padding:0}fieldset:disabled{opacity:.5}</style>
+</head><body>
+<h1>NORDIC TRAIL — testy STAGING</h1>
+<p class="warning"><strong>Nie używaj produkcyjnego projektu.</strong> Ta strona nie jest aplikacją dla użytkowników. Otwieraj ją lokalnie lub w kontrolowanym podglądzie gałęzi; nie publikuj w GitHub Pages. Nie wpisuj klucza service_role ani secret. Nie przesyłaj haseł do czatu.</p>
+<section><h2>1. Połączenie z nowym projektem</h2>
+<label>Project URL (tylko Nordic-Trail-Staging)<input id="url" type="url" placeholder="https://xxxxxxxx.supabase.co" autocomplete="off"></label>
+<label>Publishable key (sb_publishable_…)<input id="key" type="password" placeholder="sb_publishable_…" autocomplete="off"></label>
+<button id="connect">Połącz</button><small>Konfiguracja jest przechowywana wyłącznie w pamięci tej karty; po odświeżeniu znika.</small></section>
+<section><h2>2. Logowanie</h2><fieldset id="authFields" disabled>
+<label>E-mail<input id="email" type="email" autocomplete="username"></label>
+<label>Hasło<input id="password" type="password" autocomplete="current-password"></label>
+<button id="login">Zaloguj</button><button id="logout" type="button">Wyloguj</button>
+</fieldset><p id="who">Brak połączenia</p></section>
+<section><h2>3. Szkice</h2><fieldset id="dataFields" disabled>
+<button id="list">Pokaż moje punkty</button>
+<label>ID punktu do edycji / wysłania / próby dostępu<input id="pointId" type="number" min="1" step="1"></label>
+<label>Rodzaj<select id="kind"><option value="gate">gate</option><option value="closed">closed</option><option value="place">place</option></select></label>
+<label>Status<select id="status"></select></label>
+<label>Notatka<input id="note" maxlength="2000" value="Staging security test"></label>
+<label>Szerokość geograficzna<input id="lat" type="number" step="any" value="59.33"></label>
+<label>Długość geograficzna<input id="lon" type="number" step="any" value="18.06"></label>
+<button id="create">Utwórz prywatny szkic</button><button id="edit">Edytuj szkic przez RPC</button><button id="submit">Wyślij do moderacji przez RPC</button>
+</fieldset><small>Test cudzej własności: zaloguj użytkownika B w osobnej sesji i wpisz ID szkicu użytkownika A. Oczekiwany wynik: brak dostępu i odmowa RPC.</small></section>
+<section><h2>Wynik operacji</h2><pre id="output" role="status">Gotowe do konfiguracji.</pre></section>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+let db=null, currentUser=null;
+const el=id=>document.getElementById(id);
+const statuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
+function statusOptions(){el('status').replaceChildren(...statuses[el('kind').value].map(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;return o;}));}
+el('kind').addEventListener('change',statusOptions);statusOptions();
+function report(message){el('output').textContent=typeof message==='string'?message:JSON.stringify(message,null,2);}
+function err(e){report('Błąd: '+(e?.message||String(e)));}
+function ready(){el('authFields').disabled=!db;el('dataFields').disabled=!currentUser;el('who').textContent=currentUser?'Zalogowano (ID konta ukryte)':'Niezalogowano';}
+async function run(fn){try{await fn();}catch(e){err(e);}}
+el('connect').onclick=()=>run(async()=>{
+ const url=el('url').value.trim(),key=el('key').value.trim();
+ if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(url))throw Error('Niepoprawny Project URL.');
+ if(!key.startsWith('sb_publishable_'))throw Error('Dozwolony jest tylko klucz sb_publishable_.');
+ if(!window.supabase?.createClient)throw Error('Nie udało się załadować supabase-js.');
+ db=window.supabase.createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+ currentUser=null;ready();report('Klient skonfigurowany. Upewnij się, że Project URL należy do Nordic-Trail-Staging.');
+});
+el('login').onclick=()=>run(async()=>{
+ if(!db)throw Error('Najpierw połącz staging.');
+ const {data,error}=await db.auth.signInWithPassword({email:el('email').value.trim(),password:el('password').value});
+ el('password').value='';
+ if(error)throw error;
+ currentUser=data.user;ready();report('Zalogowano. Możesz testować wyłącznie dane staging.');
+});
+el('logout').onclick=()=>run(async()=>{if(db)await db.auth.signOut();currentUser=null;el('password').value='';ready();report('Wylogowano.');});
+function requireAuth(){if(!db||!currentUser)throw Error('Zaloguj się do staging.');}
+function pointId(){const id=Number(el('pointId').value);if(!Number.isSafeInteger(id)||id<1)throw Error('Wpisz poprawne ID punktu.');return id;}
+function values(){const lat=Number(el('lat').value),lon=Number(el('lon').value);if(!Number.isFinite(lat)||lat< -90||lat>90||!Number.isFinite(lon)||lon< -180||lon>180)throw Error('Nieprawidłowe współrzędne.');return {kind:el('kind').value,status:el('status').value,note:el('note').value,lat,lon};}
+el('list').onclick=()=>run(async()=>{requireAuth();const {data,error}=await db.from('map_points').select('id,kind,status,note,lat,lon,visibility,review_status,user_id').order('id',{ascending:false}).limit(50);if(error)throw error;report(data.map(({user_id,...rest})=>rest));});
+el('create').onclick=()=>run(async()=>{requireAuth();const {data,error}=await db.from('map_points').insert({...values(),user_id:currentUser.id,visibility:'private',review_status:'draft'}).select('id,review_status,visibility').single();if(error)throw error;el('pointId').value=data.id;report(data);});
+el('edit').onclick=()=>run(async()=>{requireAuth();const v=values();const {error}=await db.rpc('update_private_map_point',{p_point_id:pointId(),p_kind:v.kind,p_status:v.status,p_note:v.note,p_lat:v.lat,p_lon:v.lon});if(error)throw error;report('RPC edit: sukces (weryfikuj ponownie przez listę).');});
+el('submit').onclick=()=>run(async()=>{requireAuth();const {error}=await db.rpc('submit_map_point_for_review',{p_point_id:pointId()});if(error)throw error;report('RPC submit: sukces (weryfikuj ponownie przez listę).');});
+ready();
+</script></body></html>
