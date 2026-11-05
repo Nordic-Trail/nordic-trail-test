@@ -187,8 +187,9 @@
       if (request !== sessionSequence || el('account-card').hidden) return;
       if (!error) {
         el('account-role').textContent = 'Administrator A — potwierdzony przez RPC';
-      } else if (error.code === 'P0001' && /Brak uprawnień administratora/i.test(error.message || '')) {
+      } else if (error.code === '42501' && (error.message || '').trim() === 'Brak uprawnień administratora') {
         el('account-role').textContent = 'Zwykły użytkownik — odmowa dostępu administratora';
+        status('account-status', 'Uprawnienia zweryfikowane. Konto nie ma dostępu administracyjnego.');
       } else {
         el('account-role').textContent = 'Nie udało się zweryfikować roli';
         const code = typeof error.code === 'string' && /^[A-Za-z0-9_-]{3,16}$/.test(error.code) ? error.code : 'brak kodu';
