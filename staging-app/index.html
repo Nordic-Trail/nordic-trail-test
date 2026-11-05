@@ -21,8 +21,9 @@ h2{font-size:17px;margin:0 0 10px}
 p{line-height:1.5}
 .hint{color:var(--muted);font-size:13px}
 label{display:block;margin:10px 0 5px;font-weight:600;font-size:13px}
-input,button{width:100%;min-height:44px;border-radius:9px;font:inherit;padding:10px 12px}
-input{border:1px solid #66806b;background:#102019;color:var(--ink)}
+input,button,select{width:100%;min-height:44px;border-radius:9px;font:inherit;padding:10px 12px}
+input,select{border:1px solid #66806b;background:#102019;color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 button{border:0;background:var(--accent);color:#172219;font-weight:750;cursor:pointer;margin-top:10px}
 button.secondary{background:#31463a;border:1px solid #5e7765;color:var(--ink)}
 button:disabled{opacity:.5;cursor:wait}
@@ -37,9 +38,9 @@ button:disabled{opacity:.5;cursor:wait}
 </style>
 </head>
 <body>
-<header><strong>NORDIC TRAIL</strong><small>STAGING / MAPA TESTOWA • TYLKO ODCZYT</small></header>
+<header><strong>NORDIC TRAIL</strong><small>STAGING / MAPA TESTOWA • SZKICE I MODERACJA</small></header>
 <main>
-<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Dodawanie punktów, zgłoszenia i moderacja są celowo wyłączone do czasu weryfikacji zgodności bazy. Nie używaj rzeczywistych danych osobowych.</p>
+<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłoszenia zmian oraz decyzje administratora pozostają wyłączone. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
 <section class="card" id="setup-card">
 <h2>Połączenie STAGING</h2>
 <p class="hint">Wykorzystuje publiczny klucz zapisany wcześniej na stronie STAGING Login w tej samej przeglądarce. Jeśli go nie ma, wklej klucz <code>sb_publishable_...</code> z projektu Nordic-Trail-Staging.</p>
@@ -68,6 +69,30 @@ button:disabled{opacity:.5;cursor:wait}
 <button id="logout-btn" type="button" class="secondary">Wyloguj tę kartę</button>
 </div>
 </section>
+<section class="card" id="draft-card" hidden>
+<h2>Dodaj punkt testowy</h2>
+<p class="hint">Krok 1: wskaż miejsce na mapie. Krok 2: zapisz prywatny szkic. Wysłanie szkicu do moderacji wymaga osobnego potwierdzenia. Nie dodawaj rzeczywistych prywatnych lokalizacji.</p>
+<button type="button" class="secondary" id="pick-point-btn">Wskaż miejsce na mapie</button>
+<p class="status" id="selected-coords" role="status">Nie wybrano współrzędnych.</p>
+<form id="draft-form">
+<label for="point-kind">Rodzaj punktu</label>
+<select id="point-kind" required>
+<option value="gate">🚧 Szlaban</option>
+<option value="closed">⛔ Droga zamknięta</option>
+<option value="place">📍 Miejsce</option>
+</select>
+<label for="point-status">Status</label>
+<select id="point-status" required></select>
+<label for="point-note">Opis testowego punktu (opcjonalnie, maks. 120 znaków)</label>
+<input id="point-note" maxlength="120" autocomplete="off" placeholder="np. TEST STAGING — szlaban">
+<button id="save-draft-btn" type="submit" disabled>Zapisz prywatny szkic</button>
+</form>
+<p class="status" id="draft-status" role="status">Punkt nie został zapisany.</p>
+<h2 style="margin-top:22px">Moje szkice i punkty w moderacji</h2>
+<button type="button" class="secondary" id="refresh-mine-btn">Odśwież moje punkty</button>
+<ul id="my-points"></ul>
+<p class="hint">Szkic jest widoczny tylko dla właściciela. Przesłane punkty otrzymują status „pending” i nie są publiczne przed zatwierdzeniem.</p>
+</section>
 <section class="card">
 <h2>Mapa punktów publicznych</h2>
 <div id="map" aria-label="Mapa publicznych punktów STAGING"></div>
@@ -76,7 +101,7 @@ button:disabled{opacity:.5;cursor:wait}
 <ul id="points"></ul>
 <p class="hint">Widoczne są wyłącznie punkty z <code>visibility=public</code> i <code>review_status=approved</code>. Mapa OpenStreetMap wymaga Internetu.</p>
 </section>
-<p class="hint">STAGING • Bez operacji INSERT, UPDATE i DELETE. Do logowania używaj wyłącznie kont testowych. Nie przesyłaj haseł ani kluczy tajnych.</p>
+<p class="hint">STAGING • INSERT tworzy wyłącznie prywatne szkice; zgłoszenie do moderacji odbywa się przez zabezpieczoną funkcję RPC. Brak bezpośrednich operacji UPDATE i DELETE. Korzystaj wyłącznie z kont testowych, nie udostępniaj haseł ani kluczy tajnych.</p>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
@@ -92,6 +117,8 @@ button:disabled{opacity:.5;cursor:wait}
   const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
   let db=null,seq=0,loggingIn=false;
   let markers=null,map=null;
+  let activeUser=null,choosingPoint=false,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false;
+  const pointStatuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
   const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
   try{
     if(!window.L)throw Error('Leaflet unavailable');
@@ -127,6 +154,127 @@ button:disabled{opacity:.5;cursor:wait}
     }catch(_error){message('map-status','Odczyt punktów nie powiódł się. Sprawdź konfigurację i uprawnienia STAGING.',true);}
     finally{el('refresh-btn').disabled=false;}
   }
+  function refreshStatusOptions(){
+    const kind=el('point-kind').value;
+    el('point-status').replaceChildren();
+    for(const value of pointStatuses[kind]||[]){
+      const option=document.createElement('option');option.value=value;option.textContent=value;el('point-status').appendChild(option);
+    }
+  }
+  refreshStatusOptions();
+  el('point-kind').addEventListener('change',refreshStatusOptions);
+
+  function clearSelection(){
+    selectedPoint=null;choosingPoint=false;
+    if(selectionMarker&&map){map.removeLayer(selectionMarker);selectionMarker=null;}
+    el('pick-point-btn').textContent='Wskaż miejsce na mapie';
+    el('selected-coords').textContent='Nie wybrano współrzędnych.';
+    el('save-draft-btn').disabled=true;
+  }
+  el('pick-point-btn').addEventListener('click',()=>{
+    if(!activeUser||writingDraft||!map)return;
+    choosingPoint=!choosingPoint;
+    el('pick-point-btn').textContent=choosingPoint?'Anuluj wskazywanie':'Wskaż miejsce na mapie';
+    message('draft-status',choosingPoint?'Dotknij mapy, aby wybrać współrzędne testowego punktu.':'Wybieranie lokalizacji anulowano.');
+    if(choosingPoint)el('map').scrollIntoView({behavior:'smooth',block:'center'});
+  });
+  if(map)map.on('click',event=>{
+    if(!choosingPoint||!activeUser||writingDraft)return;
+    const lat=Number(event.latlng.lat.toFixed(6)),lon=Number(event.latlng.lng.toFixed(6));
+    if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
+    selectedPoint={lat,lon};
+    if(selectionMarker)map.removeLayer(selectionMarker);
+    selectionMarker=L.circleMarker([lat,lon],{radius:10,color:'#ffdf82',weight:3,fillOpacity:.7}).addTo(map);
+    choosingPoint=false;
+    el('pick-point-btn').textContent='Zmień miejsce na mapie';
+    el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
+    el('save-draft-btn').disabled=false;
+    message('draft-status','Lokalizacja wybrana. Zapisz prywatny szkic, kiedy dane są gotowe.');
+  });
+
+  async function loadMyPoints(user=activeUser,request=seq){
+    const list=el('my-points');
+    if(!db||!user){list.replaceChildren();return;}
+    message('draft-status','Odczytywanie Twoich szkiców i punktów w moderacji...');
+    try{
+      const result=await db.from('map_points')
+        .select('id,kind,status,note,review_status,visibility')
+        .eq('user_id',user.id)
+        .eq('visibility','private')
+        .in('review_status',['draft','pending'])
+        .order('id',{ascending:false}).limit(100);
+      if(request!==seq||activeUser?.id!==user.id)return;
+      if(result.error)throw result.error;
+      list.replaceChildren();
+      const points=result.data||[];
+      for(const p of points){
+        const item=document.createElement('li');
+        const desc=document.createElement('span');
+        desc.textContent='#'+p.id+' • '+p.kind+' — '+p.status+' • '+(p.review_status==='draft'?'Szkic prywatny':'Oczekuje na moderację')+(p.note?' • '+p.note:'');
+        item.appendChild(desc);
+        if(p.review_status==='draft'){
+          const send=document.createElement('button');
+          send.type='button';send.className='secondary';send.textContent='Wyślij szkic #'+p.id+' do weryfikacji';
+          send.addEventListener('click',()=>{void submitDraft(p,send,user.id);});
+          item.appendChild(send);
+        }
+        list.appendChild(item);
+      }
+      message('draft-status',points.length?'Odczytano Twoje szkice i punkty w moderacji: '+points.length+'.':'Nie masz jeszcze szkiców ani punktów oczekujących.');
+    }catch(_error){if(request===seq)message('draft-status','Nie udało się odczytać Twoich punktów. Sprawdź polityki SELECT w STAGING.',true);}
+  }
+
+  async function submitDraft(p,button,ownerId){
+    if(submittingDraft||writingDraft||!db||!activeUser||activeUser.id!==ownerId||p.review_status!=='draft')return;
+    const id=String(p.id);
+    if(!/^[1-9][0-9]*$/.test(id)){message('draft-status','Nieprawidłowy identyfikator szkicu.',true);return;}
+    if(!confirm('Wysłać prywatny szkic #'+id+' do weryfikacji? Nie będzie już szkicem do dalszego edytowania.'))return;
+    submittingDraft=true;button.disabled=true;
+    message('draft-status','Przesyłanie szkicu #'+id+' do moderacji...');
+    try{
+      const auth=await db.auth.getUser();
+      if(auth.error||auth.data?.user?.id!==ownerId)throw Error('Session mismatch');
+      const result=await db.rpc('submit_map_point_for_review',{p_point_id:id});
+      if(result.error)throw result.error;
+      if(activeUser?.id!==ownerId)return;
+      message('draft-status','Szkic #'+id+' wysłano do moderacji. Będzie publiczny dopiero po zatwierdzeniu.');
+      await loadMyPoints();
+    }catch(_error){if(activeUser?.id===ownerId)message('draft-status','Nie udało się wysłać szkicu. Sprawdź, czy nadal ma status draft i należy do Ciebie.',true);}
+    finally{submittingDraft=false;button.disabled=false;}
+  }
+
+  el('draft-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!db||!activeUser||!selectedPoint||writingDraft||submittingDraft)return;
+    const kind=el('point-kind').value,status=el('point-status').value;
+    const note=el('point-note').value.trim();
+    if(!pointStatuses[kind]?.includes(status)||note.length>120){
+      message('draft-status','Sprawdź rodzaj, status i długość opisu.',true);return;
+    }
+    writingDraft=true;el('save-draft-btn').disabled=true;
+    const userId=activeUser.id;
+    message('draft-status','Zapisywanie prywatnego szkicu...');
+    try{
+      const auth=await db.auth.getUser();
+      if(auth.error||auth.data?.user?.id!==userId)throw Error('Session mismatch');
+      const values={kind,status,note:note||null,lat:selectedPoint.lat,lon:selectedPoint.lon,review_status:'draft',visibility:'private'};
+      const result=await db.from('map_points').insert(values).select('id').single();
+      if(result.error)throw result.error;
+      if(activeUser?.id!==userId)return;
+      const savedId=result.data?.id;
+      clearSelection();
+      el('point-note').value='';
+      await loadMyPoints();
+      message('draft-status','Prywatny szkic #'+savedId+' zapisany. Aby go przesłać, kliknij przycisk przy szkicu na liście poniżej.');
+    }catch(_error){
+      if(activeUser?.id===userId)message('draft-status','Nie udało się zapisać szkicu. Punkt nie został potwierdzony jako zapisany; sprawdź ograniczenia w STAGING.',true);
+    }finally{
+      writingDraft=false;
+      el('save-draft-btn').disabled=!selectedPoint;
+    }
+  });
+  el('refresh-mine-btn').addEventListener('click',()=>{void loadMyPoints();});
+
   async function checkRole(user){
     if(!db||!user)return;
     const request=seq;
@@ -148,15 +296,20 @@ button:disabled{opacity:.5;cursor:wait}
       if(request!==seq)return;
       const user=response.data&&response.data.user;
       if(!user){
-        show('login-card',true);show('account-card',false);
+        activeUser=null;clearSelection();el('my-points').replaceChildren();
+        show('draft-card',false);show('login-card',true);show('account-card',false);
         message('login-status','Nie jesteś zalogowany.');
         return;
       }
-      show('login-card',false);show('account-card',true);
+      const changed=activeUser?.id!==user.id;
+      if(changed){clearSelection();el('my-points').replaceChildren();}
+      activeUser=user;
+      show('login-card',false);show('account-card',true);show('draft-card',true);
       el('account-email').textContent='Zalogowano: '+(user.email||'konto testowe');
+      void loadMyPoints(user,request);
       await checkRole(user);
     }catch(_error){
-      if(request===seq){show('login-card',true);show('account-card',false);message('login-status','Nie udało się sprawdzić sesji.',true);}
+      if(request===seq){activeUser=null;clearSelection();el('my-points').replaceChildren();show('draft-card',false);show('login-card',true);show('account-card',false);message('login-status','Nie udało się sprawdzić sesji.',true);}
     }
   }
   function connect(key){
@@ -196,6 +349,7 @@ button:disabled{opacity:.5;cursor:wait}
   });
   el('logout-btn').addEventListener('click',async()=>{
     if(!db)return;
+    activeUser=null;clearSelection();el('my-points').replaceChildren();show('draft-card',false);
     const r=await db.auth.signOut({scope:'local'});
     if(r.error)message('role-status','Nie udało się potwierdzić wylogowania.',true);
     await updateSession();
