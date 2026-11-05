@@ -191,7 +191,8 @@
         el('account-role').textContent = 'Zwykły użytkownik — odmowa dostępu administratora';
       } else {
         el('account-role').textContent = 'Nie udało się zweryfikować roli';
-        status('account-status', 'Logowanie działa, ale kontrola roli nie powiodła się. Nie oznacza to przyznania uprawnień.', true);
+        const code = typeof error.code === 'string' && /^[A-Za-z0-9_-]{3,16}$/.test(error.code) ? error.code : 'brak kodu';
+        status('account-status', `Logowanie działa, ale kontrola roli nie powiodła się (kod: ${code}). Nie oznacza to przyznania uprawnień.`, true);
       }
     } catch (_error) {
       if (request !== sessionSequence || el('account-card').hidden) return;
