@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src https://bairmdubhnodwpl.supabase.co; img-src 'self' data:; base-uri 'none'; object-src 'none'; form-action 'none'">
+  <title>NORDIC TRAIL | STAGING — test logowania</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color-scheme:dark;--bg:#101916;--card:#1b2a23;--muted:#bac9c0;--line:#354e42;--ink:#f2f4ed;--accent:#d7e2a9;--danger:#f6b0a9}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 75% -15%,#304938 0,transparent 55%),var(--bg);color:var(--ink)}
+    .wrap{max-width:520px;margin:0 auto;padding:24px 18px 56px}
+    header{padding:26px 0 20px;border-bottom:1px solid var(--line)}
+    .eyebrow{font-size:11px;letter-spacing:.17em;font-weight:800;color:var(--accent);text-transform:uppercase}
+    h1{font-size:28px;line-height:1.1;letter-spacing:.05em;margin:9px 0 8px}
+    h1 small{display:block;font-size:13px;color:var(--muted);letter-spacing:.17em;margin-top:9px}
+    p{line-height:1.55}
+    .intro{color:var(--muted);font-size:14px;margin:14px 0 24px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:20px;margin:18px 0;box-shadow:0 8px 28px #0002}
+    .card h2{font-size:18px;margin:0 0 6px}
+    .hint{font-size:13px;color:var(--muted);margin:8px 0 16px}
+    label{display:block;font-size:13px;font-weight:700;margin:17px 0 7px}
+    input{display:block;width:100%;padding:14px 13px;border-radius:9px;border:1px solid #617567;background:#101b15;color:var(--ink);font:inherit}
+    input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    button{border:0;border-radius:9px;min-height:46px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer}
+    button:disabled{opacity:.55;cursor:wait}
+    .primary{width:100%;background:var(--accent);color:#203025;margin-top:16px}
+    .secondary{width:100%;background:#314639;color:var(--ink);border:1px solid #54705d;margin-top:10px}
+    .status{padding:12px 13px;background:#243b2b;border-radius:9px;border:1px solid #4a7051;color:#e5efdb;font-size:14px;line-height:1.5;margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+    .status.error{background:#4b2928;border-color:#a15654;color:#ffe0dc}
+    .label{font-size:12px;color:var(--muted);margin:15px 0 4px}
+    .value{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+    .warn{border-left:3px solid var(--accent);padding-left:12px;color:var(--muted);font-size:13px;line-height:1.55}
+    .footer{font-size:11px;text-align:center;color:var(--muted);margin-top:20px}
+    code{font-size:12px;overflow-wrap:anywhere}
+    [hidden]{display:none!important}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Bezpieczny test uwierzytelniania</div>
+    <h1>NORDIC TRAIL <small>STAGING / LOGIN TEST</small></h1>
+  </header>
+  <p class="intro">Oddzielna strona testowa. Logowanie e-mailem i hasłem, bez Gmail Magic Link. Nie tworzy punktów ani zgłoszeń. Sesja jest przechowywana tylko w tej karcie przeglądarki.</p>
+
+  <section class="card" id="setup-card" aria-label="Ustawienia publicznego klucza STAGING">
+    <h2>Połączenie ze STAGING</h2>
+    <p class="hint">Projekt: <strong>Nordic-Trail-Staging</strong>. Adres jest przypięty do tego środowiska. Potrzebny jest wyłącznie <strong>publishable key</strong> z Supabase → STAGING → Project Settings → API Keys.</p>
+    <form id="setup-form" autocomplete="off">
+      <label for="public-key">Klucz publiczny STAGING (sb_publishable_…)</label>
+      <input id="public-key" type="password" placeholder="sb_publishable_..." spellcheck="false" autocorrect="off" autocomplete="off" required aria-describedby="key-help">
+      <p id="key-help" class="hint">Nie wklejaj <code>sb_secret_</code>, <code>service_role</code>, hasła ani tokenu użytkownika. Klucz publiczny będzie zapisany tylko w tej przeglądarce.</p>
+      <button class="primary" id="setup-btn" type="submit">Połącz z bazą STAGING</button>
+    </form>
+    <p id="setup-status" class="status" role="status" aria-live="polite" hidden></p>
+  </section>
+
+  <section class="card" id="login-card" hidden>
+    <h2>Zaloguj się</h2>
+    <p class="hint">Użyj danych istniejącego konta w STAGING. Administrator A w Samsung Internet, użytkownik B w Chrome.</p>
+    <form id="login-form">
+      <label for="email">Adres e-mail</label>
+      <input id="email" type="email" inputmode="email" autocomplete="username" required maxlength="254" placeholder="adres@przyklad.se">
+      <label for="password">Hasło</label>
+      <input id="password" type="password" autocomplete="current-password" required placeholder="Hasło konta STAGING">
+      <button class="primary" id="login-btn" type="submit">Zaloguj e-mailem i hasłem</button>
+    </form>
+    <p class="status" id="login-status" role="status" aria-live="polite">Nie jesteś zalogowany.</p>
+  </section>
+
+  <section class="card" id="account-card" hidden>
+    <h2>Aktualna sesja</h2>
+    <div class="label">Środowisko</div><div class="value">Nordic-Trail-Staging</div>
+    <div class="label">Zalogowany adres</div><div class="value" id="account-email">—</div>
+    <div class="label">Uprawnienia</div><div class="value" id="account-role">Sprawdzanie…</div>
+    <p class="hint">Rola jest weryfikowana przez uprawnioną funkcję SQL. Sama nazwa lub adres e-mail nie nadają uprawnień administratora.</p>
+    <button type="button" id="verify-role" class="secondary">Sprawdź rolę ponownie</button>
+    <button type="button" id="logout-btn" class="secondary">Wyloguj tylko tę przeglądarkę</button>
+    <p class="status" id="account-status" role="status" aria-live="polite">Zalogowano do STAGING.</p>
+  </section>
+
+  <p class="warn">To publicznie dostępna strona diagnostyczna, nie panel zarządzania. Nie przekazuj haseł ani linków logowania w wiadomościach. Używaj tylko kont testowych STAGING.</p>
+  <p class="footer">NORDIC TRAIL • STAGING • Tylko test logowania</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+(() => {
+  const STAGING_REF = 'bairmdubhnodwpl';
+  const STAGING_URL = `https://${STAGING_REF}.supabase.co`;
+  const CONFIG_KEY = 'nt-staging-publishable-v1';
+  const SESSION_KEY = 'nt-staging-auth-session-v1';
+  const el = id => document.getElementById(id);
+  let client = null;
+  let sessionSequence = 0;
+  let busy = false;
+  const show = (id, visible) => { el(id).hidden = !visible; };
+  const status = (id, message, error = false) => {
+    const target = el(id);
+    target.textContent = message;
+    target.classList.toggle('error', error);
+    target.hidden = false;
+  };
+  const isPublishableKey = k => /^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
+  const setBusy = value => {
+    busy = value;
+    el('login-btn').disabled = value;
+    el('setup-btn').disabled = value;
+    el('logout-btn').disabled = value;
+    el('verify-role').disabled = value;
+  };
+
+  function initialize(key) {
+    if (!window.supabase || !window.supabase.createClient) {
+      status('setup-status', 'Nie udało się załadować biblioteki Supabase. Sprawdź połączenie z Internetem.', true);
+      return false;
+    }
+    try {
+      client = window.supabase.createClient(STAGING_URL, key, {
+        auth: {
+          storageKey: SESSION_KEY,
+          storage: window.sessionStorage,
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false
+        }
+      });
+    } catch (_error) {
+      status('setup-status', 'Nie udało się skonfigurować połączenia. Sprawdź klucz STAGING.', true);
+      return false;
+    }
+    try { localStorage.setItem(CONFIG_KEY, key); } catch (_error) {
+      // Nadal pozwalamy na zalogowanie, również bez trwałego zapisu klucza publicznego.
+    }
+    el('public-key').value = '';
+    show('setup-card', false);
+    show('login-card', true);
+    client.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
+        queueMicrotask(() => { void updateSession(); });
+      }
+    });
+    void updateSession();
+    return true;
+  }
+
+  async function updateSession() {
+    if (!client) return;
+    const request = ++sessionSequence;
+    let user = null;
+    try {
+      const result = await client.auth.getUser();
+      if (result.error) throw result.error;
+      user = result.data?.user ?? null;
+    } catch (_error) {
+      if (request !== sessionSequence) return;
+      show('account-card', false);
+      show('login-card', true);
+      status('login-status', 'Nie udało się sprawdzić sesji. Sprawdź połączenie lub spróbuj ponownie.', true);
+      return;
+    }
+    if (request !== sessionSequence) return;
+    if (!user) {
+      show('account-card', false);
+      show('login-card', true);
+      status('login-status', 'Nie jesteś zalogowany.');
+      return;
+    }
+    el('account-email').textContent = user.email ?? 'Konto bez adresu e-mail';
+    el('account-role').textContent = 'Sprawdzanie uprawnień…';
+    status('account-status', 'Sesja aktywna w tej przeglądarce.');
+    show('login-card', false);
+    show('account-card', true);
+    void checkRole(request);
+  }
+
+  async function checkRole(request = sessionSequence) {
+    if (!client) return;
+    el('account-role').textContent = 'Sprawdzanie uprawnień…';
+    try {
+      // Istniejąca funkcja jest VOLATILE: PostgREST wymaga POST.
+      // Dla administratora pobierana jest kolejka, ale strona nie pokazuje ani nie zapisuje jej danych.
+      const { error } = await client.rpc('admin_pending_map_points');
+      if (request !== sessionSequence || el('account-card').hidden) return;
+      if (!error) {
+        el('account-role').textContent = 'Administrator A — potwierdzony przez RPC';
+      } else if (error.code === 'P0001' && /Brak uprawnień administratora/i.test(error.message || '')) {
+        el('account-role').textContent = 'Zwykły użytkownik — odmowa dostępu administratora';
+      } else {
+        el('account-role').textContent = 'Nie udało się zweryfikować roli';
+        status('account-status', 'Logowanie działa, ale kontrola roli nie powiodła się. Nie oznacza to przyznania uprawnień.', true);
+      }
+    } catch (_error) {
+      if (request !== sessionSequence || el('account-card').hidden) return;
+      el('account-role').textContent = 'Nie udało się zweryfikować roli';
+      status('account-status', 'Błąd połączenia podczas sprawdzania uprawnień.', true);
+    }
+  }
+
+  el('setup-form').addEventListener('submit', event => {
+    event.preventDefault();
+    if (busy) return;
+    const key = el('public-key').value.trim();
+    if (!isPublishableKey(key)) {
+      status('setup-status', 'Wymagany jest wyłącznie klucz STAGING zaczynający się od sb_publishable_. Nie używaj kluczy tajnych.', true);
+      return;
+    }
+    initialize(key);
+  });
+
+  el('login-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (busy || !client) return;
+    const email = el('email').value.trim();
+    const password = el('password').value;
+    el('password').value = '';
+    setBusy(true);
+    status('login-status', 'Sprawdzanie danych logowania…');
+    try {
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) {
+        status('login-status', 'Logowanie nie powiodło się. Sprawdź adres e-mail, hasło lub stan konta w STAGING.', true);
+      } else {
+        status('login-status', 'Zalogowano. Sprawdzanie sesji…');
+        await updateSession();
+      }
+    } catch (_error) {
+      status('login-status', 'Brak połączenia z Supabase STAGING. Spróbuj ponownie.', true);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  el('verify-role').addEventListener('click', () => { if (!busy) void checkRole(); });
+
+  el('logout-btn').addEventListener('click', async () => {
+    if (busy || !client) return;
+    setBusy(true);
+    status('account-status', 'Wylogowywanie tylko tej sesji…');
+    try {
+      const { error } = await client.auth.signOut({ scope: 'local' });
+      // Local scope czyści bieżącą sesję nawet jeśli serwer zgłosi błąd sieci.
+      if (error) {
+        status('account-status', 'Wylogowanie lokalne: sprawdź ponownie stan sesji.', true);
+      }
+      await updateSession();
+    } catch (_error) {
+      status('account-status', 'Nie udało się potwierdzić wylogowania. Sprawdź stan sesji.', true);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  let key = null;
+  try { key = localStorage.getItem(CONFIG_KEY); } catch (_error) {
+    status('setup-status', 'Przechowywanie sesji może być ograniczone w tej przeglądarce.', true);
+  }
+  if (key && isPublishableKey(key)) initialize(key);
+})();
+</script>
+</body>
+</html>
