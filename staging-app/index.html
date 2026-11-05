@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src https://bairmdubhnodwplioxld.supabase.co; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; object-src 'none'; form-action 'none'">
+<title>NORDIC TRAIL | STAGING — mapa testowa</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--bg:#101b17;--card:#1b2b22;--line:#3d5547;--accent:#c8d49c;--ink:#f2f1e8;--muted:#b9c7bb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Arial,sans-serif}
+header{padding:20px 18px;background:#172720;border-bottom:1px solid var(--line)}
+header strong{font-size:23px;letter-spacing:.15em}
+header small{display:block;color:var(--accent);font-size:12px;letter-spacing:.12em;margin-top:5px}
+main{max-width:900px;margin:auto;padding:16px 14px 52px}
+.card{border:1px solid var(--line);background:var(--card);border-radius:13px;padding:16px;margin:14px 0}
+h2{font-size:17px;margin:0 0 10px}
+p{line-height:1.5}
+.hint{color:var(--muted);font-size:13px}
+label{display:block;margin:10px 0 5px;font-weight:600;font-size:13px}
+input,button{width:100%;min-height:44px;border-radius:9px;font:inherit;padding:10px 12px}
+input{border:1px solid #66806b;background:#102019;color:var(--ink)}
+button{border:0;background:var(--accent);color:#172219;font-weight:750;cursor:pointer;margin-top:10px}
+button.secondary{background:#31463a;border:1px solid #5e7765;color:var(--ink)}
+button:disabled{opacity:.5;cursor:wait}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1 1 150px}
+.status{border-radius:8px;background:#293f31;padding:10px 12px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.status.error{background:#55302e;color:#ffdfd9}
+#map{height:49vh;min-height:315px;border:1px solid #526b5c;border-radius:10px;background:#203026}
+#points{font-size:13px;color:var(--muted);padding:0;margin:12px 0 0;list-style:none}
+#points li{padding:9px;border-bottom:1px solid var(--line)}
+.note{border-left:3px solid var(--accent);padding-left:12px;color:var(--muted)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><strong>NORDIC TRAIL</strong><small>STAGING / MAPA TESTOWA • TYLKO ODCZYT</small></header>
+<main>
+<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Dodawanie punktów, zgłoszenia i moderacja są celowo wyłączone do czasu weryfikacji zgodności bazy. Nie używaj rzeczywistych danych osobowych.</p>
+<section class="card" id="setup-card">
+<h2>Połączenie STAGING</h2>
+<p class="hint">Wykorzystuje publiczny klucz zapisany wcześniej na stronie STAGING Login w tej samej przeglądarce. Jeśli go nie ma, wklej klucz <code>sb_publishable_...</code> z projektu Nordic-Trail-Staging.</p>
+<form id="setup-form" autocomplete="off">
+<label for="public-key">Klucz publiczny STAGING</label>
+<input id="public-key" type="password" autocomplete="off" spellcheck="false" required placeholder="sb_publishable_...">
+<button id="setup-btn" type="submit">Połącz ze STAGING</button>
+</form>
+<p class="status" id="setup-status" role="status" hidden></p>
+</section>
+<section class="card" id="login-card" hidden>
+<h2>Logowanie hasłem</h2>
+<form id="login-form">
+<label for="email">E-mail konta STAGING</label><input id="email" type="email" autocomplete="username" required maxlength="254">
+<label for="password">Hasło</label><input id="password" type="password" autocomplete="current-password" required>
+<button id="login-btn" type="submit">Zaloguj</button>
+</form>
+<p class="status" id="login-status" role="status">Nie jesteś zalogowany.</p>
+</section>
+<section class="card" id="account-card" hidden>
+<h2>Aktualna sesja</h2>
+<p id="account-email"></p>
+<p class="status" id="role-status" role="status">Sprawdzanie uprawnień...</p>
+<div class="row">
+<button id="role-btn" type="button" class="secondary">Sprawdź rolę</button>
+<button id="logout-btn" type="button" class="secondary">Wyloguj tę kartę</button>
+</div>
+</section>
+<section class="card">
+<h2>Mapa punktów publicznych</h2>
+<div id="map" aria-label="Mapa publicznych punktów STAGING"></div>
+<div class="row"><button class="secondary" id="refresh-btn" type="button">Odśwież punkty publiczne</button></div>
+<p class="status" id="map-status" role="status">Najpierw połącz ze STAGING.</p>
+<ul id="points"></ul>
+<p class="hint">Widoczne są wyłącznie punkty z <code>visibility=public</code> i <code>review_status=approved</code>. Mapa OpenStreetMap wymaga Internetu.</p>
+</section>
+<p class="hint">STAGING • Bez operacji INSERT, UPDATE i DELETE. Do logowania używaj wyłącznie kont testowych. Nie przesyłaj haseł ani kluczy tajnych.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+(function(){
+  const STAGING_URL='https://bairmdubhnodwplioxld.supabase.co';
+  const CONFIG_KEY='nt-staging-publishable-v1';
+  const SESSION_KEY='nt-staging-map-auth-session-v1';
+  const el=id=>document.getElementById(id);
+  const show=(id,visible)=>{el(id).hidden=!visible;};
+  const message=(id,value,isError)=>{const n=el(id);n.textContent=value;n.classList.toggle('error',!!isError);n.hidden=false;};
+  const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
+  let db=null,seq=0,loggingIn=false;
+  let markers=null,map=null;
+  const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
+  try{
+    if(!window.L)throw Error('Leaflet unavailable');
+    map=L.map('map').setView([62.2,15.2],5);
+    map.attributionControl.setPrefix('');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+    markers=L.layerGroup().addTo(map);
+  }catch(_error){message('map-status','Nie udało się uruchomić mapy. Sprawdź połączenie z Internetem.',true);}
+  async function publicPoints(){
+    if(!db){message('map-status','Najpierw połącz ze STAGING.');return;}
+    el('refresh-btn').disabled=true;
+    message('map-status','Wczytywanie publicznych punktów STAGING...');
+    try{
+      const result=await db.from('map_points').select('id,kind,status,note,lat,lon').eq('visibility','public').eq('review_status','approved').order('id',{ascending:true}).limit(500);
+      if(result.error)throw result.error;
+      const rows=result.data||[];
+      if(markers)markers.clearLayers();
+      el('points').replaceChildren();
+      for(const p of rows){
+        const title=(p.kind||'point')+' — '+(p.status||'brak statusu');
+        const item=document.createElement('li');
+        item.textContent=title+(p.note?' • '+p.note:'');
+        el('points').appendChild(item);
+        const lat=Number(p.lat),lon=Number(p.lon);
+        if(markers&&Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180){
+          const popup=document.createElement('div');
+          const head=document.createElement('strong');head.textContent=title;popup.appendChild(head);
+          if(p.note){const note=document.createElement('p');note.textContent=p.note;popup.appendChild(note);}
+          L.circleMarker([lat,lon],{radius:8,color:colours[p.kind]||'#c8d49c',weight:3,fillOpacity:.85}).bindPopup(popup).addTo(markers);
+        }
+      }
+      message('map-status','Wczytano publiczne, zatwierdzone punkty: '+rows.length+(rows.length===500?' (limit widoku: 500)':'')+'.');
+    }catch(_error){message('map-status','Odczyt punktów nie powiódł się. Sprawdź konfigurację i uprawnienia STAGING.',true);}
+    finally{el('refresh-btn').disabled=false;}
+  }
+  async function checkRole(user){
+    if(!db||!user)return;
+    const request=seq;
+    message('role-status','Sprawdzanie uprawnień...');
+    try{
+      const result=await db.rpc('admin_pending_map_points');
+      if(request!==seq)return;
+      if(!result.error)message('role-status','Administrator — potwierdzony przez RPC.');
+      else if(result.error.code==='42501'&&(result.error.message||'').trim()==='Brak uprawnień administratora')
+        message('role-status','Zwykły użytkownik — odmowa dostępu administratora.');
+      else message('role-status','Nie udało się zweryfikować roli. Kod: '+(/^[A-Za-z0-9_-]{3,16}$/.test(result.error.code||'')?result.error.code:'brak kodu'),true);
+    }catch(_error){if(request===seq)message('role-status','Błąd połączenia podczas sprawdzania roli.',true);}
+  }
+  async function updateSession(){
+    if(!db)return;
+    const request=++seq;
+    try{
+      const response=await db.auth.getUser();
+      if(request!==seq)return;
+      const user=response.data&&response.data.user;
+      if(!user){
+        show('login-card',true);show('account-card',false);
+        message('login-status','Nie jesteś zalogowany.');
+        return;
+      }
+      show('login-card',false);show('account-card',true);
+      el('account-email').textContent='Zalogowano: '+(user.email||'konto testowe');
+      await checkRole(user);
+    }catch(_error){
+      if(request===seq){show('login-card',true);show('account-card',false);message('login-status','Nie udało się sprawdzić sesji.',true);}
+    }
+  }
+  function connect(key){
+    if(!validKey(key)){message('setup-status','Wymagany jest publiczny klucz STAGING zaczynający się od sb_publishable_.',true);return;}
+    if(!window.supabase){message('setup-status','Brak biblioteki Supabase. Sprawdź połączenie.',true);return;}
+    try{
+      db=window.supabase.createClient(STAGING_URL,key,{auth:{storage:window.sessionStorage,storageKey:SESSION_KEY,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+      try{localStorage.setItem(CONFIG_KEY,key);}catch(_error){}
+      el('public-key').value='';
+      show('setup-card',false);
+      show('login-card',true);
+      db.auth.onAuthStateChange(event=>{
+        if(['SIGNED_IN','SIGNED_OUT','USER_UPDATED','INITIAL_SESSION'].includes(event))
+          queueMicrotask(()=>{void updateSession();});
+      });
+      void updateSession();
+      void publicPoints();
+    }catch(_error){message('setup-status','Błąd konfiguracji STAGING. Sprawdź klucz i dostępność pamięci przeglądarki.',true);}
+  }
+  el('setup-form').addEventListener('submit',event=>{event.preventDefault();connect(el('public-key').value.trim());});
+  el('login-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!db||loggingIn)return;
+    const email=el('email').value.trim(),password=el('password').value;
+    el('password').value='';
+    loggingIn=true;el('login-btn').disabled=true;
+    message('login-status','Logowanie do STAGING...');
+    try{
+      const result=await db.auth.signInWithPassword({email,password});
+      if(result.error)message('login-status','Logowanie nie powiodło się. Sprawdź e-mail i hasło.',true);
+      else await updateSession();
+    }catch(_error){message('login-status','Błąd połączenia podczas logowania.',true);}
+    finally{loggingIn=false;el('login-btn').disabled=false;}
+  });
+  el('role-btn').addEventListener('click',async()=>{
+    if(!db)return;const r=await db.auth.getUser();if(r.data&&r.data.user)void checkRole(r.data.user);
+  });
+  el('logout-btn').addEventListener('click',async()=>{
+    if(!db)return;
+    const r=await db.auth.signOut({scope:'local'});
+    if(r.error)message('role-status','Nie udało się potwierdzić wylogowania.',true);
+    await updateSession();
+  });
+  el('refresh-btn').addEventListener('click',()=>{void publicPoints();});
+  let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
+  if(saved&&validKey(saved))connect(saved);
+})();
+</script>
+</body>
+</html>
