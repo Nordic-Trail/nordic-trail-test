@@ -70,10 +70,11 @@ button:disabled{opacity:.5;cursor:wait}
 <button id="role-btn" type="button" class="secondary">Sprawdź rolę</button>
 <button id="logout-btn" type="button" class="secondary">Wyloguj tę kartę</button>
 </div>
+<p class="status" id="moderation-result" role="status" aria-live="polite" hidden></p>
 </section>
 <section class="card" id="admin-queue-card" hidden>
 <h2>Kolejka moderacji — tylko odczyt</h2>
-<p class="hint">Prywatne punkty oczekujące na decyzję administratora. Lista pochodzi wyłącznie z zabezpieczonej funkcji RPC. Zatwierdzanie i odrzucanie są wyłączone.</p>
+<p class="hint">Prywatne punkty oczekujące na decyzję administratora. Lista pochodzi wyłącznie z zabezpieczonej funkcji RPC. Zatwierdzanie i odrzucanie wymagają oddzielnego potwierdzenia.</p>
 <button id="refresh-admin-queue-btn" type="button" class="secondary">Odśwież kolejkę</button>
 <p class="status" id="admin-queue-status" role="status">Wczytywanie kolejki...</p>
 <ul id="admin-queue-list"></ul>
@@ -127,6 +128,7 @@ button:disabled{opacity:.5;cursor:wait}
   let db=null,seq=0,loggingIn=false;
   let markers=null,map=null;
   let activeUser=null,choosingPoint=false,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false;
+  let moderationBusy=false,adminVerifiedUserId=null;
   const pointStatuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
   const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
   try{
@@ -285,10 +287,11 @@ button:disabled{opacity:.5;cursor:wait}
   el('refresh-mine-btn').addEventListener('click',()=>{void loadMyPoints();});
 
   function clearAdminQueue(){
+    adminVerifiedUserId=null;
     show('admin-queue-card',false);
     el('admin-queue-list').replaceChildren();
     el('admin-queue-status').textContent='Kolejka jest dostępna wyłącznie dla administratora.';
-    el('refresh-admin-queue-btn').disabled=false;
+    el('refresh-admin-queue-btn').disabled=moderationBusy;
   }
   function displayAdminQueue(rows){
     const list=el('admin-queue-list');
@@ -309,10 +312,62 @@ button:disabled{opacity:.5;cursor:wait}
         coords.textContent='Współrzędne: '+point.lat.toFixed(6)+', '+point.lon.toFixed(6);
         item.appendChild(coords);
       }
+      const validId=(typeof point.id==='number'&&Number.isSafeInteger(point.id)&&point.id>0)||
+        (typeof point.id==='string'&&/^[1-9][0-9]*$/.test(point.id));
+      const actions=document.createElement('div');
+      actions.className='row';
+      for(const [decision,label] of [['approved','Zatwierdź'],['rejected','Odrzuć']]){
+        const button=document.createElement('button');
+        button.type='button';
+        button.className=decision==='rejected'?'secondary':'';
+        button.textContent=label+' punkt #'+String(point.id);
+        button.disabled=moderationBusy||!validId;
+        button.addEventListener('click',()=>{void moderateQueuedPoint(point,decision);});
+        actions.appendChild(button);
+      }
+      item.appendChild(actions);
       list.appendChild(item);
     }
+    adminVerifiedUserId=activeUser?.id||null;
     message('admin-queue-status',rows.length===0?'Brak punktów oczekujących na moderację.':'Oczekujące punkty: '+rows.length+(rows.length>100?' (wyświetlono pierwsze 100)':'')+'.');
     show('admin-queue-card',true);
+  }
+  async function moderateQueuedPoint(point,decision){
+    if(!db||moderationBusy||!activeUser||adminVerifiedUserId!==activeUser.id)return;
+    if(decision!=='approved'&&decision!=='rejected')return;
+    const id=String(point.id);
+    if(!((typeof point.id==='number'&&Number.isSafeInteger(point.id)&&point.id>0)||
+       (typeof point.id==='string'&&/^[1-9][0-9]*$/.test(point.id))))return;
+    const verb=decision==='approved'?'Zatwierdzić':'Odrzucić';
+    if(!confirm(verb+' punkt #'+id+' ('+String(point.kind||'punkt')+' / '+String(point.status||'brak statusu')+')?\n\nDecyzja zostanie zapisana w historii moderacji.'))return;
+    const moderatorId=activeUser.id;
+    const request=seq;
+    moderationBusy=true;
+    el('refresh-admin-queue-btn').disabled=true;
+    el('logout-btn').disabled=true;
+    el('admin-queue-list').querySelectorAll('button').forEach(button=>{button.disabled=true;});
+    message('moderation-result','Zapisywanie decyzji dla punktu #'+id+'...');
+    try{
+      const auth=await db.auth.getUser();
+      if(auth.error||auth.data?.user?.id!==moderatorId||seq!==request||adminVerifiedUserId!==moderatorId){
+        throw new Error('Session changed');
+      }
+      const result=await db.rpc('moderate_map_point',{p_point_id:point.id,p_decision:decision});
+      if(result.error)throw new Error('RPC denied or failed');
+      if(seq!==request||activeUser?.id!==moderatorId)return;
+      message('moderation-result',decision==='approved'?'Zatwierdzono punkt #'+id+'. Decyzja zapisana w STAGING.':'Odrzucono punkt #'+id+'. Decyzja zapisana w STAGING.');
+      await checkRole(activeUser);
+      await publicPoints();
+    }catch(_error){
+      if(seq===request&&activeUser?.id===moderatorId){
+        message('moderation-result','Nie udało się potwierdzić decyzji dla punktu #'+id+'. Przed ponowną próbą odśwież kolejkę i sprawdź status.',true);
+      }
+    }finally{
+      moderationBusy=false;
+      el('logout-btn').disabled=false;
+      el('refresh-admin-queue-btn').disabled=false;
+      el('admin-queue-list').querySelectorAll('button').forEach(button=>{button.disabled=false;});
+    }
   }
   async function checkRole(user){
     if(!db||!user){clearAdminQueue();return;}
@@ -348,19 +403,20 @@ button:disabled{opacity:.5;cursor:wait}
       const user=response.data&&response.data.user;
       if(!user){
         activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();
+        el('moderation-result').hidden=true;
         show('draft-card',false);show('login-card',true);show('account-card',false);
         message('login-status','Nie jesteś zalogowany.');
         return;
       }
       const changed=activeUser?.id!==user.id;
-      if(changed){clearSelection();el('my-points').replaceChildren();clearAdminQueue();}
+      if(changed){clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;}
       activeUser=user;
       show('login-card',false);show('account-card',true);show('draft-card',true);
       el('account-email').textContent='Zalogowano: '+(user.email||'konto testowe');
       void loadMyPoints(user,request);
       await checkRole(user);
     }catch(_error){
-      if(request===seq){activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();show('draft-card',false);show('login-card',true);show('account-card',false);message('login-status','Nie udało się sprawdzić sesji.',true);}
+      if(request===seq){activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;show('draft-card',false);show('login-card',true);show('account-card',false);message('login-status','Nie udało się sprawdzić sesji.',true);}
     }
   }
   function connect(key){
@@ -395,13 +451,13 @@ button:disabled{opacity:.5;cursor:wait}
     }catch(_error){message('login-status','Błąd połączenia podczas logowania.',true);}
     finally{loggingIn=false;el('login-btn').disabled=false;}
   });
-  el('refresh-admin-queue-btn').addEventListener('click',()=>{if(db&&activeUser)void checkRole(activeUser);});
+  el('refresh-admin-queue-btn').addEventListener('click',()=>{if(db&&activeUser&&!moderationBusy)void checkRole(activeUser);});
   el('role-btn').addEventListener('click',async()=>{
-    if(!db)return;const r=await db.auth.getUser();if(r.data&&r.data.user)void checkRole(r.data.user);
+    if(!db||moderationBusy)return;const r=await db.auth.getUser();if(r.data&&r.data.user)void checkRole(r.data.user);
   });
   el('logout-btn').addEventListener('click',async()=>{
-    if(!db)return;
-    activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();show('draft-card',false);
+    if(!db||moderationBusy)return;
+    activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;show('draft-card',false);
     const r=await db.auth.signOut({scope:'local'});
     if(r.error)message('role-status','Nie udało się potwierdzić wylogowania.',true);
     await updateSession();
