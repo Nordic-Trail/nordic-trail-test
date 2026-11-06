@@ -73,7 +73,7 @@ button:disabled{opacity:.5;cursor:wait}
 <p class="status" id="moderation-result" role="status" aria-live="polite" hidden></p>
 </section>
 <section class="card" id="admin-queue-card" hidden>
-<h2>Kolejka moderacji — tylko odczyt</h2>
+<h2>Kolejka moderacji</h2>
 <p class="hint">Prywatne punkty oczekujące na decyzję administratora. Lista pochodzi wyłącznie z zabezpieczonej funkcji RPC. Zatwierdzanie i odrzucanie wymagają oddzielnego potwierdzenia.</p>
 <button id="refresh-admin-queue-btn" type="button" class="secondary">Odśwież kolejkę</button>
 <p class="status" id="admin-queue-status" role="status">Wczytywanie kolejki...</p>
@@ -98,10 +98,10 @@ button:disabled{opacity:.5;cursor:wait}
 <button id="save-draft-btn" type="submit" disabled>Zapisz prywatny szkic</button>
 </form>
 <p class="status" id="draft-status" role="status">Punkt nie został zapisany.</p>
-<h2 style="margin-top:22px">Moje szkice i punkty w moderacji</h2>
+<h2 style="margin-top:22px">Moje punkty — statusy i historia decyzji</h2>
 <button type="button" class="secondary" id="refresh-mine-btn">Odśwież moje punkty</button>
 <ul id="my-points"></ul>
-<p class="hint">Szkic jest widoczny tylko dla właściciela. Przesłane punkty otrzymują status „pending” i nie są publiczne przed zatwierdzeniem.</p>
+<p class="hint">Wyświetlane są Twoje szkice, punkty w moderacji oraz decyzje „Zatwierdzony” i „Odrzucony”. Zatwierdzone punkty są publiczne, odrzucone pozostają prywatne. Tylko własne szkice można wysyłać do weryfikacji.</p>
 </section>
 <section class="card">
 <h2>Mapa punktów publicznych</h2>
@@ -206,13 +206,12 @@ button:disabled{opacity:.5;cursor:wait}
   async function loadMyPoints(user=activeUser,request=seq){
     const list=el('my-points');
     if(!db||!user){list.replaceChildren();return;}
-    message('draft-status','Odczytywanie Twoich szkiców i punktów w moderacji...');
+    message('draft-status','Odczytywanie Twoich punktów i historii decyzji...');
     try{
       const result=await db.from('map_points')
         .select('id,kind,status,note,review_status,visibility')
         .eq('user_id',user.id)
-        .eq('visibility','private')
-        .in('review_status',['draft','pending'])
+        .in('review_status',['draft','pending','approved','rejected'])
         .order('id',{ascending:false}).limit(100);
       if(request!==seq||activeUser?.id!==user.id)return;
       if(result.error)throw result.error;
@@ -221,7 +220,14 @@ button:disabled{opacity:.5;cursor:wait}
       for(const p of points){
         const item=document.createElement('li');
         const desc=document.createElement('span');
-        desc.textContent='#'+p.id+' • '+p.kind+' — '+p.status+' • '+(p.review_status==='draft'?'Szkic prywatny':'Oczekuje na moderację')+(p.note?' • '+p.note:'');
+        const statusLabel={
+          draft:'Szkic prywatny',
+          pending:'Oczekuje na moderację',
+          approved:'Zatwierdzony',
+          rejected:'Odrzucony'
+        }[p.review_status]||'Status nieznany';
+        const visibilityLabel=p.visibility==='public'?'publiczny':p.visibility==='private'?'prywatny':'widoczność nieznana';
+        desc.textContent='#'+p.id+' • '+p.kind+' — '+p.status+' • '+statusLabel+' • '+visibilityLabel+(p.note?' • '+p.note:'');
         item.appendChild(desc);
         if(p.review_status==='draft'){
           const send=document.createElement('button');
@@ -231,7 +237,7 @@ button:disabled{opacity:.5;cursor:wait}
         }
         list.appendChild(item);
       }
-      message('draft-status',points.length?'Odczytano Twoje szkice i punkty w moderacji: '+points.length+'.':'Nie masz jeszcze szkiców ani punktów oczekujących.');
+      message('draft-status',points.length?'Odczytano Twoje punkty (w tym historię decyzji): '+points.length+(points.length===100?' — wyświetlono maksymalnie 100':'')+'.':'Nie masz jeszcze punktów.');
     }catch(_error){if(request===seq)message('draft-status','Nie udało się odczytać Twoich punktów. Sprawdź polityki SELECT w STAGING.',true);}
   }
 
