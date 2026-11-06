@@ -12,11 +12,13 @@
 :root{color-scheme:dark;--bg:#101b17;--card:#1b2b22;--line:#3d5547;--accent:#c8d49c;--ink:#f2f1e8;--muted:#b9c7bb}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Arial,sans-serif}
-header{position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:900;pointer-events:none;padding:10px 12px;background:#172720eb;border:1px solid #566e5b;border-radius:11px;box-shadow:0 4px 18px #101b1788}
-header strong{font-size:17px;letter-spacing:.09em}
-header small{display:block;color:var(--accent);font-size:9px;letter-spacing:.08em;margin-top:4px}
+header{position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;z-index:900;pointer-events:none;padding:7px 9px;background:#172720db;border:1px solid #566e5b;border-radius:10px;box-shadow:0 3px 12px #101b1766}
+header strong{font-size:14px;letter-spacing:.045em}
+header small{display:block;color:var(--accent);font-size:9px;letter-spacing:.07em;margin-top:1px}
 main{margin:0;padding:0;max-width:none}
-.workspace{max-width:900px;margin:auto;padding:16px 14px 52px}
+.workspace{max-width:900px;margin:auto;padding:0 14px 52px}
+.workspace-nav{position:sticky;top:0;z-index:1100;display:flex;align-items:center;justify-content:flex-start;gap:10px;margin:0 -14px 12px;padding:10px 14px;background:#102019f4;border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.workspace-nav button{width:auto;min-width:106px;min-height:44px;margin:0;padding:8px 15px;border-radius:22px;font-size:14px}
 .card{border:1px solid var(--line);background:var(--card);border-radius:13px;padding:16px;margin:14px 0}
 h2{font-size:17px;margin:0 0 10px}
 p{line-height:1.5}
@@ -37,7 +39,7 @@ button:disabled{opacity:.5;cursor:wait}
 .map-top-actions button{margin:0;width:auto;min-width:52px;min-height:49px;padding:8px 12px;border-radius:13px;background:#203a2ff0;border:1px solid #607d66;color:var(--ink);box-shadow:0 3px 14px #1420178a}
 .map-toolbar{position:absolute;bottom:calc(38px + env(safe-area-inset-bottom));left:12px;right:12px;z-index:900;display:flex;justify-content:flex-end;align-items:center;gap:9px;pointer-events:none}
 .map-toolbar>button{width:auto;flex:0 1 auto;margin:0;padding:9px 14px;min-width:48px;min-height:48px;font-size:14px;background:#254b37eb;border:1px solid #85a586;color:var(--ink);border-radius:24px;box-shadow:0 4px 16px #1420179a;pointer-events:auto}
-.map-toolbar #add-point-btn{background:#96b47c;color:#102015}
+.map-toolbar #add-point-btn{background:#96b47c;color:#102015;padding:10px 18px}
 #map-action-status{position:absolute;left:12px;right:12px;bottom:calc(100px + env(safe-area-inset-bottom));z-index:850;margin:0;background:#172720f2;border:1px solid #637e66}
 #map-status{margin-top:12px}
 #public-list-details{margin-top:12px}#public-list-details summary{cursor:pointer;color:var(--accent);font-weight:600;padding:8px 0;min-height:44px}
@@ -51,7 +53,22 @@ button:disabled{opacity:.5;cursor:wait}
 .sheet-grip{width:44px;height:4px;background:#7a9380;border-radius:4px;margin:0 auto 15px}
 .sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.sheet-header h2{margin:0;font-size:20px}
 .sheet-close{width:44px;min-height:44px;flex:0 0 44px;margin:0;padding:0;border-radius:50%;background:#31463a;color:var(--ink);border:1px solid #5e7765}
-.point-sheet #selected-coords{font-size:13px;margin:12px 0}
+.point-sheet #selected-coords{font-size:12px;margin:6px 0 10px;background:#243b2f;padding:8px 10px}
+.point-sheet .sheet-header{gap:10px}
+.sheet-controls{display:flex;align-items:center;gap:6px}
+.sheet-controls button{flex:0 0 44px;min-width:44px;width:44px;height:44px;margin:0;padding:0;background:#31463a;color:var(--ink);border:1px solid #5e7765;border-radius:50%;font-size:22px}
+.sheet-coords summary,.note-details summary{cursor:pointer;color:var(--muted);font-size:13px;min-height:36px;padding:9px 0}
+.note-details{margin:6px 0}.note-details label{margin-top:4px}
+.point-sheet.is-collapsed{padding-bottom:calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 25px #0008}
+.point-sheet.is-collapsed .sheet-grip{margin-bottom:8px}
+.point-sheet.is-collapsed .sheet-header h2{font-size:16px}
+.point-sheet.is-collapsed .sheet-body{display:none}
+.sheet-body{padding-top:6px}
+#kind-picker>p{margin:3px 0 10px}
+#change-location-btn{min-height:44px;font-size:13px;margin-top:8px}
+.point-sheet .sheet-header h2{min-width:0;flex:1}
+@media(max-height:650px){.point-sheet{max-height:78dvh}}
+
 .kind-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}
 .kind-option{margin:0;min-height:70px;padding:8px 5px;background:#30483b;border:1px solid #65836c;color:var(--ink);font-size:13px;line-height:1.2}
 .kind-option .kind-icon{display:block;font-size:23px;margin-bottom:5px}
@@ -68,22 +85,25 @@ button:disabled{opacity:.5;cursor:wait}
 </style>
 </head>
 <body>
-<header><strong>NORDIC TRAIL</strong><small>STAGING / MAPA TESTOWA • SZKICE I MODERACJA</small></header>
+<header><strong>NORDIC TRAIL</strong><small>STAGING</small></header>
 <main>
 <section id="map-section" aria-label="Pełnoekranowa mapa NORDIC TRAIL">
 <div id="map" aria-label="Mapa interaktywna; dotknij wolnego miejsca, aby dodać punkt"></div>
 <div class="map-top-actions"><button type="button" id="open-workspace-btn" aria-label="Otwórz panel użytkownika, logowania i moderacji">☰ Panel</button></div>
 <p class="status" id="map-action-status" role="status" aria-live="polite" hidden></p>
 <div class="map-toolbar">
-<button type="button" id="refresh-btn" class="secondary" aria-label="Odśwież punkty publiczne">↻</button>
-<button type="button" id="jump-mine-btn" class="secondary" hidden>Moje punkty</button>
-<button type="button" id="add-point-btn">＋ Dodaj punkt</button>
+<button type="button" id="add-point-btn" aria-label="Dodaj punkt do mapy">＋ Punkt</button>
 </div>
 </section>
 <div class="workspace" id="workspace">
+<nav class="workspace-nav" aria-label="Nawigacja panelu">
+<button type="button" id="back-to-map-btn" class="secondary">← Mapa</button>
+<button type="button" id="jump-mine-btn" class="secondary" hidden>Moje punkty</button>
+</nav>
 <p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłoszenia zmian przy punktach nie są jeszcze dostępne. Decyzje administratora są obsługiwane w STAGING. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
 <section class="card" id="public-points-panel">
 <h2>Punkty publiczne</h2>
+<button type="button" id="refresh-btn" class="secondary">Odśwież punkty publiczne</button>
 <p class="status" id="map-status" role="status">Najpierw połącz ze STAGING.</p>
 <details id="public-list-details"><summary>Lista publicznych punktów</summary><ul id="points"></ul></details>
 <p class="hint">Dotknij pustego miejsca na mapie, aby dodać testowy punkt. Publiczne są tylko zatwierdzone punkty; nowe zapisywane są jako prywatne szkice.</p>
@@ -137,10 +157,17 @@ button:disabled{opacity:.5;cursor:wait}
 <section class="point-sheet" id="point-sheet" role="dialog" aria-modal="false" aria-labelledby="point-sheet-title" hidden>
 <div class="sheet-grip" aria-hidden="true"></div>
 <div class="sheet-header">
-<h2 id="point-sheet-title">Dodaj punkt do mapy</h2>
+<h2 id="point-sheet-title">Dodaj punkt</h2>
+<div class="sheet-controls">
+<button type="button" id="toggle-sheet-btn" aria-expanded="true" aria-controls="sheet-body" aria-label="Zwiń panel">−</button>
 <button type="button" id="close-sheet-btn" class="sheet-close" aria-label="Anuluj dodawanie punktu">✕</button>
 </div>
+</div>
+<div class="sheet-body" id="sheet-body">
+<details class="sheet-coords" id="point-coords-details">
+<summary>Położenie punktu · szczegóły</summary>
 <p class="status" id="selected-coords" role="status">Nie wybrano współrzędnych.</p>
+</details>
 <div id="kind-picker">
 <p class="hint">Jaki punkt chcesz dodać?</p>
 <div class="kind-options" role="group" aria-label="Wybierz rodzaj punktu">
@@ -157,14 +184,18 @@ button:disabled{opacity:.5;cursor:wait}
 <input type="hidden" id="point-kind" value="">
 <label for="point-status">Status punktu</label>
 <select id="point-status" required></select>
-<label for="point-note">Opis (opcjonalnie, maks. 120 znaków)</label>
+<details class="note-details" id="note-details">
+<summary>＋ Dodaj opis (opcjonalnie)</summary>
+<label for="point-note">Opis (maks. 120 znaków)</label>
 <input id="point-note" maxlength="120" autocomplete="off" placeholder="np. TEST STAGING — szlaban">
+</details>
 <button id="save-draft-btn" type="submit" disabled>Zapisz prywatny szkic</button>
 </form>
-<p class="hint">Szkic jest prywatny. Publikacja wymaga osobnego wysłania do moderacji i zatwierdzenia przez administratora.</p>
+<p class="hint">Szkic będzie prywatny do czasu zatwierdzenia przez administratora.</p>
 </div>
 <p class="status" id="point-sheet-status" role="status" aria-live="polite" hidden></p>
-<button type="button" class="secondary" id="change-location-btn">Zmień położenie na mapie</button>
+<button type="button" class="secondary" id="change-location-btn">⌖ Zmień lokalizację</button>
+</div>
 </section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -181,7 +212,7 @@ button:disabled{opacity:.5;cursor:wait}
   const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
   let db=null,seq=0,loggingIn=false;
   let markers=null,map=null;
-  let activeUser=null,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false;
+  let activeUser=null,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false,movingPoint=false;
   let moderationBusy=false,adminVerifiedUserId=null;
   const pointStatuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
   const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
@@ -250,9 +281,23 @@ button:disabled{opacity:.5;cursor:wait}
     window.requestAnimationFrame(keepSelectionVisible);
     window.setTimeout(keepSelectionVisible,260);
   }
+  function setSheetCollapsed(collapsed){
+    const sheet=el('point-sheet');
+    sheet.classList.toggle('is-collapsed',collapsed);
+    const toggle=el('toggle-sheet-btn');
+    toggle.textContent=collapsed?'⌃':'−';
+    toggle.setAttribute('aria-expanded',String(!collapsed));
+    toggle.setAttribute('aria-label',collapsed?'Rozwiń panel':'Zwiń panel');
+    if(!sheet.hidden)adjustMapToPanel();
+  }
   function closePointSheet(){show('point-sheet',false);el('point-sheet-status').hidden=true;}
+  el('toggle-sheet-btn').addEventListener('click',()=>{if(!writingDraft)setSheetCollapsed(!el('point-sheet').classList.contains('is-collapsed'));});
   function clearSelection(){
-    selectedPoint=null;
+    selectedPoint=null;movingPoint=false;
+    setSheetCollapsed(false);
+    el('point-sheet-title').textContent='Dodaj punkt';
+    el('note-details').open=false;
+    el('point-coords-details').open=false;
     if(selectionMarker&&map){map.removeLayer(selectionMarker);selectionMarker=null;}
     closePointSheet();
     el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
@@ -264,12 +309,14 @@ button:disabled{opacity:.5;cursor:wait}
   el('close-sheet-btn').addEventListener('click',()=>{if(!writingDraft)clearSelection();});
   el('change-location-btn').addEventListener('click',()=>{
     if(writingDraft)return;
+    movingPoint=true;
     closePointSheet();
-    message('map-action-status','Dotknij innego miejsca na mapie, aby zmienić lokalizację punktu.');
+    message('map-action-status','Dotknij innego miejsca na mapie. Wybrany rodzaj, status i opis zostaną zachowane.');
   });
   el('change-kind-btn').addEventListener('click',()=>{
     if(writingDraft)return;
     el('point-kind').value='';el('save-draft-btn').disabled=true;
+    el('point-sheet-title').textContent='Dodaj punkt';
     show('kind-picker',true);show('sheet-fields',false);
   });
   document.querySelectorAll('.kind-option').forEach(button=>{
@@ -278,6 +325,7 @@ button:disabled{opacity:.5;cursor:wait}
       const kind=button.dataset.kind;
       if(!Object.prototype.hasOwnProperty.call(pointStatuses,kind))return;
       el('point-kind').value=kind;
+      el('point-sheet-title').textContent=kindLabels[kind];
       el('chosen-kind-label').textContent=kindLabels[kind];
       refreshStatusOptions();
       show('kind-picker',false);show('sheet-fields',true);
@@ -302,11 +350,15 @@ button:disabled{opacity:.5;cursor:wait}
     if(selectionMarker)map.removeLayer(selectionMarker);
     selectionMarker=L.circleMarker([lat,lon],{radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false}).addTo(map);
     el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
-    if(!open){
+    if(!open&&!movingPoint){
       el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
+      el('point-sheet-title').textContent='Dodaj punkt';
+      el('note-details').open=false;el('point-coords-details').open=false;
       el('save-draft-btn').disabled=true;
       show('kind-picker',true);show('sheet-fields',false);
     }
+    movingPoint=false;
+    setSheetCollapsed(false);
     el('map-action-status').hidden=true;el('point-sheet-status').hidden=true;
     show('point-sheet',true);
     adjustMapToPanel();
@@ -580,6 +632,10 @@ button:disabled{opacity:.5;cursor:wait}
   el('refresh-btn').addEventListener('click',()=>{void publicPoints();});
   el('jump-mine-btn').addEventListener('click',()=>{if(activeUser)el('draft-card').scrollIntoView({behavior:'smooth',block:'start'});});
   el('open-workspace-btn').addEventListener('click',()=>{el('workspace').scrollIntoView({behavior:'smooth',block:'start'});});
+  el('back-to-map-btn').addEventListener('click',()=>{
+    el('map-section').scrollIntoView({behavior:'smooth',block:'start'});
+    if(map)window.setTimeout(()=>{map.invalidateSize({pan:false});},350);
+  });
   el('add-point-btn').addEventListener('click',()=>{
     if(!db||!activeUser){
       message('map-action-status','Aby dodać punkt, najpierw zaloguj się w panelu STAGING.');
