@@ -50,7 +50,6 @@ button:disabled{opacity:.5;cursor:wait}
 #my-points li span{display:block}
 .point-sheet{position:fixed;left:50%;bottom:0;z-index:1200;transform:translateX(-50%);width:min(100%,550px);max-height:85dvh;overflow-y:auto;overscroll-behavior:contain;background:#1b2b22;border:1px solid #718873;border-radius:22px 22px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -15px 45px #0009;animation:sheet-enter .2s ease-out}
 @keyframes sheet-enter{from{transform:translate(-50%,18px);opacity:.5}to{transform:translate(-50%,0);opacity:1}}
-.sheet-grip{width:44px;height:4px;background:#7a9380;border-radius:4px;margin:0 auto 15px}
 .sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.sheet-header h2{margin:0;font-size:20px}
 .sheet-close{width:44px;min-height:44px;flex:0 0 44px;margin:0;padding:0;border-radius:50%;background:#31463a;color:var(--ink);border:1px solid #5e7765}
 .point-sheet #selected-coords{font-size:12px;margin:6px 0 10px;background:#243b2f;padding:8px 10px}
@@ -61,7 +60,6 @@ button:disabled{opacity:.5;cursor:wait}
 .sheet-coords summary,.note-details summary{cursor:pointer;color:var(--muted);font-size:13px;min-height:36px;padding:9px 0}
 .note-details{margin:6px 0}.note-details label{margin-top:4px}
 .point-sheet.is-collapsed{height:auto;max-height:none;overflow:hidden;padding-bottom:calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 25px #0008}
-.point-sheet.is-collapsed .sheet-grip{margin-bottom:8px}
 .point-sheet.is-collapsed .sheet-header h2{font-size:16px}
 .point-sheet.is-collapsed .sheet-body{display:none!important}
 .sheet-body{padding-top:6px}
@@ -156,7 +154,6 @@ button:disabled{opacity:.5;cursor:wait}
 <p class="hint">STAGING • INSERT tworzy wyłącznie prywatne szkice; zgłoszenie do moderacji odbywa się przez zabezpieczoną funkcję RPC. Brak bezpośrednich operacji UPDATE i DELETE. Korzystaj wyłącznie z kont testowych, nie udostępniaj haseł ani kluczy tajnych.</p>
 </div>
 <section class="point-sheet" id="point-sheet" role="dialog" aria-modal="false" aria-labelledby="point-sheet-title" hidden>
-<div class="sheet-grip" aria-hidden="true"></div>
 <div class="sheet-header">
 <h2 id="point-sheet-title">Dodaj punkt</h2>
 <div class="sheet-controls">
