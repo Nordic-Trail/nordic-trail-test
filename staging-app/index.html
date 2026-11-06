@@ -57,12 +57,13 @@ button:disabled{opacity:.5;cursor:wait}
 .point-sheet .sheet-header{gap:10px}
 .sheet-controls{display:flex;align-items:center;gap:6px}
 .sheet-controls button{flex:0 0 44px;min-width:44px;width:44px;height:44px;margin:0;padding:0;background:#31463a;color:var(--ink);border:1px solid #5e7765;border-radius:50%;font-size:22px}
+.sheet-controls #toggle-sheet-btn{flex:0 0 auto;min-width:82px;width:auto;border-radius:22px;padding:0 12px;font-size:13px;font-weight:700}
 .sheet-coords summary,.note-details summary{cursor:pointer;color:var(--muted);font-size:13px;min-height:36px;padding:9px 0}
 .note-details{margin:6px 0}.note-details label{margin-top:4px}
-.point-sheet.is-collapsed{padding-bottom:calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 25px #0008}
+.point-sheet.is-collapsed{height:auto;max-height:none;overflow:hidden;padding-bottom:calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 25px #0008}
 .point-sheet.is-collapsed .sheet-grip{margin-bottom:8px}
 .point-sheet.is-collapsed .sheet-header h2{font-size:16px}
-.point-sheet.is-collapsed .sheet-body{display:none}
+.point-sheet.is-collapsed .sheet-body{display:none!important}
 .sheet-body{padding-top:6px}
 #kind-picker>p{margin:3px 0 10px}
 #change-location-btn{min-height:44px;font-size:13px;margin-top:8px}
@@ -159,7 +160,7 @@ button:disabled{opacity:.5;cursor:wait}
 <div class="sheet-header">
 <h2 id="point-sheet-title">Dodaj punkt</h2>
 <div class="sheet-controls">
-<button type="button" id="toggle-sheet-btn" aria-expanded="true" aria-controls="sheet-body" aria-label="Zwiń panel">−</button>
+<button type="button" id="toggle-sheet-btn" aria-expanded="true" aria-controls="sheet-body" aria-label="Zwiń panel">Zwiń</button>
 <button type="button" id="close-sheet-btn" class="sheet-close" aria-label="Anuluj dodawanie punktu">✕</button>
 </div>
 </div>
@@ -283,17 +284,24 @@ button:disabled{opacity:.5;cursor:wait}
   }
   function setSheetCollapsed(collapsed){
     const sheet=el('point-sheet');
+    const body=el('sheet-body');
+    body.hidden=collapsed;
     sheet.classList.toggle('is-collapsed',collapsed);
     const toggle=el('toggle-sheet-btn');
-    toggle.textContent=collapsed?'⌃':'−';
+    toggle.textContent=collapsed?'Rozwiń':'Zwiń';
     toggle.setAttribute('aria-expanded',String(!collapsed));
     toggle.setAttribute('aria-label',collapsed?'Rozwiń panel':'Zwiń panel');
     if(!sheet.hidden)adjustMapToPanel();
   }
   function closePointSheet(){show('point-sheet',false);el('point-sheet-status').hidden=true;}
   el('toggle-sheet-btn').addEventListener('click',()=>{if(!writingDraft)setSheetCollapsed(!el('point-sheet').classList.contains('is-collapsed'));});
+  function updatePointAction(){
+    el('add-point-btn').textContent=selectedPoint?'✎ Edytuj punkt':'＋ Punkt';
+    el('add-point-btn').setAttribute('aria-label',selectedPoint?'Wróć do formularza wybranego punktu':'Dodaj punkt do mapy');
+  }
   function clearSelection(){
     selectedPoint=null;movingPoint=false;
+    updatePointAction();
     setSheetCollapsed(false);
     el('point-sheet-title').textContent='Dodaj punkt';
     el('note-details').open=false;
@@ -339,18 +347,25 @@ button:disabled{opacity:.5;cursor:wait}
   });
   if(map)map.on('click',event=>{
     if(writingDraft)return;
+    if(!el('point-sheet').hidden){
+      movingPoint=true;
+      closePointSheet();
+      el('map-action-status').hidden=true;
+      return;
+    }
     if(!activeUser||!db){
       message('map-action-status','Aby dodać punkt, połącz się ze STAGING i zaloguj na konto testowe.',true);
       return;
     }
     const lat=Number(event.latlng.lat.toFixed(6)),lon=Number(event.latlng.lng.toFixed(6));
     if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
-    const open=!el('point-sheet').hidden;
+    const hadPoint=!!selectedPoint;
     selectedPoint={lat,lon};
+    updatePointAction();
     if(selectionMarker)map.removeLayer(selectionMarker);
     selectionMarker=L.circleMarker([lat,lon],{radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false}).addTo(map);
     el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
-    if(!open&&!movingPoint){
+    if(!hadPoint&&!movingPoint){
       el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
       el('point-sheet-title').textContent='Dodaj punkt';
       el('note-details').open=false;el('point-coords-details').open=false;
@@ -643,7 +658,15 @@ button:disabled{opacity:.5;cursor:wait}
       return;
     }
     if(writingDraft)return;
-    message('map-action-status','Dotknij wybranego miejsca na mapie. Następnie wybierz rodzaj punktu.');
+    if(selectedPoint){
+      movingPoint=false;
+      el('map-action-status').hidden=true;
+      setSheetCollapsed(false);
+      show('point-sheet',true);
+      adjustMapToPanel();
+      return;
+    }
+    message('map-action-status','Dotknij wybranego miejsca na mapie, aby rozpocząć dodawanie punktu.');
   });
   window.addEventListener('resize',()=>{
     if(map)map.invalidateSize({pan:false});
