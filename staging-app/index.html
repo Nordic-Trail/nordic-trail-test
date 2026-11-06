@@ -12,10 +12,11 @@
 :root{color-scheme:dark;--bg:#101b17;--card:#1b2b22;--line:#3d5547;--accent:#c8d49c;--ink:#f2f1e8;--muted:#b9c7bb}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Arial,sans-serif}
-header{padding:20px 18px;background:#172720;border-bottom:1px solid var(--line)}
-header strong{font-size:23px;letter-spacing:.15em}
-header small{display:block;color:var(--accent);font-size:12px;letter-spacing:.12em;margin-top:5px}
-main{max-width:900px;margin:auto;padding:16px 14px 52px}
+header{position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:900;pointer-events:none;padding:10px 12px;background:#172720eb;border:1px solid #566e5b;border-radius:11px;box-shadow:0 4px 18px #101b1788}
+header strong{font-size:17px;letter-spacing:.09em}
+header small{display:block;color:var(--accent);font-size:9px;letter-spacing:.08em;margin-top:4px}
+main{margin:0;padding:0;max-width:none}
+.workspace{max-width:900px;margin:auto;padding:16px 14px 52px}
 .card{border:1px solid var(--line);background:var(--card);border-radius:13px;padding:16px;margin:14px 0}
 h2{font-size:17px;margin:0 0 10px}
 p{line-height:1.5}
@@ -30,12 +31,18 @@ button:disabled{opacity:.5;cursor:wait}
 .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1 1 150px}
 .status{border-radius:8px;background:#293f31;padding:10px 12px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .status.error{background:#55302e;color:#ffdfd9}
-#map{height:66dvh;min-height:365px;max-height:750px;border:1px solid #526b5c;border-radius:12px;background:#203026}
-.map-card{padding:12px}.map-card h2{margin:2px 4px 8px}
-.map-helper{margin:0 4px 12px;color:var(--muted);font-size:13px}
-.map-toolbar{display:flex;gap:9px;margin-top:10px}.map-toolbar>button{flex:1;margin:0}
+#map-section{position:relative;width:100%;height:100vh;height:100dvh;min-height:340px;margin:0;padding:0;border:0;border-radius:0;background:#203026;overflow:hidden}
+#map{height:100%;width:100%;min-height:0;max-height:none;border:0;border-radius:0;background:#203026}
+.map-top-actions{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:900}
+.map-top-actions button{margin:0;width:auto;min-width:52px;min-height:49px;padding:8px 12px;border-radius:13px;background:#203a2ff0;border:1px solid #607d66;color:var(--ink);box-shadow:0 3px 14px #1420178a}
+.map-toolbar{position:absolute;bottom:calc(38px + env(safe-area-inset-bottom));left:12px;right:12px;z-index:900;display:flex;justify-content:flex-end;align-items:center;gap:9px;pointer-events:none}
+.map-toolbar>button{width:auto;flex:0 1 auto;margin:0;padding:9px 14px;min-width:48px;min-height:48px;font-size:14px;background:#254b37eb;border:1px solid #85a586;color:var(--ink);border-radius:24px;box-shadow:0 4px 16px #1420179a;pointer-events:auto}
+.map-toolbar #add-point-btn{background:#96b47c;color:#102015}
+#map-action-status{position:absolute;left:12px;right:12px;bottom:calc(100px + env(safe-area-inset-bottom));z-index:850;margin:0;background:#172720f2;border:1px solid #637e66}
 #map-status{margin-top:12px}
 #public-list-details{margin-top:12px}#public-list-details summary{cursor:pointer;color:var(--accent);font-weight:600;padding:8px 0;min-height:44px}
+@media(max-width:380px){.map-toolbar>button{font-size:12px;padding:9px 10px}.map-top-actions button{font-size:13px}}
+@media(min-width:780px){.map-toolbar{left:auto;right:22px;bottom:48px}.map-top-actions{right:22px}}
 #my-points{list-style:none;margin:12px 0;padding:0;display:grid;gap:9px}
 #my-points li{background:#263c30;border:1px solid #486451;border-radius:12px;padding:12px;line-height:1.5;overflow-wrap:anywhere}
 #my-points li span{display:block}
@@ -63,19 +70,23 @@ button:disabled{opacity:.5;cursor:wait}
 <body>
 <header><strong>NORDIC TRAIL</strong><small>STAGING / MAPA TESTOWA • SZKICE I MODERACJA</small></header>
 <main>
-<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłoszenia zmian przy punktach nie są jeszcze dostępne. Decyzje administratora są obsługiwane w STAGING. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
-<section class="card map-card" id="map-section">
-<h2>Mapa NORDIC TRAIL</h2>
-<p class="map-helper">Dotknij wolnego miejsca na mapie, aby dodać punkt testowy. Przesuwaj mapę jak zwykle. Dotknij istniejącego znacznika, aby poznać szczegóły.</p>
-<div id="map" aria-label="Mapa NORDIC TRAIL; dotknij mapy, aby rozpocząć dodawanie punktu"></div>
+<section id="map-section" aria-label="Pełnoekranowa mapa NORDIC TRAIL">
+<div id="map" aria-label="Mapa interaktywna; dotknij wolnego miejsca, aby dodać punkt"></div>
+<div class="map-top-actions"><button type="button" id="open-workspace-btn" aria-label="Otwórz panel użytkownika, logowania i moderacji">☰ Panel</button></div>
 <p class="status" id="map-action-status" role="status" aria-live="polite" hidden></p>
 <div class="map-toolbar">
-<button class="secondary" id="refresh-btn" type="button">Odśwież punkty</button>
-<button class="secondary" id="jump-mine-btn" type="button" hidden>Moje punkty</button>
+<button type="button" id="refresh-btn" class="secondary" aria-label="Odśwież punkty publiczne">↻</button>
+<button type="button" id="jump-mine-btn" class="secondary" hidden>Moje punkty</button>
+<button type="button" id="add-point-btn">＋ Dodaj punkt</button>
 </div>
+</section>
+<div class="workspace" id="workspace">
+<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłoszenia zmian przy punktach nie są jeszcze dostępne. Decyzje administratora są obsługiwane w STAGING. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
+<section class="card" id="public-points-panel">
+<h2>Punkty publiczne</h2>
 <p class="status" id="map-status" role="status">Najpierw połącz ze STAGING.</p>
 <details id="public-list-details"><summary>Lista publicznych punktów</summary><ul id="points"></ul></details>
-<p class="hint">Publiczne są tylko zatwierdzone punkty. Nowe punkty najpierw zapisują się jako prywatne szkice.</p>
+<p class="hint">Dotknij pustego miejsca na mapie, aby dodać testowy punkt. Publiczne są tylko zatwierdzone punkty; nowe zapisywane są jako prywatne szkice.</p>
 </section>
 <section class="card" id="setup-card">
 <h2>Połączenie STAGING</h2>
@@ -122,6 +133,7 @@ button:disabled{opacity:.5;cursor:wait}
 </section>
 
 <p class="hint">STAGING • INSERT tworzy wyłącznie prywatne szkice; zgłoszenie do moderacji odbywa się przez zabezpieczoną funkcję RPC. Brak bezpośrednich operacji UPDATE i DELETE. Korzystaj wyłącznie z kont testowych, nie udostępniaj haseł ani kluczy tajnych.</p>
+</div>
 <section class="point-sheet" id="point-sheet" role="dialog" aria-modal="false" aria-labelledby="point-sheet-title" hidden>
 <div class="sheet-grip" aria-hidden="true"></div>
 <div class="sheet-header">
@@ -175,7 +187,8 @@ button:disabled{opacity:.5;cursor:wait}
   const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
   try{
     if(!window.L)throw Error('Leaflet unavailable');
-    map=L.map('map').setView([62.2,15.2],5);
+    map=L.map('map',{zoomControl:false}).setView([62.2,15.2],5);
+    L.control.zoom({position:'bottomleft'}).addTo(map);
     map.attributionControl.setPrefix('');
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
     markers=L.layerGroup().addTo(map);
@@ -218,6 +231,25 @@ button:disabled{opacity:.5;cursor:wait}
     }
   }
   const kindLabels={gate:'🚧 Szlaban',closed:'⛔ Droga zamknięta',place:'📍 Miejsce'};
+  function keepSelectionVisible(){
+    if(!map||!selectedPoint||el('point-sheet').hidden)return;
+    const mapRect=el('map').getBoundingClientRect();
+    const sheetRect=el('point-sheet').getBoundingClientRect();
+    const brandRect=document.querySelector('header').getBoundingClientRect();
+    const top=Math.max(mapRect.top+14,brandRect.bottom+20);
+    const bottom=Math.min(mapRect.bottom,sheetRect.top)-24;
+    if(bottom<=top+50)return;
+    const targetY=top+(bottom-top)*0.58;
+    const y=mapRect.top+map.latLngToContainerPoint([selectedPoint.lat,selectedPoint.lon]).y;
+    if(y>bottom-8||y<top+8){
+      const shift=Math.round(y-targetY);
+      if(shift)map.panBy([0,shift],{animate:true,duration:0.3});
+    }
+  }
+  function adjustMapToPanel(){
+    window.requestAnimationFrame(keepSelectionVisible);
+    window.setTimeout(keepSelectionVisible,260);
+  }
   function closePointSheet(){show('point-sheet',false);el('point-sheet-status').hidden=true;}
   function clearSelection(){
     selectedPoint=null;
@@ -249,6 +281,7 @@ button:disabled{opacity:.5;cursor:wait}
       el('chosen-kind-label').textContent=kindLabels[kind];
       refreshStatusOptions();
       show('kind-picker',false);show('sheet-fields',true);
+      adjustMapToPanel();
       el('save-draft-btn').disabled=false;
       el('point-status').focus({preventScroll:true});
     });
@@ -276,6 +309,7 @@ button:disabled{opacity:.5;cursor:wait}
     }
     el('map-action-status').hidden=true;el('point-sheet-status').hidden=true;
     show('point-sheet',true);
+    adjustMapToPanel();
   });
 
   async function loadMyPoints(user=activeUser,request=seq){
@@ -545,6 +579,20 @@ button:disabled{opacity:.5;cursor:wait}
   });
   el('refresh-btn').addEventListener('click',()=>{void publicPoints();});
   el('jump-mine-btn').addEventListener('click',()=>{if(activeUser)el('draft-card').scrollIntoView({behavior:'smooth',block:'start'});});
+  el('open-workspace-btn').addEventListener('click',()=>{el('workspace').scrollIntoView({behavior:'smooth',block:'start'});});
+  el('add-point-btn').addEventListener('click',()=>{
+    if(!db||!activeUser){
+      message('map-action-status','Aby dodać punkt, najpierw zaloguj się w panelu STAGING.');
+      el('workspace').scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
+    if(writingDraft)return;
+    message('map-action-status','Dotknij wybranego miejsca na mapie. Następnie wybierz rodzaj punktu.');
+  });
+  window.addEventListener('resize',()=>{
+    if(map)map.invalidateSize({pan:false});
+    if(!el('point-sheet').hidden)adjustMapToPanel();
+  });
   let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
   if(saved&&validKey(saved))connect(saved);
 })();
