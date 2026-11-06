@@ -30,7 +30,28 @@ button:disabled{opacity:.5;cursor:wait}
 .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1 1 150px}
 .status{border-radius:8px;background:#293f31;padding:10px 12px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
 .status.error{background:#55302e;color:#ffdfd9}
-#map{height:49vh;min-height:315px;border:1px solid #526b5c;border-radius:10px;background:#203026}
+#map{height:66dvh;min-height:365px;max-height:750px;border:1px solid #526b5c;border-radius:12px;background:#203026}
+.map-card{padding:12px}.map-card h2{margin:2px 4px 8px}
+.map-helper{margin:0 4px 12px;color:var(--muted);font-size:13px}
+.map-toolbar{display:flex;gap:9px;margin-top:10px}.map-toolbar>button{flex:1;margin:0}
+#map-status{margin-top:12px}
+#public-list-details{margin-top:12px}#public-list-details summary{cursor:pointer;color:var(--accent);font-weight:600;padding:8px 0;min-height:44px}
+#my-points{list-style:none;margin:12px 0;padding:0;display:grid;gap:9px}
+#my-points li{background:#263c30;border:1px solid #486451;border-radius:12px;padding:12px;line-height:1.5;overflow-wrap:anywhere}
+#my-points li span{display:block}
+.point-sheet{position:fixed;left:50%;bottom:0;z-index:1200;transform:translateX(-50%);width:min(100%,550px);max-height:85dvh;overflow-y:auto;overscroll-behavior:contain;background:#1b2b22;border:1px solid #718873;border-radius:22px 22px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -15px 45px #0009;animation:sheet-enter .2s ease-out}
+@keyframes sheet-enter{from{transform:translate(-50%,18px);opacity:.5}to{transform:translate(-50%,0);opacity:1}}
+.sheet-grip{width:44px;height:4px;background:#7a9380;border-radius:4px;margin:0 auto 15px}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.sheet-header h2{margin:0;font-size:20px}
+.sheet-close{width:44px;min-height:44px;flex:0 0 44px;margin:0;padding:0;border-radius:50%;background:#31463a;color:var(--ink);border:1px solid #5e7765}
+.point-sheet #selected-coords{font-size:13px;margin:12px 0}
+.kind-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}
+.kind-option{margin:0;min-height:70px;padding:8px 5px;background:#30483b;border:1px solid #65836c;color:var(--ink);font-size:13px;line-height:1.2}
+.kind-option .kind-icon{display:block;font-size:23px;margin-bottom:5px}
+.sheet-kind-header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:10px}
+.sheet-kind-header button{width:auto;margin:0;min-height:44px;font-size:13px}
+#change-location-btn{margin-top:10px}
+@media(prefers-reduced-motion:reduce){.point-sheet{animation:none}}
 #points{font-size:13px;color:var(--muted);padding:0;margin:12px 0 0;list-style:none}
 #points li{padding:9px;border-bottom:1px solid var(--line)}
 #admin-queue-list{list-style:none;padding:0;margin:12px 0 0;font-size:13px}
@@ -42,7 +63,20 @@ button:disabled{opacity:.5;cursor:wait}
 <body>
 <header><strong>NORDIC TRAIL</strong><small>STAGING / MAPA TESTOWA • SZKICE I MODERACJA</small></header>
 <main>
-<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłoszenia zmian oraz decyzje administratora pozostają wyłączone. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
+<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłoszenia zmian przy punktach nie są jeszcze dostępne. Decyzje administratora są obsługiwane w STAGING. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
+<section class="card map-card" id="map-section">
+<h2>Mapa NORDIC TRAIL</h2>
+<p class="map-helper">Dotknij wolnego miejsca na mapie, aby dodać punkt testowy. Przesuwaj mapę jak zwykle. Dotknij istniejącego znacznika, aby poznać szczegóły.</p>
+<div id="map" aria-label="Mapa NORDIC TRAIL; dotknij mapy, aby rozpocząć dodawanie punktu"></div>
+<p class="status" id="map-action-status" role="status" aria-live="polite" hidden></p>
+<div class="map-toolbar">
+<button class="secondary" id="refresh-btn" type="button">Odśwież punkty</button>
+<button class="secondary" id="jump-mine-btn" type="button" hidden>Moje punkty</button>
+</div>
+<p class="status" id="map-status" role="status">Najpierw połącz ze STAGING.</p>
+<details id="public-list-details"><summary>Lista publicznych punktów</summary><ul id="points"></ul></details>
+<p class="hint">Publiczne są tylko zatwierdzone punkty. Nowe punkty najpierw zapisują się jako prywatne szkice.</p>
+</section>
 <section class="card" id="setup-card">
 <h2>Połączenie STAGING</h2>
 <p class="hint">Wykorzystuje publiczny klucz zapisany wcześniej na stronie STAGING Login w tej samej przeglądarce. Jeśli go nie ma, wklej klucz <code>sb_publishable_...</code> z projektu Nordic-Trail-Staging.</p>
@@ -80,38 +114,46 @@ button:disabled{opacity:.5;cursor:wait}
 <ul id="admin-queue-list"></ul>
 </section>
 <section class="card" id="draft-card" hidden>
-<h2>Dodaj punkt testowy</h2>
-<p class="hint">Krok 1: wskaż miejsce na mapie. Krok 2: zapisz prywatny szkic. Wysłanie szkicu do moderacji wymaga osobnego potwierdzenia. Nie dodawaj rzeczywistych prywatnych lokalizacji.</p>
-<button type="button" class="secondary" id="pick-point-btn">Wskaż miejsce na mapie</button>
-<p class="status" id="selected-coords" role="status">Nie wybrano współrzędnych.</p>
-<form id="draft-form">
-<label for="point-kind">Rodzaj punktu</label>
-<select id="point-kind" required>
-<option value="gate">🚧 Szlaban</option>
-<option value="closed">⛔ Droga zamknięta</option>
-<option value="place">📍 Miejsce</option>
-</select>
-<label for="point-status">Status</label>
-<select id="point-status" required></select>
-<label for="point-note">Opis testowego punktu (opcjonalnie, maks. 120 znaków)</label>
-<input id="point-note" maxlength="120" autocomplete="off" placeholder="np. TEST STAGING — szlaban">
-<button id="save-draft-btn" type="submit" disabled>Zapisz prywatny szkic</button>
-</form>
-<p class="status" id="draft-status" role="status">Punkt nie został zapisany.</p>
-<h2 style="margin-top:22px">Moje punkty — statusy i historia decyzji</h2>
+<h2>Moje punkty — statusy i historia decyzji</h2>
+<p class="status" id="draft-status" role="status">Twoje punkty zostaną odczytane po zalogowaniu.</p>
 <button type="button" class="secondary" id="refresh-mine-btn">Odśwież moje punkty</button>
 <ul id="my-points"></ul>
 <p class="hint">Wyświetlane są Twoje szkice, punkty w moderacji oraz decyzje „Zatwierdzony” i „Odrzucony”. Zatwierdzone punkty są publiczne, odrzucone pozostają prywatne. Tylko własne szkice można wysyłać do weryfikacji.</p>
 </section>
-<section class="card">
-<h2>Mapa punktów publicznych</h2>
-<div id="map" aria-label="Mapa publicznych punktów STAGING"></div>
-<div class="row"><button class="secondary" id="refresh-btn" type="button">Odśwież punkty publiczne</button></div>
-<p class="status" id="map-status" role="status">Najpierw połącz ze STAGING.</p>
-<ul id="points"></ul>
-<p class="hint">Widoczne są wyłącznie punkty z <code>visibility=public</code> i <code>review_status=approved</code>. Mapa OpenStreetMap wymaga Internetu.</p>
-</section>
+
 <p class="hint">STAGING • INSERT tworzy wyłącznie prywatne szkice; zgłoszenie do moderacji odbywa się przez zabezpieczoną funkcję RPC. Brak bezpośrednich operacji UPDATE i DELETE. Korzystaj wyłącznie z kont testowych, nie udostępniaj haseł ani kluczy tajnych.</p>
+<section class="point-sheet" id="point-sheet" role="dialog" aria-modal="false" aria-labelledby="point-sheet-title" hidden>
+<div class="sheet-grip" aria-hidden="true"></div>
+<div class="sheet-header">
+<h2 id="point-sheet-title">Dodaj punkt do mapy</h2>
+<button type="button" id="close-sheet-btn" class="sheet-close" aria-label="Anuluj dodawanie punktu">✕</button>
+</div>
+<p class="status" id="selected-coords" role="status">Nie wybrano współrzędnych.</p>
+<div id="kind-picker">
+<p class="hint">Jaki punkt chcesz dodać?</p>
+<div class="kind-options" role="group" aria-label="Wybierz rodzaj punktu">
+<button type="button" class="kind-option" data-kind="gate"><span class="kind-icon" aria-hidden="true">🚧</span>Szlaban</button>
+<button type="button" class="kind-option" data-kind="closed"><span class="kind-icon" aria-hidden="true">⛔</span>Droga zamknięta</button>
+<button type="button" class="kind-option" data-kind="place"><span class="kind-icon" aria-hidden="true">📍</span>Miejsce</button>
+</div></div>
+<div id="sheet-fields" hidden>
+<div class="sheet-kind-header">
+<strong id="chosen-kind-label"></strong>
+<button type="button" class="secondary" id="change-kind-btn">Zmień rodzaj</button>
+</div>
+<form id="draft-form">
+<input type="hidden" id="point-kind" value="">
+<label for="point-status">Status punktu</label>
+<select id="point-status" required></select>
+<label for="point-note">Opis (opcjonalnie, maks. 120 znaków)</label>
+<input id="point-note" maxlength="120" autocomplete="off" placeholder="np. TEST STAGING — szlaban">
+<button id="save-draft-btn" type="submit" disabled>Zapisz prywatny szkic</button>
+</form>
+<p class="hint">Szkic jest prywatny. Publikacja wymaga osobnego wysłania do moderacji i zatwierdzenia przez administratora.</p>
+</div>
+<p class="status" id="point-sheet-status" role="status" aria-live="polite" hidden></p>
+<button type="button" class="secondary" id="change-location-btn">Zmień położenie na mapie</button>
+</section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
@@ -127,7 +169,7 @@ button:disabled{opacity:.5;cursor:wait}
   const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
   let db=null,seq=0,loggingIn=false;
   let markers=null,map=null;
-  let activeUser=null,choosingPoint=false,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false;
+  let activeUser=null,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false;
   let moderationBusy=false,adminVerifiedUserId=null;
   const pointStatuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
   const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
@@ -158,7 +200,7 @@ button:disabled{opacity:.5;cursor:wait}
           const popup=document.createElement('div');
           const head=document.createElement('strong');head.textContent=title;popup.appendChild(head);
           if(p.note){const note=document.createElement('p');note.textContent=p.note;popup.appendChild(note);}
-          L.circleMarker([lat,lon],{radius:8,color:colours[p.kind]||'#c8d49c',weight:3,fillOpacity:.85}).bindPopup(popup).addTo(markers);
+          L.circleMarker([lat,lon],{radius:8,color:colours[p.kind]||'#c8d49c',weight:3,fillOpacity:.85,bubblingMouseEvents:false}).bindPopup(popup).addTo(markers);
         }
       }
       message('map-status','Wczytano publiczne, zatwierdzone punkty: '+rows.length+(rows.length===500?' (limit widoku: 500)':'')+'.');
@@ -167,40 +209,73 @@ button:disabled{opacity:.5;cursor:wait}
   }
   function refreshStatusOptions(){
     const kind=el('point-kind').value;
-    el('point-status').replaceChildren();
+    const select=el('point-status');select.replaceChildren();
+    const prompt=document.createElement('option');
+    prompt.value='';prompt.textContent='Wybierz status';prompt.disabled=true;prompt.selected=true;
+    select.appendChild(prompt);
     for(const value of pointStatuses[kind]||[]){
-      const option=document.createElement('option');option.value=value;option.textContent=value;el('point-status').appendChild(option);
+      const option=document.createElement('option');option.value=value;option.textContent=value;select.appendChild(option);
     }
   }
-  refreshStatusOptions();
-  el('point-kind').addEventListener('change',refreshStatusOptions);
-
+  const kindLabels={gate:'🚧 Szlaban',closed:'⛔ Droga zamknięta',place:'📍 Miejsce'};
+  function closePointSheet(){show('point-sheet',false);el('point-sheet-status').hidden=true;}
   function clearSelection(){
-    selectedPoint=null;choosingPoint=false;
+    selectedPoint=null;
     if(selectionMarker&&map){map.removeLayer(selectionMarker);selectionMarker=null;}
-    el('pick-point-btn').textContent='Wskaż miejsce na mapie';
+    closePointSheet();
+    el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
     el('selected-coords').textContent='Nie wybrano współrzędnych.';
     el('save-draft-btn').disabled=true;
+    show('kind-picker',true);show('sheet-fields',false);
   }
-  el('pick-point-btn').addEventListener('click',()=>{
-    if(!activeUser||writingDraft||!map)return;
-    choosingPoint=!choosingPoint;
-    el('pick-point-btn').textContent=choosingPoint?'Anuluj wskazywanie':'Wskaż miejsce na mapie';
-    message('draft-status',choosingPoint?'Dotknij mapy, aby wybrać współrzędne testowego punktu.':'Wybieranie lokalizacji anulowano.');
-    if(choosingPoint)el('map').scrollIntoView({behavior:'smooth',block:'center'});
+  refreshStatusOptions();
+  el('close-sheet-btn').addEventListener('click',()=>{if(!writingDraft)clearSelection();});
+  el('change-location-btn').addEventListener('click',()=>{
+    if(writingDraft)return;
+    closePointSheet();
+    message('map-action-status','Dotknij innego miejsca na mapie, aby zmienić lokalizację punktu.');
+  });
+  el('change-kind-btn').addEventListener('click',()=>{
+    if(writingDraft)return;
+    el('point-kind').value='';el('save-draft-btn').disabled=true;
+    show('kind-picker',true);show('sheet-fields',false);
+  });
+  document.querySelectorAll('.kind-option').forEach(button=>{
+    button.addEventListener('click',()=>{
+      if(writingDraft||!selectedPoint||!activeUser)return;
+      const kind=button.dataset.kind;
+      if(!Object.prototype.hasOwnProperty.call(pointStatuses,kind))return;
+      el('point-kind').value=kind;
+      el('chosen-kind-label').textContent=kindLabels[kind];
+      refreshStatusOptions();
+      show('kind-picker',false);show('sheet-fields',true);
+      el('save-draft-btn').disabled=false;
+      el('point-status').focus({preventScroll:true});
+    });
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!el('point-sheet').hidden&&!writingDraft)clearSelection();
   });
   if(map)map.on('click',event=>{
-    if(!choosingPoint||!activeUser||writingDraft)return;
+    if(writingDraft)return;
+    if(!activeUser||!db){
+      message('map-action-status','Aby dodać punkt, połącz się ze STAGING i zaloguj na konto testowe.',true);
+      return;
+    }
     const lat=Number(event.latlng.lat.toFixed(6)),lon=Number(event.latlng.lng.toFixed(6));
     if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
+    const open=!el('point-sheet').hidden;
     selectedPoint={lat,lon};
     if(selectionMarker)map.removeLayer(selectionMarker);
-    selectionMarker=L.circleMarker([lat,lon],{radius:10,color:'#ffdf82',weight:3,fillOpacity:.7}).addTo(map);
-    choosingPoint=false;
-    el('pick-point-btn').textContent='Zmień miejsce na mapie';
+    selectionMarker=L.circleMarker([lat,lon],{radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false}).addTo(map);
     el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
-    el('save-draft-btn').disabled=false;
-    message('draft-status','Lokalizacja wybrana. Zapisz prywatny szkic, kiedy dane są gotowe.');
+    if(!open){
+      el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
+      el('save-draft-btn').disabled=true;
+      show('kind-picker',true);show('sheet-fields',false);
+    }
+    el('map-action-status').hidden=true;el('point-sheet-status').hidden=true;
+    show('point-sheet',true);
   });
 
   async function loadMyPoints(user=activeUser,request=seq){
@@ -262,15 +337,15 @@ button:disabled{opacity:.5;cursor:wait}
 
   el('draft-form').addEventListener('submit',async event=>{
     event.preventDefault();
-    if(!db||!activeUser||!selectedPoint||writingDraft||submittingDraft)return;
+    if(!db||!activeUser||!selectedPoint||el('point-sheet').hidden||writingDraft||submittingDraft)return;
     const kind=el('point-kind').value,status=el('point-status').value;
     const note=el('point-note').value.trim();
     if(!pointStatuses[kind]?.includes(status)||note.length>120){
-      message('draft-status','Sprawdź rodzaj, status i długość opisu.',true);return;
+      message('point-sheet-status','Wybierz rodzaj, status i sprawdź długość opisu.',true);return;
     }
     writingDraft=true;el('save-draft-btn').disabled=true;
     const userId=activeUser.id;
-    message('draft-status','Zapisywanie prywatnego szkicu...');
+    message('point-sheet-status','Zapisywanie prywatnego szkicu...');
     try{
       const auth=await db.auth.getUser();
       if(auth.error||auth.data?.user?.id!==userId)throw Error('Session mismatch');
@@ -282,12 +357,12 @@ button:disabled{opacity:.5;cursor:wait}
       clearSelection();
       el('point-note').value='';
       await loadMyPoints();
-      message('draft-status','Prywatny szkic #'+savedId+' zapisany. Aby go przesłać, kliknij przycisk przy szkicu na liście poniżej.');
+      message('map-action-status','Prywatny szkic #'+savedId+' zapisany. Aby go przesłać do moderacji, otwórz „Moje punkty”.');
     }catch(_error){
-      if(activeUser?.id===userId)message('draft-status','Nie udało się zapisać szkicu. Punkt nie został potwierdzony jako zapisany; sprawdź ograniczenia w STAGING.',true);
+      if(activeUser?.id===userId)message('point-sheet-status','Nie udało się zapisać szkicu. Zapis nie został potwierdzony; sprawdź STAGING.',true);
     }finally{
       writingDraft=false;
-      el('save-draft-btn').disabled=!selectedPoint;
+      el('save-draft-btn').disabled=!selectedPoint||!el('point-kind').value;
     }
   });
   el('refresh-mine-btn').addEventListener('click',()=>{void loadMyPoints();});
@@ -410,19 +485,19 @@ button:disabled{opacity:.5;cursor:wait}
       if(!user){
         activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();
         el('moderation-result').hidden=true;
-        show('draft-card',false);show('login-card',true);show('account-card',false);
+        show('draft-card',false);show('jump-mine-btn',false);show('login-card',true);show('account-card',false);
         message('login-status','Nie jesteś zalogowany.');
         return;
       }
       const changed=activeUser?.id!==user.id;
       if(changed){clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;}
       activeUser=user;
-      show('login-card',false);show('account-card',true);show('draft-card',true);
+      show('login-card',false);show('account-card',true);show('draft-card',true);show('jump-mine-btn',true);
       el('account-email').textContent='Zalogowano: '+(user.email||'konto testowe');
       void loadMyPoints(user,request);
       await checkRole(user);
     }catch(_error){
-      if(request===seq){activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;show('draft-card',false);show('login-card',true);show('account-card',false);message('login-status','Nie udało się sprawdzić sesji.',true);}
+      if(request===seq){activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;show('draft-card',false);show('jump-mine-btn',false);show('login-card',true);show('account-card',false);message('login-status','Nie udało się sprawdzić sesji.',true);}
     }
   }
   function connect(key){
@@ -463,12 +538,13 @@ button:disabled{opacity:.5;cursor:wait}
   });
   el('logout-btn').addEventListener('click',async()=>{
     if(!db||moderationBusy)return;
-    activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;show('draft-card',false);
+    activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;show('draft-card',false);show('jump-mine-btn',false);
     const r=await db.auth.signOut({scope:'local'});
     if(r.error)message('role-status','Nie udało się potwierdzić wylogowania.',true);
     await updateSession();
   });
   el('refresh-btn').addEventListener('click',()=>{void publicPoints();});
+  el('jump-mine-btn').addEventListener('click',()=>{if(activeUser)el('draft-card').scrollIntoView({behavior:'smooth',block:'start'});});
   let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
   if(saved&&validKey(saved))connect(saved);
 })();
