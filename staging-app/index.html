@@ -100,12 +100,13 @@ button:disabled{opacity:.5;cursor:wait}
 <button type="button" id="back-to-map-btn" class="secondary">← Mapa</button>
 <button type="button" id="jump-mine-btn" class="secondary" hidden>Moje punkty</button>
 </nav>
-<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłoszenia zmian przy punktach nie są jeszcze dostępne. Decyzje administratora są obsługiwane w STAGING. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
+<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłaszanie zmian przy publicznych szlabanach i drogach jest dostępne w osobnym panelu STAGING. Zgłoszenia wymagają moderacji i nie zmieniają automatycznie punktów. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
 <section class="card" id="public-points-panel">
 <h2>Punkty publiczne</h2>
 <button type="button" id="refresh-btn" class="secondary">Odśwież punkty publiczne</button>
 <p class="status" id="map-status" role="status">Najpierw połącz ze STAGING.</p>
 <details id="public-list-details"><summary>Lista publicznych punktów</summary><ul id="points"></ul></details>
+<p class="hint"><a href="../staging-reports/">Zgłoszenia zmian i historia — otwórz panel STAGING</a></p>
 <p class="hint">Dotknij pustego miejsca na mapie, aby dodać testowy punkt. Publiczne są tylko zatwierdzone punkty; nowe zapisywane są jako prywatne szkice.</p>
 </section>
 <section class="card" id="setup-card">
@@ -215,6 +216,15 @@ button:disabled{opacity:.5;cursor:wait}
   let moderationBusy=false,adminVerifiedUserId=null;
   const pointStatuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
   const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
+  function addReportLink(container,p){
+    if(!['gate','closed'].includes(p.kind)||!(/^[1-9][0-9]*$/.test(String(p.id))))return;
+    const link=document.createElement('a');
+    link.href='../staging-reports/?point='+encodeURIComponent(String(p.id));
+    link.textContent=p.kind==='gate'?'Zgłoś zmianę: Szlabanu już nie ma':'Zgłoś zmianę: Droga odblokowana';
+    link.style.display='block';
+    link.style.padding='8px 0';
+    container.appendChild(link);
+  }
   try{
     if(!window.L)throw Error('Leaflet unavailable');
     map=L.map('map',{zoomControl:false}).setView([62.2,15.2],5);
@@ -237,12 +247,14 @@ button:disabled{opacity:.5;cursor:wait}
         const title=(p.kind||'point')+' — '+(p.status||'brak statusu');
         const item=document.createElement('li');
         item.textContent=title+(p.note?' • '+p.note:'');
+        addReportLink(item,p);
         el('points').appendChild(item);
         const lat=Number(p.lat),lon=Number(p.lon);
         if(markers&&Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180){
           const popup=document.createElement('div');
           const head=document.createElement('strong');head.textContent=title;popup.appendChild(head);
           if(p.note){const note=document.createElement('p');note.textContent=p.note;popup.appendChild(note);}
+          addReportLink(popup,p);
           L.circleMarker([lat,lon],{radius:8,color:colours[p.kind]||'#c8d49c',weight:3,fillOpacity:.85,bubblingMouseEvents:false}).bindPopup(popup).addTo(markers);
         }
       }
