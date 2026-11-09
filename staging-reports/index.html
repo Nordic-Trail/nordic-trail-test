@@ -178,7 +178,11 @@ async function moderate(p,decision){
   if(r.error)throw r.error;
   status('admin-status','Decyzja zapisana. Status publicznego punktu nie został automatycznie zmieniony.');
  }catch(_){status('admin-status','Nie udało się potwierdzić decyzji. Odśwież kolejkę i sprawdź status.',true);}
- finally{busy=false;await loadAdmin();await loadOwn();}
+ finally{
+  busy=false;
+  await loadAdmin();
+  await loadOwn();
+ }
 }
 el('refresh-session').addEventListener('click',()=>{void setup()});
 el('refresh-own').addEventListener('click',()=>{void loadOwn()});
