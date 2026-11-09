@@ -67,6 +67,7 @@ button:disabled{opacity:.5;cursor:wait}
 #change-location-btn{min-height:44px;font-size:13px;margin-top:8px}
 .point-sheet .sheet-header h2{min-width:0;flex:1}
 @media(max-height:650px){.point-sheet{max-height:78dvh}}
+@media(max-width:779px) and (orientation:portrait){.point-sheet{max-height:min(76dvh,calc(100dvh - 220px))}}
 
 .kind-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}
 .kind-option{margin:0;min-height:70px;padding:8px 5px;background:#30483b;border:1px solid #65836c;color:var(--ink);font-size:13px;line-height:1.2}
@@ -265,19 +266,24 @@ button:disabled{opacity:.5;cursor:wait}
     const mapRect=el('map').getBoundingClientRect();
     const sheetRect=el('point-sheet').getBoundingClientRect();
     const brandRect=document.querySelector('header').getBoundingClientRect();
-    const top=Math.max(mapRect.top+14,brandRect.bottom+20);
-    const bottom=Math.min(mapRect.bottom,sheetRect.top)-24;
-    if(bottom<=top+50)return;
-    const targetY=top+(bottom-top)*0.58;
-    const y=mapRect.top+map.latLngToContainerPoint([selectedPoint.lat,selectedPoint.lon]).y;
-    if(y>bottom-8||y<top+8){
-      const shift=Math.round(y-targetY);
-      if(shift)map.panBy([0,shift],{animate:true,duration:0.3});
-    }
+    const viewportBottom=window.visualViewport?
+      window.visualViewport.offsetTop+window.visualViewport.height:window.innerHeight;
+    const top=Math.max(mapRect.top+12,brandRect.bottom+16);
+    const bottom=Math.min(mapRect.bottom,sheetRect.top,viewportBottom)-16;
+    if(bottom-top<65)return;
+    // Center over the *uncovered map*, not the map container hidden by the sheet.
+    const targetX=mapRect.width/2;
+    const targetY=top+(bottom-top)*0.55-mapRect.top;
+    const marker=map.latLngToContainerPoint([selectedPoint.lat,selectedPoint.lon]);
+    const dx=Math.round(marker.x-targetX),dy=Math.round(marker.y-targetY);
+    if(Math.abs(dx)>2||Math.abs(dy)>2)map.panBy([dx,dy],{animate:false});
   }
   function adjustMapToPanel(){
-    window.requestAnimationFrame(keepSelectionVisible);
-    window.setTimeout(keepSelectionVisible,260);
+    const realign=()=>window.requestAnimationFrame(keepSelectionVisible);
+    realign();
+    // Recheck after the panel's entrance/resize and any mobile scroll settles.
+    window.setTimeout(realign,260);
+    window.setTimeout(realign,650);
   }
   function setSheetCollapsed(collapsed){
     const sheet=el('point-sheet');
@@ -292,6 +298,11 @@ button:disabled{opacity:.5;cursor:wait}
   }
   function closePointSheet(){show('point-sheet',false);el('point-sheet-status').hidden=true;}
   el('toggle-sheet-btn').addEventListener('click',()=>{if(!writingDraft)setSheetCollapsed(!el('point-sheet').classList.contains('is-collapsed'));});
+  for(const detailsId of ['point-coords-details','note-details']){
+    el(detailsId).addEventListener('toggle',()=>{
+      if(!el('point-sheet').hidden)adjustMapToPanel();
+    });
+  }
   function updatePointAction(){
     el('add-point-btn').textContent=selectedPoint?(editingDraft?'✎ Wróć do szkicu':'✎ Edytuj punkt'):'＋ Punkt';
     el('add-point-btn').setAttribute('aria-label',selectedPoint?'Wróć do formularza wybranego punktu':'Dodaj punkt do mapy');
@@ -457,12 +468,12 @@ button:disabled{opacity:.5;cursor:wait}
         selectionMarker=L.circleMarker([lat,lon],{
           radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false
         }).addTo(map);
-        map.setView([lat,lon],Math.max(map.getZoom(),9));
+        map.setView([lat,lon],Math.max(map.getZoom(),9),{animate:false});
       }
       show('kind-picker',false);show('sheet-fields',true);
       setSheetCollapsed(false);
       show('point-sheet',true);
-      el('map-section').scrollIntoView({behavior:'smooth',block:'start'});
+      el('map-section').scrollIntoView({behavior:'instant',block:'start'});
       adjustMapToPanel();
       message('draft-status','Otworzono szkic #'+p.id+'. Zmiany zostaną zapisane dopiero po zatwierdzeniu w formularzu.');
     }catch(_error){
