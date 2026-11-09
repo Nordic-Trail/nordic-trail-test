@@ -148,7 +148,7 @@ button:disabled{opacity:.5;cursor:wait}
 <p class="status" id="draft-status" role="status">Twoje punkty zostaną odczytane po zalogowaniu.</p>
 <button type="button" class="secondary" id="refresh-mine-btn">Odśwież moje punkty</button>
 <ul id="my-points"></ul>
-<p class="hint">Wyświetlane są Twoje szkice, punkty w moderacji oraz decyzje „Zatwierdzony” i „Odrzucony”. Zatwierdzone punkty są publiczne, odrzucone pozostają prywatne. Tylko własne szkice można wysyłać do weryfikacji.</p>
+<p class="hint">Wyświetlane są Twoje szkice, punkty w moderacji oraz decyzje „Zatwierdzony” i „Odrzucony”. Zatwierdzone punkty są publiczne, odrzucone pozostają prywatne. Tylko własne prywatne szkice można edytować i wysyłać do weryfikacji.</p>
 </section>
 
 <p class="hint">STAGING • INSERT tworzy wyłącznie prywatne szkice; zgłoszenie do moderacji odbywa się przez zabezpieczoną funkcję RPC. Brak bezpośrednich operacji UPDATE i DELETE. Korzystaj wyłącznie z kont testowych, nie udostępniaj haseł ani kluczy tajnych.</p>
@@ -210,7 +210,7 @@ button:disabled{opacity:.5;cursor:wait}
   const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
   let db=null,seq=0,loggingIn=false;
   let markers=null,map=null;
-  let activeUser=null,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false,movingPoint=false;
+  let activeUser=null,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false,movingPoint=false,editingDraft=null;
   let moderationBusy=false,adminVerifiedUserId=null;
   const pointStatuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
   const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
@@ -293,11 +293,11 @@ button:disabled{opacity:.5;cursor:wait}
   function closePointSheet(){show('point-sheet',false);el('point-sheet-status').hidden=true;}
   el('toggle-sheet-btn').addEventListener('click',()=>{if(!writingDraft)setSheetCollapsed(!el('point-sheet').classList.contains('is-collapsed'));});
   function updatePointAction(){
-    el('add-point-btn').textContent=selectedPoint?'✎ Edytuj punkt':'＋ Punkt';
+    el('add-point-btn').textContent=selectedPoint?(editingDraft?'✎ Wróć do szkicu':'✎ Edytuj punkt'):'＋ Punkt';
     el('add-point-btn').setAttribute('aria-label',selectedPoint?'Wróć do formularza wybranego punktu':'Dodaj punkt do mapy');
   }
   function clearSelection(){
-    selectedPoint=null;movingPoint=false;
+    selectedPoint=null;movingPoint=false;editingDraft=null;
     updatePointAction();
     setSheetCollapsed(false);
     el('point-sheet-title').textContent='Dodaj punkt';
@@ -308,6 +308,7 @@ button:disabled{opacity:.5;cursor:wait}
     el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
     el('selected-coords').textContent='Nie wybrano współrzędnych.';
     el('save-draft-btn').disabled=true;
+    el('save-draft-btn').textContent='Zapisz prywatny szkic';
     show('kind-picker',true);show('sheet-fields',false);
   }
   refreshStatusOptions();
@@ -382,7 +383,7 @@ button:disabled{opacity:.5;cursor:wait}
     message('draft-status','Odczytywanie Twoich punktów i historii decyzji...');
     try{
       const result=await db.from('map_points')
-        .select('id,kind,status,note,review_status,visibility')
+        .select('id,kind,status,note,lat,lon,review_status,visibility')
         .eq('user_id',user.id)
         .in('review_status',['draft','pending','approved','rejected'])
         .order('id',{ascending:false}).limit(100);
@@ -403,6 +404,10 @@ button:disabled{opacity:.5;cursor:wait}
         desc.textContent='#'+p.id+' • '+p.kind+' — '+p.status+' • '+statusLabel+' • '+visibilityLabel+(p.note?' • '+p.note:'');
         item.appendChild(desc);
         if(p.review_status==='draft'){
+          const edit=document.createElement('button');
+          edit.type='button';edit.className='secondary';edit.textContent='✎ Edytuj szkic #'+p.id;
+          edit.addEventListener('click',()=>{void openDraftEditor(p.id,user.id);});
+          item.appendChild(edit);
           const send=document.createElement('button');
           send.type='button';send.className='secondary';send.textContent='Wyślij szkic #'+p.id+' do weryfikacji';
           send.addEventListener('click',()=>{void submitDraft(p,send,user.id);});
@@ -414,8 +419,59 @@ button:disabled{opacity:.5;cursor:wait}
     }catch(_error){if(request===seq)message('draft-status','Nie udało się odczytać Twoich punktów. Sprawdź polityki SELECT w STAGING.',true);}
   }
 
+  async function openDraftEditor(id,ownerId){
+    if(!db||!activeUser||activeUser.id!==ownerId||writingDraft||submittingDraft)return;
+    if(!/^[1-9][0-9]*$/.test(String(id))){
+      message('draft-status','Nieprawidłowy identyfikator szkicu.',true);return;
+    }
+    message('draft-status','Wczytywanie szkicu do edycji...');
+    try{
+      const auth=await db.auth.getUser();
+      if(auth.error||auth.data?.user?.id!==ownerId||activeUser?.id!==ownerId)throw Error('Session mismatch');
+      const result=await db.from('map_points')
+        .select('id,user_id,kind,status,note,lat,lon,review_status,visibility')
+        .eq('id',id).eq('user_id',ownerId)
+        .eq('review_status','draft').eq('visibility','private').single();
+      if(result.error||!result.data)throw Error('Draft unavailable');
+      if(activeUser?.id!==ownerId)return;
+      const p=result.data;
+      const lat=Number(p.lat),lon=Number(p.lon);
+      if(!pointStatuses[p.kind]?.includes(p.status)||!Number.isFinite(lat)||!Number.isFinite(lon)
+        ||Math.abs(lat)>90||Math.abs(lon)>180)throw Error('Invalid draft');
+      clearSelection();
+      editingDraft={id:p.id,ownerId};
+      selectedPoint={lat,lon};
+      updatePointAction();
+      el('point-kind').value=p.kind;
+      refreshStatusOptions();
+      el('point-status').value=p.status;
+      el('point-note').value=p.note||'';
+      el('note-details').open=!!p.note;
+      el('point-sheet-title').textContent='Edytuj prywatny szkic #'+p.id;
+      el('chosen-kind-label').textContent=kindLabels[p.kind];
+      el('save-draft-btn').textContent='Zapisz zmiany szkicu';
+      el('save-draft-btn').disabled=false;
+      el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
+      if(selectionMarker&&map)map.removeLayer(selectionMarker);
+      if(map){
+        selectionMarker=L.circleMarker([lat,lon],{
+          radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false
+        }).addTo(map);
+        map.setView([lat,lon],Math.max(map.getZoom(),9));
+      }
+      show('kind-picker',false);show('sheet-fields',true);
+      setSheetCollapsed(false);
+      show('point-sheet',true);
+      el('map-section').scrollIntoView({behavior:'smooth',block:'start'});
+      adjustMapToPanel();
+      message('draft-status','Otworzono szkic #'+p.id+'. Zmiany zostaną zapisane dopiero po zatwierdzeniu w formularzu.');
+    }catch(_error){
+      if(activeUser?.id===ownerId)message('draft-status','Nie udało się otworzyć prywatnego szkicu. Odśwież swoje punkty i sprawdź jego status.',true);
+    }
+  }
+
   async function submitDraft(p,button,ownerId){
-    if(submittingDraft||writingDraft||!db||!activeUser||activeUser.id!==ownerId||p.review_status!=='draft')return;
+    if(submittingDraft||writingDraft||editingDraft||!db||!activeUser||activeUser.id!==ownerId||p.review_status!=='draft')return;
     const id=String(p.id);
     if(!/^[1-9][0-9]*$/.test(id)){message('draft-status','Nieprawidłowy identyfikator szkicu.',true);return;}
     if(!confirm('Wysłać prywatny szkic #'+id+' do weryfikacji? Nie będzie już szkicem do dalszego edytowania.'))return;
@@ -438,26 +494,40 @@ button:disabled{opacity:.5;cursor:wait}
     if(!db||!activeUser||!selectedPoint||el('point-sheet').hidden||writingDraft||submittingDraft)return;
     const kind=el('point-kind').value,status=el('point-status').value;
     const note=el('point-note').value.trim();
-    if(!pointStatuses[kind]?.includes(status)||note.length>120){
+    if(!pointStatuses[kind]?.includes(status)||note.length>120||!Number.isFinite(selectedPoint.lat)||!Number.isFinite(selectedPoint.lon)||Math.abs(selectedPoint.lat)>90||Math.abs(selectedPoint.lon)>180){
       message('point-sheet-status','Wybierz rodzaj, status i sprawdź długość opisu.',true);return;
     }
     writingDraft=true;el('save-draft-btn').disabled=true;
     const userId=activeUser.id;
-    message('point-sheet-status','Zapisywanie prywatnego szkicu...');
+    const draft=editingDraft;
+    message('point-sheet-status',draft?'Zapisywanie zmian prywatnego szkicu...':'Zapisywanie prywatnego szkicu...');
     try{
       const auth=await db.auth.getUser();
-      if(auth.error||auth.data?.user?.id!==userId)throw Error('Session mismatch');
-      const values={kind,status,note:note||null,lat:selectedPoint.lat,lon:selectedPoint.lon,review_status:'draft',visibility:'private'};
-      const result=await db.from('map_points').insert(values).select('id').single();
-      if(result.error)throw result.error;
+      if(auth.error||auth.data?.user?.id!==userId||draft&&draft.ownerId!==userId)throw Error('Session mismatch');
+      let savedId;
+      if(draft){
+        const result=await db.rpc('update_private_map_point',{
+          p_point_id:draft.id,p_kind:kind,p_status:status,p_note:note||null,
+          p_lat:selectedPoint.lat,p_lon:selectedPoint.lon
+        });
+        if(result.error)throw result.error;
+        savedId=draft.id;
+      }else{
+        const values={kind,status,note:note||null,lat:selectedPoint.lat,lon:selectedPoint.lon,review_status:'draft',visibility:'private'};
+        const result=await db.from('map_points').insert(values).select('id').single();
+        if(result.error)throw result.error;
+        savedId=result.data?.id;
+      }
       if(activeUser?.id!==userId)return;
-      const savedId=result.data?.id;
       clearSelection();
-      el('point-note').value='';
       await loadMyPoints();
-      message('map-action-status','Prywatny szkic #'+savedId+' zapisany. Aby go przesłać do moderacji, otwórz „Moje punkty”.');
+      message('map-action-status',draft?
+        'Zapisano zmiany prywatnego szkicu #'+savedId+'. Pozostaje prywatny do czasu moderacji.':
+        'Prywatny szkic #'+savedId+' zapisany. Aby go przesłać do moderacji, otwórz „Moje punkty”.');
     }catch(_error){
-      if(activeUser?.id===userId)message('point-sheet-status','Nie udało się zapisać szkicu. Zapis nie został potwierdzony; sprawdź STAGING.',true);
+      if(activeUser?.id===userId)message('point-sheet-status',draft?
+        'Nie udało się potwierdzić zmian szkicu. Odśwież „Moje punkty” przed kolejną próbą.':
+        'Nie udało się zapisać szkicu. Zapis nie został potwierdzony; sprawdź STAGING.',true);
     }finally{
       writingDraft=false;
       el('save-draft-btn').disabled=!selectedPoint||!el('point-kind').value;
