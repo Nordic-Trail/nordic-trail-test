@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; connect-src https://bairmdubhnodwplioxld.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>NORDIC TRAIL — STAGING Audyt odmowy zapisu</title>
+<style>
+:root{color-scheme:dark;--bg:#101b17;--surface:#1b2b22;--ink:#f2f1e8;--muted:#b9c7bb;--line:#496552;--good:#bce7c2;--warn:#ffe1aa;--bad:#ffc5be}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px system-ui,-apple-system,Arial,sans-serif;line-height:1.5}
+main{width:min(100%,640px);margin:auto;padding:22px 16px 52px}h1{font-size:25px;letter-spacing:.035em;margin:0 0 4px}h2{font-size:19px;margin:0 0 12px}
+p{margin:8px 0 15px;color:var(--muted)}.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px}
+label{display:block;font-weight:700;margin:8px 0}select,button{width:100%;border-radius:10px;min-height:48px;font:inherit;padding:10px 12px}select{background:#12231a;border:1px solid #7b9c82;color:var(--ink)}button{border:0;background:#bfd19f;color:#0e2115;font-weight:800;margin-top:14px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
+ul{padding:0;margin:14px 0 0;list-style:none}li{padding:12px 0;border-bottom:1px solid var(--line)}li:last-child{border-bottom:0}li strong{display:block}small{display:block;color:var(--muted);margin-top:4px}.pass{color:var(--good)}.fail{color:var(--bad)}.skip{color:var(--warn)}.muted{color:var(--muted)}
+#overall{padding:10px 12px;background:#263d30;border-radius:8px;white-space:normal;overflow-wrap:anywhere}.note{font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>NORDIC TRAIL</h1>
+<p><strong>STAGING — kontrola uprawnień zapisu</strong></p>
+<div class="card">
+<h2>Kontrolowane próby niedozwolonych operacji</h2>
+<p>Test używa bieżącej sesji STAGING w <strong>tej samej karcie</strong>. Wysyła wyłącznie operacje UPDATE/DELETE z wzajemnie wykluczającymi się warunkami identyfikatora oraz próby RPC z pustym identyfikatorem. Nie celuje w żaden istniejący punkt. Nie pokazuje tokenów, UUID ani danych punktów.</p>
+<label for="expected">Konto, które testujesz</label>
+<select id="expected">
+<option value="B">Użytkownik B — zwykły użytkownik</option>
+<option value="A">Administrator A</option>
+</select>
+<button type="button" id="run">Uruchom kontrolę odmowy zapisu</button>
+<p class="note">Najpierw zaloguj się do <code>staging-app/</code>, a następnie otwórz adres tego audytu <strong>w tej samej karcie</strong>. W nowej karcie sesja może być niedostępna. Test przeprowadź osobno na koncie B i na koncie A.</p>
+</div>
+<section class="card" aria-live="polite" aria-atomic="false">
+<h2>Wyniki</h2>
+<div id="overall">Kontrola nie została uruchomiona.</div>
+<ul id="results"></ul>
+</section>
+<p class="note">Ta procedura sprawdza ograniczenia bezpośrednich operacji UPDATE/DELETE i decyzji moderacyjnych. Nie testuje nieautoryzowanych INSERT ani edycji cudzego istniejącego punktu. Nie stanowi pełnego audytu RLS. Nie zapisujemy tokenów ani raportów na serwerze.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+(()=>{
+  const ENDPOINT='https://bairmdubhnodwplioxld.supabase.co';
+  const PUBLIC_KEY_STORAGE='nt-staging-publishable-v1';
+  const SESSION_STORAGE='nt-staging-map-auth-session-v1';
+  const el=id=>document.getElementById(id);
+  const rows=el('results');
+  const overall=el('overall');
+  function add(label,state,detail=''){
+    const li=document.createElement('li');
+    const title=document.createElement('strong');
+    title.className=state==='PASS'?'pass':state==='FAIL'?'fail':'skip';
+    title.textContent=state+' — '+label;
+    li.appendChild(title);
+    if(detail){const s=document.createElement('small');s.textContent=detail;li.appendChild(s)}
+    rows.appendChild(li);
+    return state;
+  }
+  function finish(message){overall.textContent=message}
+  async function run(){
+    const button=el('run');
+    button.disabled=true;rows.replaceChildren();finish('Sprawdzanie...');
+    const expected=el('expected').value;
+    let pass=0,fail=0,skip=0;
+    const record=(label,state,detail)=>{add(label,state,detail); if(state==='PASS')pass++;else if(state==='FAIL')fail++;else skip++};
+    try{
+      if(location.origin!=='https://nordic-trail.github.io'){
+        record('Właściwy adres strony','SKIP','Test musi być opublikowany i otwarty na domenie GitHub Pages NORDIC TRAIL.');
+        finish('Nie uruchomiono — niewłaściwe pochodzenie strony.');return;
+      }
+      if(!window.supabase?.createClient){record('Biblioteka Supabase','SKIP','Nie udało się załadować Supabase.');finish('Nie uruchomiono.');return}
+      let key='';
+      try{key=localStorage.getItem(PUBLIC_KEY_STORAGE)||''}catch(_){/* storage unavailable */}
+      if(!/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(key)){
+        record('Publiczna konfiguracja STAGING','SKIP','Najpierw połącz aplikację STAGING w tej przeglądarce. Nie wklejaj kluczy na tę stronę.');
+        finish('Nie uruchomiono.');return;
+      }
+      const db=window.supabase.createClient(ENDPOINT,key,{
+        auth:{storage:window.sessionStorage,storageKey:SESSION_STORAGE,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
+      });
+      const auth=await db.auth.getUser();
+      const uid=auth.data?.user?.id;
+      if(auth.error||!uid){
+        record('Aktywna sesja STAGING','SKIP','Nie wykryto aktywnej sesji w tej karcie. Wróć do aplikacji STAGING i zaloguj się.');
+        finish('Nie uruchomiono.');return;
+      }
+      record('Aktywna sesja potwierdzona przez Supabase','PASS');
+      const role=await db.rpc('admin_pending_map_points');
+      let detected='unknown';
+      if(!role.error && Array.isArray(role.data)){detected='A'}
+      else if(role.error?.code==='42501' && String(role.error.message||'').includes('Brak uprawnień administratora')){detected='B'}
+      if(detected==='unknown'){
+        record('Kontrola uprawnień przez RPC','SKIP','Odpowiedź RPC nie pozwala jednoznacznie określić roli.');
+        finish('Test niekompletny — nie można zweryfikować roli.');return;
+      }
+      if(detected!==expected){
+        record('Zgodność sesji z wybranym kontem','FAIL','Sesja ma inną rolę niż wybrana w formularzu. Zatrzymano dalsze sprawdzanie.');
+        finish('Test przerwany — sprawdź konto.');return;
+      }
+      record('Rola konta potwierdzona przez RPC','PASS',detected==='A'?'Administrator':'Zwykły użytkownik — RPC odrzucił dostęp administratora');
+      // Read-only baseline for a known, disposable, private STAGING draft.
+      const before=await db.from('map_points')
+        .select('id,user_id,review_status,visibility,note').eq('id',4).limit(1);
+      if(before.error){
+        record('Kontrola stanu szkicu #4','SKIP','Nie udało się zweryfikować warunków początkowych.');
+        finish('Test niekompletny — nie można zweryfikować szkicu.');return;
+      }
+      if(expected==='B'){
+        const p=before.data?.[0];
+        if(before.data?.length!==1||p?.user_id!==uid||p?.review_status!=='draft'||p?.visibility!=='private'){
+          record('Stan prywatnego szkicu #4','FAIL','Szkic nie ma oczekiwanego właściciela lub statusu. Przerwano.');
+          finish('Przerwano — niezgodne dane testowe.');return;
+        }
+      }else if(before.data?.length!==0){
+        record('Administrator nie widzi cudzego szkicu #4','FAIL','Prywatny szkic stał się widoczny. Przerwano.');
+        finish('Przerwano — nieprawidłowy odczyt.');return;
+      }
+      record('Warunki początkowe szkicu #4','PASS','Weryfikacja statusu bez pobierania współrzędnych.');
+
+      // Each PATCH/DELETE is restricted by two mutually exclusive id predicates.
+      // Both predicates are required (AND); no database row can match.
+      const noopOperations=[
+        ['map_points UPDATE','map_points','UPDATE'],
+        ['map_points DELETE','map_points','DELETE'],
+        ['point_reports UPDATE','point_reports','UPDATE'],
+        ['point_reports DELETE','point_reports','DELETE']
+      ];
+      for(const [label,table,verb] of noopOperations){
+        let response;
+        if(verb==='UPDATE'){
+          response=await db.from(table)
+            .update({note:'NORDIC TRAIL AUDIT - IMPOSSIBLE FILTER'})
+            .eq('id',-1).eq('id',-2);
+        }else{
+          response=await db.from(table).delete().eq('id',-1).eq('id',-2);
+        }
+        if(response.error?.code==='42501' || (response.error&&(response.status===401||response.status===403))){
+          record('Blokada bezpośredniego '+label,'PASS','Serwer odmówił operacji (brak uprawnień).');
+        }else if(response.error){
+          record('Blokada bezpośredniego '+label,'SKIP','Otrzymano inny błąd API; nie uznajemy go za dowód blokady.');
+        }else{
+          record('Blokada bezpośredniego '+label,'FAIL','Serwer zaakceptował niedozwoloną metodę, nawet jeśli nie zmieniono żadnego wiersza.');
+        }
+      }
+
+      // No-op moderator calls: SQL equality against NULL never matches a row.
+      const moderatorCalls=[
+        ['moderate_map_point',{p_point_id:null,p_decision:'approved'},'Punkt nie oczekuje na moderację'],
+        ['moderate_point_report',{p_report_id:null,p_decision:'approved'},'Zgłoszenie nie oczekuje na moderację']
+      ];
+      for(const [fn,args,adminMessage] of moderatorCalls){
+        const response=await db.rpc(fn,args);
+        const message=String(response.error?.message||'');
+        const expectedMessage=expected==='A'?adminMessage:'Brak uprawnień administratora';
+        if(response.error?.code==='42501'&&message.includes(expectedMessage)){
+          record('RPC '+fn+' — weryfikacja roli','PASS',
+            expected==='A'?'Administrator przeszedł kontrolę roli, lecz nieistniejący cel został odrzucony.':
+              'Zwykły użytkownik został odrzucony przed sprawdzeniem celu.');
+        }else if(response.error){
+          record('RPC '+fn+' — weryfikacja roli','SKIP','Nieoczekiwany kod lub powód odmowy.');
+        }else{
+          record('RPC '+fn+' — weryfikacja roli','FAIL','Funkcja zakończyła się bez oczekiwanej odmowy.');
+        }
+      }
+
+      const after=await db.from('map_points')
+        .select('id,user_id,review_status,visibility,note').eq('id',4).limit(1);
+      if(after.error){
+        record('Kontrola szkicu #4 po testach','SKIP','Nie udało się odczytać danych kontrolnych.');
+      }else{
+        record('Stan widocznego szkicu #4 bez zmian',
+          JSON.stringify(before.data)===JSON.stringify(after.data)?'PASS':'FAIL',
+          'Porównano metadane szkicu przed testem i po nim.');
+      }
+
+      finish('Wynik: '+pass+' PASS, '+fail+' FAIL, '+skip+' NIEZWERYFIKOWANE. '+
+        (fail?'Wymagana analiza.':skip?'Kontrola częściowo zaliczona.':'Wszystkie przewidziane kontrole zaliczone.'));
+    }catch(_){record('Wykonanie kontroli','SKIP','Błąd połączenia lub działania strony — nie zwracamy szczegółów sesji.');finish('Test niekompletny.');}
+    finally{button.disabled=false}
+  }
+  el('run').addEventListener('click',()=>{void run()});
+})();
+</script>
+</body>
+</html>
