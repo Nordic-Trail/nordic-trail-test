@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; connect-src https://bairmdubhnodwplioxld.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>NORDIC TRAIL — STAGING Audyt sesji</title>
+<style>
+:root{color-scheme:dark;--bg:#101b17;--surface:#1b2b22;--ink:#f2f1e8;--muted:#b9c7bb;--line:#496552;--good:#bce7c2;--warn:#ffe1aa;--bad:#ffc5be}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px system-ui,-apple-system,Arial,sans-serif;line-height:1.5}
+main{width:min(100%,640px);margin:auto;padding:22px 16px 52px}h1{font-size:25px;letter-spacing:.035em;margin:0 0 4px}h2{font-size:19px;margin:0 0 12px}
+p{margin:8px 0 15px;color:var(--muted)}.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:16px}
+label{display:block;font-weight:700;margin:8px 0}select,button{width:100%;border-radius:10px;min-height:48px;font:inherit;padding:10px 12px}select{background:#12231a;border:1px solid #7b9c82;color:var(--ink)}button{border:0;background:#bfd19f;color:#0e2115;font-weight:800;margin-top:14px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
+ul{padding:0;margin:14px 0 0;list-style:none}li{padding:12px 0;border-bottom:1px solid var(--line)}li:last-child{border-bottom:0}li strong{display:block}small{display:block;color:var(--muted);margin-top:4px}.pass{color:var(--good)}.fail{color:var(--bad)}.skip{color:var(--warn)}.muted{color:var(--muted)}
+#overall{padding:10px 12px;background:#263d30;border-radius:8px;white-space:normal;overflow-wrap:anywhere}.note{font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>NORDIC TRAIL</h1>
+<p><strong>STAGING — audyt rzeczywistej sesji</strong></p>
+<div class="card">
+<h2>Kontrola bez zmiany danych</h2>
+<p>Test wykorzystuje bieżącą sesję Supabase z aplikacji STAGING w <strong>tej samej karcie przeglądarki</strong>. Niczego nie zapisuje, nie edytuje ani nie usuwa. Wyniki nie pokazują adresów e-mail, tokenów, UUID ani treści punktów.</p>
+<label for="expected">Konto, które testujesz</label>
+<select id="expected">
+<option value="B">Użytkownik B — zwykły użytkownik</option>
+<option value="A">Administrator A</option>
+</select>
+<button type="button" id="run">Uruchom kontrolę odczytu</button>
+<p class="note">Najpierw zaloguj się do <code>staging-app/</code>, a następnie otwórz adres tego audytu <strong>w tej samej karcie</strong>. W nowej karcie sesja może być niedostępna. Test przeprowadź osobno na koncie B i na koncie A.</p>
+</div>
+<section class="card" aria-live="polite" aria-atomic="false">
+<h2>Wyniki</h2>
+<div id="overall">Kontrola nie została uruchomiona.</div>
+<ul id="results"></ul>
+</section>
+<p class="note">Test sprawdza tylko wybrane odczyty i uprawnienia funkcji administracyjnej. Nie wykonuje prób zapisu: bezpieczne testy odmowy zapisu wymagają osobnej, kontrolowanej procedury. Po zakończeniu nie zapisujemy tokenu ani raportu na serwerze.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+(()=>{
+  const ENDPOINT='https://bairmdubhnodwplioxld.supabase.co';
+  const PUBLIC_KEY_STORAGE='nt-staging-publishable-v1';
+  const SESSION_STORAGE='nt-staging-map-auth-session-v1';
+  const el=id=>document.getElementById(id);
+  const rows=el('results');
+  const overall=el('overall');
+  function add(label,state,detail=''){
+    const li=document.createElement('li');
+    const title=document.createElement('strong');
+    title.className=state==='PASS'?'pass':state==='FAIL'?'fail':'skip';
+    title.textContent=state+' — '+label;
+    li.appendChild(title);
+    if(detail){const s=document.createElement('small');s.textContent=detail;li.appendChild(s)}
+    rows.appendChild(li);
+    return state;
+  }
+  function finish(message){overall.textContent=message}
+  async function run(){
+    const button=el('run');
+    button.disabled=true;rows.replaceChildren();finish('Sprawdzanie...');
+    const expected=el('expected').value;
+    let pass=0,fail=0,skip=0;
+    const record=(label,state,detail)=>{add(label,state,detail); if(state==='PASS')pass++;else if(state==='FAIL')fail++;else skip++};
+    try{
+      if(location.origin!=='https://nordic-trail.github.io'){
+        record('Właściwy adres strony','SKIP','Test musi być opublikowany i otwarty na domenie GitHub Pages NORDIC TRAIL.');
+        finish('Nie uruchomiono — niewłaściwe pochodzenie strony.');return;
+      }
+      if(!window.supabase?.createClient){record('Biblioteka Supabase','SKIP','Nie udało się załadować Supabase.');finish('Nie uruchomiono.');return}
+      let key='';
+      try{key=localStorage.getItem(PUBLIC_KEY_STORAGE)||''}catch(_){/* storage unavailable */}
+      if(!/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(key)){
+        record('Publiczna konfiguracja STAGING','SKIP','Najpierw połącz aplikację STAGING w tej przeglądarce. Nie wklejaj kluczy na tę stronę.');
+        finish('Nie uruchomiono.');return;
+      }
+      const db=window.supabase.createClient(ENDPOINT,key,{
+        auth:{storage:window.sessionStorage,storageKey:SESSION_STORAGE,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}
+      });
+      const auth=await db.auth.getUser();
+      const uid=auth.data?.user?.id;
+      if(auth.error||!uid){
+        record('Aktywna sesja STAGING','SKIP','Nie wykryto aktywnej sesji w tej karcie. Wróć do aplikacji STAGING i zaloguj się.');
+        finish('Nie uruchomiono.');return;
+      }
+      record('Aktywna sesja potwierdzona przez Supabase','PASS');
+      const role=await db.rpc('admin_pending_map_points');
+      let detected='unknown';
+      if(!role.error && Array.isArray(role.data)){detected='A'}
+      else if(role.error?.code==='42501' && String(role.error.message||'').includes('Brak uprawnień administratora')){detected='B'}
+      if(detected==='unknown'){
+        record('Kontrola uprawnień przez RPC','SKIP','Odpowiedź RPC nie pozwala jednoznacznie określić roli.');
+        finish('Test niekompletny — nie można zweryfikować roli.');return;
+      }
+      if(detected!==expected){
+        record('Zgodność sesji z wybranym kontem','FAIL','Sesja ma inną rolę niż wybrana w formularzu. Zatrzymano dalsze sprawdzanie.');
+        finish('Test przerwany — sprawdź konto.');return;
+      }
+      record('Rola konta potwierdzona przez RPC','PASS',detected==='A'?'Administrator':'Zwykły użytkownik — RPC odrzucił dostęp administratora');
+      // Read-only: the test requests only metadata of point #4 and does not modify it.
+      const point=await db.from('map_points')
+        .select('id,user_id,review_status,visibility').eq('id',4).limit(1);
+      if(point.error){record('Widoczność szkicu #4','SKIP','Zapytanie nie powiodło się.');}
+      else if(expected==='B'){
+        const p=point.data?.[0];
+        record('Użytkownik B widzi swój prywatny szkic #4',
+          point.data?.length===1 && p?.user_id===uid && p?.visibility==='private' && p?.review_status==='draft'?'PASS':'FAIL',
+          'Założenie testu: szkic #4 nadal należy do użytkownika B i pozostaje prywatny.');
+      }else{
+        record('Administrator A nie widzi cudzego szkicu #4',point.data?.length===0?'PASS':'FAIL');
+      }
+      // Least-privilege checks: privileged tables must not be directly readable.
+      for (const [label,table] of [
+        ['Bezpośredni odczyt app_admins','app_admins'],
+        ['Bezpośredni odczyt moderation_history','moderation_history'],
+        ['Bezpośredni odczyt point_moderation_history','point_moderation_history']
+      ]){
+        const r=await db.from(table).select('*',{head:true,count:'exact'});
+        const denied = !!r.error && (r.error.code==='42501' || r.status===401 || r.status===403);
+        if(denied){
+          record(label,'PASS','Serwer odrzucił bezpośredni odczyt.');
+        }else if(r.error){
+          record(label,'SKIP','Nieoczekiwany błąd API — potrzebna osobna weryfikacja.');
+        }else{
+          record(label,'FAIL','Serwer nie odmówił bezpośredniego odczytu.');
+        }
+      }
+      // Ensure any visible report belongs to this user; do not show or log record contents.
+      const reports=await db.from('point_reports').select('user_id').limit(100);
+      if(reports.error){record('Odczyt własnych zgłoszeń','SKIP','Zapytanie nie powiodło się.');}
+      else if((reports.data||[]).length===0){
+        record('Odczyt własnych zgłoszeń','SKIP','Brak widocznych zgłoszeń. Nie można na tej podstawie ocenić izolacji.');
+      }else{
+        record('Wszystkie zwrócone zgłoszenia należą do bieżącego użytkownika',
+          reports.data.every(row=>row.user_id===uid)?'PASS':'FAIL');
+      }
+      finish(`Wynik: ${pass} PASS, ${fail} FAIL, ${skip} NIEZWERYFIKOWANE. ${fail?'Wymagana analiza błędów.':skip?'Test częściowo zaliczony.':'Testy odczytu zaliczone.'}`);
+    }catch(_){record('Wykonanie kontroli','SKIP','Błąd połączenia lub działania strony — nie zwracamy szczegółów sesji.');finish('Test niekompletny.');}
+    finally{button.disabled=false}
+  }
+  el('run').addEventListener('click',()=>{void run()});
+})();
+</script>
+</body>
+</html>
