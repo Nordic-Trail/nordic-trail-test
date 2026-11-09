@@ -1,0 +1,96 @@
+name: NORDIC TRAIL - STAGING Anonymous API RLS Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'staging-app/**'
+      - '.github/workflows/staging-anonymous-rls-check.yml'
+  schedule:
+    - cron: '23 7 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  anon-rls-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check STAGING anonymous read access without fetching rows
+        shell: bash
+        env:
+          STAGING_PUBLISHABLE_KEY: ${{ secrets.STAGING_PUBLISHABLE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import sys
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError, URLError
+
+          base = 'https://bairmdubhnodwplioxld.supabase.co/rest/v1'
+          key = os.environ.get('STAGING_PUBLISHABLE_KEY', '').strip()
+          if not re.fullmatch(r'sb_publishable_[A-Za-z0-9_-]{10,}', key):
+              print('FAIL: Configure the STAGING_PUBLISHABLE_KEY GitHub Actions secret with a publishable key only.')
+              sys.exit(2)
+
+          def probe(table, filters=None, column='id'):
+              query = urlencode({'select': column, **(filters or {})})
+              request = Request(
+                  f'{base}/{table}?{query}',
+                  method='HEAD',
+                  headers={
+                      'apikey': key,
+                      'Prefer': 'count=exact',
+                      'Range': '0-0',
+                      'Accept': 'application/json',
+                  },
+              )
+              try:
+                  with urlopen(request, timeout=15) as response:
+                      status = response.status
+                      content_range = response.headers.get('Content-Range', '')
+              except HTTPError as error:
+                  status = error.code
+                  content_range = error.headers.get('Content-Range', '')
+                  error.close()
+              except (URLError, TimeoutError):
+                  return None, None
+              match = re.search(r'/(\d+)$', content_range)
+              count = int(match.group(1)) if match else None
+              return status, count
+
+          outcomes = []
+
+          def check(label, table, filters=None, mode='empty', column='id'):
+              status, count = probe(table, filters, column)
+              if mode == 'public':
+                  passed = status in (200, 206) and count is not None
+              elif mode == 'empty':
+                  passed = status in (200, 206) and count == 0
+              elif mode == 'denied':
+                  passed = status in (401, 403)
+              else:
+                  raise ValueError('Unknown check mode')
+              print(f'{"PASS" if passed else "FAIL"}: {label}; HTTP {status}; no row bodies fetched.')
+              outcomes.append(passed)
+
+          check('Approved public map points API', 'map_points',
+                {'visibility': 'eq.public', 'review_status': 'eq.approved'}, 'public')
+          check('Private map points hidden', 'map_points',
+                {'visibility': 'eq.private'})
+          check('Unapproved map points hidden', 'map_points',
+                {'review_status': 'neq.approved'})
+          check('Point reports denied', 'point_reports', mode='denied')
+          check('Administrator memberships denied', 'app_admins', mode='denied', column='user_id')
+          check('Report moderation history denied', 'moderation_history', mode='denied')
+          check('Point moderation history denied', 'point_moderation_history', mode='denied')
+
+          if not all(outcomes):
+              print('FAIL: STAGING anonymous-access controls require investigation.')
+              sys.exit(1)
+          print('PASS: No unauthorized anonymous reads detected in the tested STAGING endpoints.')
+          PY
