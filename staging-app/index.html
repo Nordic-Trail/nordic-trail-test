@@ -208,7 +208,31 @@ button:disabled{opacity:.5;cursor:wait}
   const SESSION_KEY='nt-staging-map-auth-session-v1';
   const el=id=>document.getElementById(id);
   const show=(id,visible)=>{el(id).hidden=!visible;};
-  const message=(id,value,isError)=>{const n=el(id);n.textContent=value;n.classList.toggle('error',!!isError);n.hidden=false;};
+  // Map hints and success notices disappear automatically; errors stay visible.
+  let mapNoticeTimer=null;
+  function dismissMapNotice(){
+    if(mapNoticeTimer!==null){window.clearTimeout(mapNoticeTimer);mapNoticeTimer=null;}
+    el('map-action-status').hidden=true;
+  }
+  function message(id,value,isError=false){
+    const n=el(id);
+    if(id==='map-action-status'&&mapNoticeTimer!==null){
+      window.clearTimeout(mapNoticeTimer);
+      mapNoticeTimer=null;
+    }
+    n.textContent=value;
+    n.classList.toggle('error',!!isError);
+    n.hidden=false;
+    if(id==='map-action-status'&&!isError){
+      const timerId=window.setTimeout(()=>{
+        // A cancelled/obsolete callback must never clear a newer timer.
+        if(mapNoticeTimer!==timerId)return;
+        mapNoticeTimer=null;
+        if(n.textContent===value&&!n.classList.contains('error'))n.hidden=true;
+      },5000);
+      mapNoticeTimer=timerId;
+    }
+  }
   const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
   let db=null,seq=0,loggingIn=false;
   let markers=null,map=null;
@@ -420,7 +444,7 @@ button:disabled{opacity:.5;cursor:wait}
     movingPoint=false;
     updatePointAction();
     setSheetCollapsed(false);
-    el('map-action-status').hidden=true;el('point-sheet-status').hidden=true;
+    dismissMapNotice();el('point-sheet-status').hidden=true;
     show('point-sheet',true);
     adjustMapToPanel();
   });
@@ -776,7 +800,7 @@ button:disabled{opacity:.5;cursor:wait}
     if(selectedPoint){
       movingPoint=false;
       updatePointAction();
-      el('map-action-status').hidden=true;
+      dismissMapNotice();
       setSheetCollapsed(false);
       show('point-sheet',true);
       adjustMapToPanel();
