@@ -15,7 +15,7 @@ button{font:inherit;min-height:44px;border:0;border-radius:9px;padding:9px 12px;
 button.secondary{background:#2f4937;border:1px solid var(--edge);color:var(--ink)}button:disabled{opacity:.5;cursor:default}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid white;outline-offset:2px}
 .buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.buttons button{flex:1 1 125px}
-#notice{padding:10px;background:#31523b;border-radius:9px}#notice.error{background:#683b30}
+#notice,#action-status{padding:10px;background:#31523b;border-radius:9px}#notice.error,#action-status.error{background:#683b30}#action-status{margin:10px 0 0}
 .stat{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
 .layer{display:flex;align-items:center;gap:9px;font-weight:500}.layer input{width:18px;height:18px;accent-color:var(--accent)}
 #points{padding:0;margin:9px 0;display:grid;gap:8px;list-style:none}
@@ -47,6 +47,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 <section class="card"><h2>Kolejność punktów</h2><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p></section>
 <section class="card"><h2>Zapis i eksport</h2>
 <div class="buttons"><button id="save-local" type="button">Zapisz lokalnie</button><button id="export-gpx" type="button" class="secondary">Eksport GPX</button><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div>
+<p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
 <p class="hint">Plan zapisujemy wyłącznie w pamięci tej przeglądarki. Nie przesyłamy go na serwer ani do Supabase.</p></section>
 <section class="card"><h2>Ważne ograniczenia</h2><p class="warning">To szkic z prostych linii, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></section>
 </div></main>
@@ -58,6 +59,18 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 const M=window.NordicTripModel,el=id=>document.getElementById(id),KEY='nt-staging-trip-planner-v1';
 let trip=M.emptyTrip(),selected=null,picking=false,map=null,lines=null,pins=null;
 function notice(text,error=false){const n=el('notice');n.textContent=text;n.classList.toggle('error',error);}
+function actionStatus(text,error=false){
+ const n=el('action-status');
+ n.textContent=text;
+ n.classList.toggle('error',error);
+ n.hidden=false;
+}
+function clearActionStatus(){
+ const n=el('action-status');
+ n.hidden=true;
+ n.textContent='';
+ n.classList.remove('error');
+}
 function km(n){return n.toLocaleString('pl-PL',{maximumFractionDigits:1,minimumFractionDigits:1})+' km';}
 function button(label,fn,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=label;b.className='secondary';b.disabled=disabled;b.addEventListener('click',fn);return b;}
 function pick(on){picking=on;el('start-pick').textContent=on?'Wskaż miejsce na mapie':'+ Dodaj punkt na mapie';el('cancel-pick').hidden=!on;if(map)map.getContainer().style.cursor=on?'crosshair':'';}
@@ -107,7 +120,7 @@ function refresh(){
  if(selected&&!trip.waypoints.some(p=>p.id===selected))closeEditor();
  redraw();
 }
-function apply(fn){try{trip=fn();refresh();}catch(error){notice(error.message,true);}}
+function apply(fn){try{trip=fn();clearActionStatus();refresh();}catch(error){notice(error.message,true);}}
 function closeEditor(){selected=null;el('editor').hidden=true;}
 function edit(id){
  const p=trip.waypoints.find(p=>p.id===id);if(!p)return;
@@ -138,17 +151,23 @@ el('close-editor').addEventListener('click',()=>{closeEditor();refresh();});
 el('visible-drive').addEventListener('change',redraw);el('visible-walk').addEventListener('change',redraw);
 el('trip-name').addEventListener('change',()=>apply(()=>M.renameTrip(trip,el('trip-name').value)));
 el('save-local').addEventListener('click',()=>{
- try{trip=M.renameTrip(trip,el('trip-name').value);localStorage.setItem(KEY,JSON.stringify(trip));notice('Wyprawa zapisana wyłącznie w tej przeglądarce.');}
- catch(_error){notice('Nie można zapisać wyprawy w tej przeglądarce.',true);}
+ try{
+  trip=M.renameTrip(trip,el('trip-name').value);
+  localStorage.setItem(KEY,JSON.stringify(trip));
+  actionStatus('✓ Wyprawa zapisana lokalnie.');
+ }catch(_error){actionStatus('Nie udało się zapisać wyprawy w tej przeglądarce.',true);}
 });
 el('export-gpx').addEventListener('click',()=>{
- if(trip.waypoints.length===0){notice('Najpierw dodaj punkty.',true);return;}
- try{trip=M.renameTrip(trip,el('trip-name').value);download('nordic-trail-szkic.gpx',M.gpx(trip));notice('Wyeksportowano szkic GPX, nie trasę do nawigacji.');}
- catch(_error){notice('Nie udało się wyeksportować pliku.',true);}
+ if(trip.waypoints.length===0){actionStatus('Dodaj punkty przed eksportem GPX.',true);return;}
+ try{
+  trip=M.renameTrip(trip,el('trip-name').value);
+  download('nordic-trail-szkic.gpx',M.gpx(trip));
+  actionStatus('✓ Utworzono szkic GPX. Nie jest to trasa do nawigacji.');
+ }catch(_error){actionStatus('Nie udało się wyeksportować pliku.',true);}
 });
 el('new-trip').addEventListener('click',()=>{
  if(!confirm('Rozpocząć pustą wyprawę? Niezapisane zmiany znikną.'))return;
- trip=M.emptyTrip();closeEditor();pick(false);refresh();notice('Utworzono pustą wyprawę. Lokalny zapis poprzedniej nie został skasowany.');
+ trip=M.emptyTrip();closeEditor();pick(false);refresh();actionStatus('Utworzono pustą wyprawę. Poprzedni lokalny zapis nie został usunięty.');
 });
 try{const saved=localStorage.getItem(KEY);if(saved){trip=M.normalize(JSON.parse(saved));notice('Przywrócono zapisaną lokalnie wyprawę.');}}
 catch(_error){trip=M.emptyTrip();notice('Nie udało się wczytać zapisu lokalnego.',true);}
