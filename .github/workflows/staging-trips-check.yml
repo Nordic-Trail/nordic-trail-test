@@ -3,12 +3,16 @@ on:
   pull_request:
     paths:
       - 'staging-trips/**'
+      - 'staging-routing/**'
+      - 'scripts/staging_routing_check.cjs'
       - 'scripts/staging_trips_check.cjs'
       - '.github/workflows/staging-trips-check.yml'
   push:
     branches: [main]
     paths:
       - 'staging-trips/**'
+      - 'staging-routing/**'
+      - 'scripts/staging_routing_check.cjs'
       - 'scripts/staging_trips_check.cjs'
       - '.github/workflows/staging-trips-check.yml'
 permissions:
@@ -20,3 +24,4 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: node scripts/staging_trips_check.cjs
+      - run: node scripts/staging_routing_check.cjs
