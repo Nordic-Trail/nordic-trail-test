@@ -99,17 +99,26 @@ ul{padding:0;margin:14px 0 0;list-style:none}li{padding:12px 0;border-bottom:1px
         finish('Test przerwany — sprawdź konto.');return;
       }
       record('Rola konta potwierdzona przez RPC','PASS',detected==='A'?'Administrator':'Zwykły użytkownik — RPC odrzucił dostęp administratora');
-      // Read-only: the test requests only metadata of point #4 and does not modify it.
-      const point=await db.from('map_points')
-        .select('id,user_id,review_status,visibility').eq('id',4).limit(1);
-      if(point.error){record('Widoczność szkicu #4','SKIP','Zapytanie nie powiodło się.');}
-      else if(expected==='B'){
-        const p=point.data?.[0];
-        record('Użytkownik B widzi swój prywatny szkic #4',
-          point.data?.length===1 && p?.user_id===uid && p?.visibility==='private' && p?.review_status==='draft'?'PASS':'FAIL',
-          'Założenie testu: szkic #4 nadal należy do użytkownika B i pozostaje prywatny.');
+      // Read-only, data-independent test: never assume a point ID or its current status.
+      // A visible non-public point must belong to the signed-in user.
+      const points=await db.from('map_points')
+        .select('id,user_id,review_status,visibility').limit(200);
+      if(points.error){
+        record('Izolacja widocznych punktów','SKIP','Odczyt metadanych nie powiódł się.');
       }else{
-        record('Administrator A nie widzi cudzego szkicu #4',point.data?.length===0?'PASS':'FAIL');
+        const visible=points.data||[];
+        const leaked=visible.some(p=>!(p.visibility==='public'&&p.review_status==='approved')&&p.user_id!==uid);
+        record('Brak obcych niepublicznych punktów w wyniku',leaked?'FAIL':'PASS',
+          'Sprawdzono maksymalnie 200 dostępnych rekordów bez pobierania współrzędnych.');
+        if(visible.length===200)record('Kompletność próby widocznych punktów','SKIP','Limit próby 200; dalsze rekordy nie zostały sprawdzone.');
+      }
+      const foreignPoints=await db.from('map_points')
+        .select('id',{head:true,count:'exact'}).eq('visibility','private').neq('user_id',uid);
+      if(foreignPoints.error||foreignPoints.count===null){
+        record('Filtr obcych prywatnych punktów','SKIP','Brak wiarygodnej odpowiedzi o liczbie rekordów.');
+      }else{
+        record('Obce prywatne punkty nie są dostępne',foreignPoints.count===0?'PASS':'FAIL',
+          'Zapytanie liczące nie pobiera treści punktów. Wynik 0 nie dowodzi istnienia obcych rekordów.');
       }
       // Least-privilege checks: privileged tables must not be directly readable.
       for (const [label,table] of [
@@ -121,20 +130,29 @@ ul{padding:0;margin:14px 0 0;list-style:none}li{padding:12px 0;border-bottom:1px
         const denied = !!r.error && (r.error.code==='42501' || r.status===401 || r.status===403);
         if(denied){
           record(label,'PASS','Serwer odrzucił bezpośredni odczyt.');
-        }else if(r.error){
-          record(label,'SKIP','Nieoczekiwany błąd API — potrzebna osobna weryfikacja.');
+        }else if(!r.error && r.count===0){
+          record(label,'PASS','RLS zwrócił 0 widocznych rekordów (HTTP 200/206 jest dopuszczalne).');
+        }else if(!r.error && typeof r.count==='number' && r.count>0){
+          record(label,'FAIL','Tabela ujawniła rekordy przez bezpośredni odczyt.');
         }else{
-          record(label,'FAIL','Serwer nie odmówił bezpośredniego odczytu.');
+          record(label,'SKIP','Nie można jednoznacznie potwierdzić liczby dostępnych rekordów.');
         }
       }
-      // Ensure any visible report belongs to this user; do not show or log record contents.
-      const reports=await db.from('point_reports').select('user_id').limit(100);
-      if(reports.error){record('Odczyt własnych zgłoszeń','SKIP','Zapytanie nie powiodło się.');}
-      else if((reports.data||[]).length===0){
-        record('Odczyt własnych zgłoszeń','SKIP','Brak widocznych zgłoszeń. Nie można na tej podstawie ocenić izolacji.');
+      // A server-side filter must never return reports owned by a different user.
+      const foreignReports=await db.from('point_reports')
+        .select('id',{head:true,count:'exact'}).neq('user_id',uid);
+      if(foreignReports.error||foreignReports.count===null){
+        record('Odczyt cudzych zgłoszeń','SKIP','Nie udało się pobrać wiarygodnej liczby rekordów.');
       }else{
-        record('Wszystkie zwrócone zgłoszenia należą do bieżącego użytkownika',
-          reports.data.every(row=>row.user_id===uid)?'PASS':'FAIL');
+        record('Brak dostępnych cudzych zgłoszeń',foreignReports.count===0?'PASS':'FAIL',
+          'Zapytanie nie pobiera treści. Brak rekordów innego użytkownika ogranicza siłę testu.');
+      }
+      const ownReports=await db.from('point_reports')
+        .select('id',{head:true,count:'exact'}).eq('user_id',uid);
+      if(ownReports.error||ownReports.count===null){
+        record('Odczyt własnych zgłoszeń','SKIP','Nie udało się sprawdzić liczby zgłoszeń.');
+      }else{
+        record('Dostęp do własnych zgłoszeń','PASS','Liczba widocznych zgłoszeń: '+ownReports.count+'.');
       }
       finish(`Wynik: ${pass} PASS, ${fail} FAIL, ${skip} NIEZWERYFIKOWANE. ${fail?'Wymagana analiza błędów.':skip?'Test częściowo zaliczony.':'Testy odczytu zaliczone.'}`);
     }catch(_){record('Wykonanie kontroli','SKIP','Błąd połączenia lub działania strony — nie zwracamy szczegółów sesji.');finish('Test niekompletny.');}

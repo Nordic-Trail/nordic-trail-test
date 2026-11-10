@@ -6,6 +6,10 @@ on:
     branches: [main]
     paths:
       - 'staging-app/**'
+      - 'staging-reports/**'
+      - 'staging-auth-audit/**'
+      - 'staging-write-audit/**'
+      - 'audits/**'
       - '.github/workflows/staging-anonymous-rls-check.yml'
   schedule:
     - cron: '23 7 * * 1'
