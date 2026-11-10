@@ -1,0 +1,33 @@
+name: NORDIC TRAIL - STAGING Security Static Checks
+
+on:
+  pull_request:
+    paths:
+      - 'staging-reports/**'
+      - 'staging-auth-audit/**'
+      - 'staging-write-audit/**'
+      - 'scripts/staging_security_static_check.py'
+      - '.github/workflows/staging-anonymous-rls-check.yml'
+      - '.github/workflows/staging-security-static.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'staging-reports/**'
+      - 'staging-auth-audit/**'
+      - 'staging-write-audit/**'
+      - 'scripts/staging_security_static_check.py'
+      - '.github/workflows/staging-anonymous-rls-check.yml'
+      - '.github/workflows/staging-security-static.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-security-invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Run offline security regression checks (no tokens, no database access)
+        run: python3 scripts/staging_security_static_check.py

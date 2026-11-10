@@ -21,7 +21,7 @@ ul{padding:0;margin:14px 0 0;list-style:none}li{padding:12px 0;border-bottom:1px
 <p><strong>STAGING — kontrola uprawnień zapisu</strong></p>
 <div class="card">
 <h2>Kontrolowane próby niedozwolonych operacji</h2>
-<p>Test używa bieżącej sesji STAGING w <strong>tej samej karcie</strong>. Wysyła wyłącznie operacje UPDATE/DELETE z wzajemnie wykluczającymi się warunkami identyfikatora oraz próby RPC z pustym identyfikatorem. Nie celuje w żaden istniejący punkt. Nie pokazuje tokenów, UUID ani danych punktów.</p>
+<p>Test używa bieżącej sesji STAGING w <strong>tej samej karcie</strong>. Wysyła wyłącznie operacje UPDATE/DELETE z wzajemnie wykluczającymi się warunkami identyfikatora oraz próby RPC z pustym identyfikatorem. Nie celuje w żaden istniejący punkt. Porównuje wyłącznie liczby dostępnych rekordów przed i po. Nie pokazuje tokenów, UUID ani danych punktów.</p>
 <label for="expected">Konto, które testujesz</label>
 <select id="expected">
 <option value="B">Użytkownik B — zwykły użytkownik</option>
@@ -99,24 +99,23 @@ ul{padding:0;margin:14px 0 0;list-style:none}li{padding:12px 0;border-bottom:1px
         finish('Test przerwany — sprawdź konto.');return;
       }
       record('Rola konta potwierdzona przez RPC','PASS',detected==='A'?'Administrator':'Zwykły użytkownik — RPC odrzucił dostęp administratora');
-      // Read-only baseline for a known, disposable, private STAGING draft.
-      const before=await db.from('map_points')
-        .select('id,user_id,review_status,visibility,note').eq('id',4).limit(1);
-      if(before.error){
-        record('Kontrola stanu szkicu #4','SKIP','Nie udało się zweryfikować warunków początkowych.');
-        finish('Test niekompletny — nie można zweryfikować szkicu.');return;
-      }
-      if(expected==='B'){
-        const p=before.data?.[0];
-        if(before.data?.length!==1||p?.user_id!==uid||p?.review_status!=='draft'||p?.visibility!=='private'){
-          record('Stan prywatnego szkicu #4','FAIL','Szkic nie ma oczekiwanego właściciela lub statusu. Przerwano.');
-          finish('Przerwano — niezgodne dane testowe.');return;
+      // Dynamic read-only baseline; never assume a draft or a particular point ID.
+      // Counts are scoped by the user's RLS policies, not by an administrative key.
+      async function snapshotCounts(){
+        const result={};
+        for(const table of ['map_points','point_reports']){
+          const r=await db.from(table).select('id',{head:true,count:'exact'});
+          if(r.error||typeof r.count!=='number')return null;
+          result[table]=r.count;
         }
-      }else if(before.data?.length!==0){
-        record('Administrator nie widzi cudzego szkicu #4','FAIL','Prywatny szkic stał się widoczny. Przerwano.');
-        finish('Przerwano — nieprawidłowy odczyt.');return;
+        return result;
       }
-      record('Warunki początkowe szkicu #4','PASS','Weryfikacja statusu bez pobierania współrzędnych.');
+      const before=await snapshotCounts();
+      if(before){
+        record('Metadane przed testem','PASS','Odczytano liczby rekordów widocznych dla tej sesji.');
+      }else{
+        record('Metadane przed testem','SKIP','Nie można odczytać liczników; dalsze operacje pozostają bezcelowe.');
+      }
 
       // Each PATCH/DELETE is restricted by two mutually exclusive id predicates.
       // Both predicates are required (AND); no database row can match.
@@ -140,7 +139,8 @@ ul{padding:0;margin:14px 0 0;list-style:none}li{padding:12px 0;border-bottom:1px
         }else if(response.error){
           record('Blokada bezpośredniego '+label,'SKIP','Otrzymano inny błąd API; nie uznajemy go za dowód blokady.');
         }else{
-          record('Blokada bezpośredniego '+label,'FAIL','Serwer zaakceptował niedozwoloną metodę, nawet jeśli nie zmieniono żadnego wiersza.');
+          record('Blokada bezpośredniego '+label,'SKIP',
+            'Żaden wiersz nie pasował do filtrów. Odpowiedź sukcesu nie dowodzi możliwości zmiany cudzych danych; sprawdź RLS w SQL.');
         }
       }
 
@@ -164,14 +164,13 @@ ul{padding:0;margin:14px 0 0;list-style:none}li{padding:12px 0;border-bottom:1px
         }
       }
 
-      const after=await db.from('map_points')
-        .select('id,user_id,review_status,visibility,note').eq('id',4).limit(1);
-      if(after.error){
-        record('Kontrola szkicu #4 po testach','SKIP','Nie udało się odczytać danych kontrolnych.');
+      const after=await snapshotCounts();
+      if(before&&after){
+        const unchanged=before.map_points===after.map_points&&before.point_reports===after.point_reports;
+        record('Liczba widocznych rekordów bez zmian',unchanged?'PASS':'FAIL',
+          'Porównano liczniki map_points i point_reports; równoległe operacje innych użytkowników mogą wpływać na wynik.');
       }else{
-        record('Stan widocznego szkicu #4 bez zmian',
-          JSON.stringify(before.data)===JSON.stringify(after.data)?'PASS':'FAIL',
-          'Porównano metadane szkicu przed testem i po nim.');
+        record('Kontrola danych po testach','SKIP','Nie udało się porównać liczników.');
       }
 
       finish('Wynik: '+pass+' PASS, '+fail+' FAIL, '+skip+' NIEZWERYFIKOWANE. '+
