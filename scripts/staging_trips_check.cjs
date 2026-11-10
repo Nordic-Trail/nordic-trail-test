@@ -35,7 +35,29 @@ check('No app network data submission',()=>{
  assert.ok(!/\bfetch\s*\(|XMLHttpRequest|navigator\.geolocation|\.rpc\s*\(/.test(html));
  assert.ok(html.includes('localStorage.setItem'));
 });
+check('Start marker and map fitting controls exist',()=>{
+ assert.ok(html.includes('id="fit-trip"'));
+ assert.ok(html.includes("button('Pokaż na mapie',()=>showPointOnMap(p.id))"));
+ assert.ok(html.includes("i===0?' start':''"));
+ assert.ok(html.includes('fitAllPoints();'));
+});
 check('UI includes all controls',()=>{
  for(const id of ['start-pick','cancel-pick','point-name','point-kind','point-mode','visible-drive','visible-walk','save-local','export-gpx','points'])assert.ok(html.includes('id="'+id+'"'));
+});
+// Exercise fitAllPoints with mock Leaflet geometry: the original start must remain in bounds.
+check('Fit map includes original start and the new point',()=>{
+ const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean)[0];
+ const begin=inline.indexOf('function fitAllPoints(){');
+ const end=inline.indexOf('function showPointOnMap(id){',begin);
+ assert.ok(begin>=0&&end>begin);
+ const bounds=[];
+ const ctx={trip:{waypoints:[{lat:59.30801,lon:18.08823},{lat:59.4,lon:18.2}]},map:{
+  fitBounds:(b,opts)=>bounds.push({b,opts}),setView:()=>{throw Error('Unexpected setView')}},
+  L:{latLngBounds:points=>points}};
+ vm.runInNewContext(inline.slice(begin,end)+';this.didFit=fitAllPoints();',ctx);
+ assert.equal(ctx.didFit,true);
+ assert.equal(bounds.length,1);
+ assert.deepEqual(Array.from(bounds[0].b[0]),[59.30801,18.08823]);
+ assert.deepEqual(Array.from(bounds[0].b[1]),[59.4,18.2]);
 });
 console.log('STAGING Trips checks: '+passed+' PASS');

@@ -24,11 +24,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .point-row{display:flex;justify-content:space-between;align-items:center;gap:8px}.point-row strong{overflow-wrap:anywhere}
 .point-meta{font-size:12px;color:#c4d3c2}.point-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.point-actions button{min-height:40px;font-size:12px}
 .warning{padding:10px;border-left:4px solid #ecc383;background:#304433;border-radius:7px;font-size:13px}
-.number{background:#163d2b;color:white;border:2px solid white;width:30px;height:30px;border-radius:100%;display:grid;place-items:center;font-weight:700;box-shadow:0 2px 5px #0008}
+.number{background:#163d2b;color:white;border:2px solid white;width:30px;height:30px;border-radius:100%;display:grid;place-items:center;font-weight:700;box-shadow:0 2px 5px #0008}.number.start{background:#714f19;border-color:#ffe3a3}
 @media(max-width:800px){main{display:block;padding:8px}#map{height:47dvh;min-height:260px}.panel{margin-top:10px}header{padding:9px;font-size:13px}}
 </style></head>
 <body><header><div><strong>NORDIC TRAIL</strong><small>STAGING · ręczny planer wypraw</small></div><a href="../staging-app/">Powrót do mapy</a></header>
-<main><section aria-label="Mapa planowania"><div id="map"></div><p class="hint">🚙 Samochód: linia żółta · 🥾 Pieszo: linia zielona, przerywana</p></section>
+<main><section aria-label="Mapa planowania"><div id="map"></div><div class="buttons"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: linia żółta · 🥾 Pieszo: linia zielona, przerywana</p></section>
 <div class="panel">
 <section class="card"><h1>Zaplanuj wyprawę</h1>
 <label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
@@ -61,6 +61,19 @@ function notice(text,error=false){const n=el('notice');n.textContent=text;n.clas
 function km(n){return n.toLocaleString('pl-PL',{maximumFractionDigits:1,minimumFractionDigits:1})+' km';}
 function button(label,fn,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=label;b.className='secondary';b.disabled=disabled;b.addEventListener('click',fn);return b;}
 function pick(on){picking=on;el('start-pick').textContent=on?'Wskaż miejsce na mapie':'+ Dodaj punkt na mapie';el('cancel-pick').hidden=!on;if(map)map.getContainer().style.cursor=on?'crosshair':'';}
+function fitAllPoints(){
+ if(!map||!trip.waypoints.length)return false;
+ const coords=trip.waypoints.map(p=>[p.lat,p.lon]);
+ if(coords.length===1)map.setView(coords[0],Math.max(10,map.getZoom()),{animate:false});
+ else map.fitBounds(L.latLngBounds(coords),{padding:[36,36],maxZoom:15,animate:false});
+ return true;
+}
+function showPointOnMap(id){
+ const p=trip.waypoints.find(p=>p.id===id);
+ if(!p||!map)return;
+ map.setView([p.lat,p.lon],Math.max(12,map.getZoom()),{animate:false});
+ el('map').scrollIntoView({behavior:'smooth',block:'start'});
+}
 function redraw(){
  if(!map)return;
  lines.clearLayers();pins.clearLayers();
@@ -69,7 +82,7 @@ function redraw(){
    L.polyline([[s.from.lat,s.from.lon],[s.to.lat,s.to.lon]],{color:s.mode==='drive'?'#f3bb62':'#73d4a5',weight:5,dashArray:s.mode==='walk'?'6 9':null,interactive:false}).addTo(lines);
  });
  trip.waypoints.forEach((p,i)=>{
-   const icon=L.divIcon({className:'',html:'<div class="number">'+(i+1)+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
+   const icon=L.divIcon({className:'',html:'<div class="number'+(i===0?' start':'')+'">'+(i+1)+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
    L.marker([p.lat,p.lon],{icon}).addTo(pins).on('click',()=>edit(p.id));
  });
 }
@@ -85,6 +98,7 @@ function refresh(){
   const meta=document.createElement('div');meta.className='point-meta';
   meta.textContent=M.KIND_LABELS[p.kind]+' · '+(i===0?'Punkt początkowy':M.MODE_LABELS[p.mode])+' · '+p.lat.toFixed(5)+', '+p.lon.toFixed(5);li.appendChild(meta);
   const actions=document.createElement('div');actions.className='point-actions';
+  actions.appendChild(button('Pokaż na mapie',()=>showPointOnMap(p.id)));
   actions.appendChild(button('↑',()=>apply(()=>M.move(trip,p.id,-1)),i===0));
   actions.appendChild(button('↓',()=>apply(()=>M.move(trip,p.id,1)),i===trip.waypoints.length-1));
   actions.appendChild(button('Usuń',()=>{if(confirm('Usunąć ten punkt z wyprawy?'))apply(()=>M.remove(trip,p.id));}));
@@ -108,6 +122,10 @@ function download(name,text){
  const blob=new Blob([text],{type:'application/gpx+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
  const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
+el('fit-trip').addEventListener('click',()=>{
+ if(!fitAllPoints())notice('Najpierw dodaj punkt do wyprawy.',true);
+ else notice('Mapa pokazuje całą zaplanowaną wyprawę.');
+});
 el('start-pick').addEventListener('click',()=>{closeEditor();pick(true);notice('Dotknij pustego miejsca na mapie.');});
 el('cancel-pick').addEventListener('click',()=>{pick(false);notice('Anulowano wybieranie punktu.');});
 el('save-point').addEventListener('click',()=>{
@@ -143,7 +161,13 @@ try{
   if(!picking)return;
   const n=trip.waypoints.length;
   apply(()=>M.add(trip,{lat:Number(event.latlng.lat.toFixed(6)),lon:Number(event.latlng.lng.toFixed(6)),name:n===0?'Start':'Punkt '+(n+1),kind:n===0?'start':'stop',mode:n===0?'none':'drive'}));
-  pick(false);const p=trip.waypoints[trip.waypoints.length-1];if(p){edit(p.id);notice('Dodano punkt. Wybierz rodzaj i sposób dotarcia.');}
+  pick(false);
+  if(trip.waypoints.length===n+1){
+    fitAllPoints();
+    const p=trip.waypoints[trip.waypoints.length-1];
+    edit(p.id);
+    notice('Dodano punkt. Mapa pokazuje całą wyprawę. Wybierz rodzaj i sposób dotarcia.');
+  }
  });
  if(trip.waypoints.length)map.fitBounds(L.latLngBounds(trip.waypoints.map(p=>[p.lat,p.lon])).pad(.2),{maxZoom:11});
 }catch(_error){notice('Nie udało się uruchomić mapy. Sprawdź połączenie.',true);}
