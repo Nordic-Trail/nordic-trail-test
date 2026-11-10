@@ -224,10 +224,13 @@ button:disabled{opacity:.5;cursor:wait}
     n.classList.toggle('error',!!isError);
     n.hidden=false;
     if(id==='map-action-status'&&!isError){
-      mapNoticeTimer=window.setTimeout(()=>{
+      const timerId=window.setTimeout(()=>{
+        // A cancelled/obsolete callback must never clear a newer timer.
+        if(mapNoticeTimer!==timerId)return;
         mapNoticeTimer=null;
         if(n.textContent===value&&!n.classList.contains('error'))n.hidden=true;
       },5000);
+      mapNoticeTimer=timerId;
     }
   }
   const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
