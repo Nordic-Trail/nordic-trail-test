@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NORDIC TRAIL — integracja routingu OSM (test)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--bg:#15251c;--panel:#1c3325;--edge:#657c67;--ink:#f1f4e9;--accent:#c8dba4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:12px 16px;border-bottom:1px solid var(--edge)}header small{display:block;color:#bbccb8}header a{color:var(--accent)}
+main{max-width:1300px;margin:auto;padding:12px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(330px,.9fr);gap:12px}
+#map{height:min(78dvh,820px);min-height:450px;border:1px solid var(--edge);border-radius:14px;background:#264431}
+.panel{display:grid;align-content:start;gap:12px;min-width:0}.card{padding:14px;border:1px solid var(--edge);border-radius:14px;background:var(--panel)}
+h1,h2{margin:0 0 9px}h1{font-size:20px}h2{font-size:17px}.hint{font-size:13px;color:#c0cdc0;margin:7px 0}
+label{display:block;margin:9px 0 5px;font-size:13px;font-weight:700}input:not([type=checkbox]),select{display:block;width:100%;font:inherit;min-height:44px;padding:9px;background:#102219;color:white;border:1px solid #779179;border-radius:9px}
+button{font:inherit;min-height:44px;border:0;border-radius:9px;padding:9px 12px;background:var(--accent);color:#1b301f;font-weight:750;cursor:pointer}
+button.secondary{background:#2f4937;border:1px solid var(--edge);color:var(--ink)}button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid white;outline-offset:2px}
+.buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.buttons button{flex:1 1 125px}
+#notice,#action-status{padding:10px;background:#31523b;border-radius:9px}#notice.error,#action-status.error{background:#683b30}#action-status{margin:10px 0 0}
+.stat{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+.layer{display:flex;align-items:center;gap:9px;font-weight:500}.layer input{width:18px;height:18px;accent-color:var(--accent)}
+#points{padding:0;margin:9px 0;display:grid;gap:8px;list-style:none}
+#points li{padding:10px;background:#274232;border:1px solid #59755e;border-radius:9px}
+#points li.active{outline:2px solid var(--accent)}
+.point-row{display:flex;justify-content:space-between;align-items:center;gap:8px}.point-row strong{overflow-wrap:anywhere}
+.point-meta{font-size:12px;color:#c4d3c2}.point-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.point-actions button{min-height:40px;font-size:12px}
+.warning{padding:10px;border-left:4px solid #ecc383;background:#304433;border-radius:7px;font-size:13px}
+.number{background:#163d2b;color:white;border:2px solid white;width:30px;height:30px;border-radius:100%;display:grid;place-items:center;font-weight:700;box-shadow:0 2px 5px #0008}.number.start{background:#714f19;border-color:#ffe3a3}
+@media(max-width:800px){main{display:block;padding:8px}#map{height:47dvh;min-height:260px}.panel{margin-top:10px}header{padding:9px;font-size:13px}}
+</style></head>
+<body><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a href="../staging-app/">Powrót do mapy</a></header>
+<main><section aria-label="Mapa planowania"><div id="map"></div><div class="buttons"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
+<div class="panel">
+<section class="card"><h1>Zaplanuj wyprawę</h1>
+<label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
+<div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt na mapie</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj</button></div>
+<p id="notice" role="status" aria-live="polite">Kliknij „Dodaj punkt na mapie”, a następnie wybierz miejsce.</p>
+<div class="stat"><span>Punkty:</span><b id="count">0</b></div>
+<div class="stat"><span>Samochód (OSM / szkic):</span><b id="drive-km">0 km</b></div>
+<div class="stat"><span>Pieszo (OSM / szkic):</span><b id="walk-km">0 km</b></div>
+<p class="hint">Dystanse obliczone z dróg OSM lub po linii prostej dla nieobliczonych szkiców.</p></section>
+<section class="card" id="editor" hidden><h2>Edytuj punkt</h2><p id="coords" class="hint"></p>
+<label for="point-name">Nazwa</label><input id="point-name" maxlength="80">
+<label for="point-kind">Rodzaj</label><select id="point-kind"><option value="start">Start</option><option value="parking">Parking</option><option value="stop">Postój</option><option value="view">Widok</option><option value="camp">Biwak</option><option value="finish">Meta</option></select>
+<div id="travel-row"><label for="point-mode">Dojazd od poprzedniego punktu</label><select id="point-mode"><option value="drive">🚙 Samochód</option><option value="walk">🥾 Pieszo</option></select></div>
+<div class="buttons"><button id="save-point" type="button">Zapisz punkt</button><button id="close-editor" type="button" class="secondary">Zamknij</button></div></section>
+<section class="card"><h2>Warstwy</h2><label class="layer"><input id="visible-drive" type="checkbox" checked> Samochód</label><label class="layer"><input id="visible-walk" type="checkbox" checked> Pieszo</label><p class="hint">Ukrywanie odcinków nie usuwa punktów.</p></section>
+<section class="card"><h2>Kolejność punktów</h2><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p></section>
+<section class="card"><h2>Wyznaczanie trasy OSM</h2>
+<p class="warning">Wynik nie jest nawigacją. OSM nie gwarantuje legalnego przejazdu samochodem, otwartego szlabanu ani możliwości biwakowania.</p>
+<label class="layer"><input id="route-consent" type="checkbox"> Zgadzam się wysłać współrzędne punktów i typ podróży na publiczny demonstracyjny serwer Valhalla/FOSSGIS. Nie wysyłamy nazw ani danych konta.</label>
+<div class="buttons"><button type="button" id="compute-routes">Wyznacz trasę po OSM</button><button type="button" id="clear-routes" class="secondary">Pokaż szkic</button></div>
+<p id="routing-status" role="status" aria-live="polite">Nie obliczono jeszcze trasy po OSM.</p>
+<p class="hint">Maksymalnie 4 odcinki i 6 zapytań na sesję. Brak automatycznych ponowień.</p></section>
+<section class="card"><h2>Zapis i eksport</h2>
+<div class="buttons"><button id="save-local" type="button">Zapisz lokalnie</button><button id="export-gpx" type="button" class="secondary">Eksport GPX</button><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div>
+<p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+<p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></section>
+<section class="card"><h2>Ważne ograniczenia</h2><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></section>
+</div></main>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../staging-trips/route-model.js"></script>
+<script src="../staging-trips/routing-core.js"></script>
+<script src="integration-model.js"></script>
+<script>
+'use strict';
+(()=>{
+const M=window.NordicTripModel,R=window.NordicRoutingCore,I=window.NordicIntegratedTrip;
+const el=id=>document.getElementById(id);
+const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
+let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null;
+let busy=false,calls=0,lastRequestTime=0;
+function message(id,text,error=false){
+ const node=el(id);node.textContent=text;node.classList.toggle('error',error);node.hidden=false;
+}
+function clearStatus(){el('action-status').hidden=true;el('action-status').textContent='';}
+function km(n){return n.toLocaleString('pl-PL',{minimumFractionDigits:1,maximumFractionDigits:1})+' km';}
+function button(name,callback,disabled=false){
+ const b=document.createElement('button');b.type='button';b.textContent=name;
+ b.className='secondary';b.disabled=disabled;b.addEventListener('click',callback);return b;
+}
+function pick(yes){
+ picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt na mapie';
+ el('cancel-pick').hidden=!yes;
+ if(map)map.getContainer().style.cursor=yes?'crosshair':'';
+}
+function setBusy(value){
+ busy=value;
+ for(const id of ['start-pick','cancel-pick','save-point','save-local','export-gpx','new-trip','compute-routes','clear-routes']){
+  el(id).disabled=value;
+ }
+ if(!value)el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;
+}
+function closeEditor(){selected=null;el('editor').hidden=true;}
+function dataSegments(){return I.pack(trip,routes).routes;}
+function segments(){return R.displaySegments(trip,dataSegments());}
+function fit(){
+ if(!map||!trip.waypoints.length)return false;
+ const coords=trip.waypoints.map(p=>[p.lat,p.lon]);
+ segments().forEach(s=>{if(s.status==='routed')s.points.forEach(p=>coords.push([p.lat,p.lon]));});
+ if(coords.length===1)map.setView(coords[0],Math.max(10,map.getZoom()),{animate:false});
+ else map.fitBounds(L.latLngBounds(coords),{padding:[36,36],maxZoom:15,animate:false});
+ return true;
+}
+function showPoint(id){
+ const p=trip.waypoints.find(p=>p.id===id);
+ if(!p||!map)return;
+ map.setView([p.lat,p.lon],Math.max(12,map.getZoom()),{animate:false});
+ el('map').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function redraw(){
+ if(!map)return;
+ lines.clearLayers();pins.clearLayers();
+ segments().forEach(s=>{
+  if(s.mode==='drive'&&!el('visible-drive').checked||s.mode==='walk'&&!el('visible-walk').checked)return;
+  const routed=s.status==='routed';
+  L.polyline(s.points.map(p=>[p.lat,p.lon]),{color:s.mode==='drive'?'#f3bb62':'#73d4a5',
+   weight:routed?5:4,opacity:routed?0.95:0.48,dashArray:routed?null:'5 10',interactive:false}).addTo(lines);
+ });
+ trip.waypoints.forEach((p,i)=>{
+  const icon=L.divIcon({className:'',html:'<div class="number'+(i===0?' start':'')+'">'+(i+1)+'</div>',
+   iconSize:[30,30],iconAnchor:[15,15]});
+  L.marker([p.lat,p.lon],{icon}).addTo(pins).on('click',()=>edit(p.id));
+ });
+}
+function refresh(){
+ el('trip-name').value=trip.name;
+ const all=segments();
+ function stat(mode){
+  const list=all.filter(s=>s.mode===mode);
+  return km(list.filter(s=>s.status==='routed').reduce((n,s)=>n+s.km,0))+' OSM · '+
+    km(list.filter(s=>s.status==='draft').reduce((n,s)=>n+s.km,0))+' szkic';
+ }
+ el('count').textContent=String(trip.waypoints.length);
+ el('drive-km').textContent=stat('drive');el('walk-km').textContent=stat('walk');
+ el('start-pick').disabled=busy||trip.waypoints.length>=M.MAX_POINTS;
+ el('empty').hidden=trip.waypoints.length>0;
+ const list=el('points');list.replaceChildren();
+ trip.waypoints.forEach((p,i)=>{
+  const li=document.createElement('li');if(p.id===selected)li.className='active';
+  const row=document.createElement('div');row.className='point-row';
+  const title=document.createElement('strong');title.textContent=(i+1)+'. '+p.name;row.appendChild(title);
+  row.appendChild(button('Edytuj',()=>edit(p.id),busy));li.appendChild(row);
+  const meta=document.createElement('div');meta.className='point-meta';
+  meta.textContent=M.KIND_LABELS[p.kind]+' · '+(i===0?'Punkt początkowy':M.MODE_LABELS[p.mode])+
+   ' · '+p.lat.toFixed(5)+', '+p.lon.toFixed(5);li.appendChild(meta);
+  const actions=document.createElement('div');actions.className='point-actions';
+  actions.appendChild(button('Pokaż na mapie',()=>showPoint(p.id)));
+  actions.appendChild(button('↑',()=>modify(()=>M.move(trip,p.id,-1)),busy||i===0));
+  actions.appendChild(button('↓',()=>modify(()=>M.move(trip,p.id,1)),busy||i===trip.waypoints.length-1));
+  actions.appendChild(button('Usuń',()=>{
+   if(!busy&&confirm('Usunąć ten punkt z wyprawy?'))modify(()=>M.remove(trip,p.id));
+  },busy));
+  li.appendChild(actions);list.appendChild(li);
+ });
+ if(selected&&!trip.waypoints.some(p=>p.id===selected))closeEditor();
+ redraw();
+}
+function modify(fn){
+ if(busy){message('notice','Trwa obliczanie tras. Zmiana niedostępna.',true);return false;}
+ try{trip=fn();routes=I.routesFor(trip,routes);clearStatus();refresh();return true;}
+ catch(error){message('notice',String(error.message||error),true);return false;}
+}
+function edit(id){
+ if(busy)return;
+ const p=trip.waypoints.find(p=>p.id===id);if(!p)return;
+ pick(false);selected=id;el('editor').hidden=false;
+ el('point-name').value=p.name;el('point-kind').value=p.kind;
+ el('travel-row').hidden=trip.waypoints[0].id===id;
+ if(p.mode!=='none')el('point-mode').value=p.mode;
+ el('coords').textContent=p.lat.toFixed(6)+', '+p.lon.toFixed(6);
+ refresh();el('editor').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function download(filename,data){
+ const blob=new Blob([data],{type:'application/gpx+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
+ const link=document.createElement('a');link.href=url;link.download=filename;
+ document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+async function requestRoute(s){
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),14000);
+ try{
+  const response=await fetch(ROUTER,{
+   method:'POST',mode:'cors',headers:{'Content-Type':'application/json','X-Client-Id':'nordic-trail.github.io'},
+   body:JSON.stringify(R.request(s.from,s.to,s.mode)),signal:ctrl.signal,credentials:'omit',
+   cache:'no-store',referrerPolicy:'no-referrer'
+  });
+  if(response.status===429)throw Error('HTTP 429 — limit serwera demonstracyjnego.');
+  if(!response.ok)throw Error('HTTP '+response.status+'.');
+  const text=await response.text();if(text.length>2000000)throw Error('Zbyt duża odpowiedź serwera.');
+  return R.parseValhallaResponse(JSON.parse(text),s.from,s.to,s.mode);
+ }finally{clearTimeout(timer);}
+}
+function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+async function calculate(){
+ if(busy)return;
+ if(!el('route-consent').checked){
+  message('routing-status','Zaznacz zgodę na wysłanie współrzędnych.',true);return;
+ }
+ const missing=segments().filter(s=>s.status==='draft');
+ if(!missing.length){message('routing-status','Nie ma nieobliczonych odcinków.');return;}
+ if(missing.length>MAX_SEGMENTS||missing.length>MAX_CALLS-calls){
+  message('routing-status','Limit testu: 4 odcinki i 6 zapytań na sesję.',true);return;
+ }
+ setBusy(true);
+ let done=0,errors=0,reason='';
+ try{
+  for(let i=0;i<missing.length;i++){
+   const s=missing[i],wait=Math.max(0,MIN_INTERVAL-(Date.now()-lastRequestTime));
+   if(wait)await delay(wait);
+   message('routing-status','Wyznaczam odcinek '+(i+1)+' z '+missing.length+'...');
+   calls++;lastRequestTime=Date.now();
+   try{routes[s.key]=await requestRoute(s);done++;refresh();}
+   catch(error){
+    errors++;
+    reason=error&&error.name==='AbortError'?'Limit czasu.':
+     error instanceof TypeError?'Błąd połączenia lub CORS.':String(error&&error.message||'Brak trasy.');
+    if(reason.includes('429'))break;
+   }
+  }
+ }finally{setBusy(false);refresh();fit();}
+ if(errors)message('routing-status','Wyznaczono '+done+' odcinków. Reszta nadal jest szkicem. '+reason,true);
+ else message('routing-status','✓ Obliczono '+done+' odcinków OSM. Zapisz lokalnie, by zachować geometrię. Dostępność prawna niezweryfikowana.');
+}
+el('fit-trip').addEventListener('click',()=>{
+ if(!fit())message('notice','Najpierw dodaj punkt.',true);
+ else message('notice','Mapa obejmuje całą wyprawę.');
+});
+el('compute-routes').addEventListener('click',calculate);
+el('clear-routes').addEventListener('click',()=>{
+ if(busy)return;routes=Object.create(null);refresh();fit();
+ message('routing-status','Pokazano tylko szkic. Zapis lokalny nie został zmieniony.');
+});
+el('start-pick').addEventListener('click',()=>{
+ if(busy)return;closeEditor();pick(true);message('notice','Dotknij pustego miejsca na mapie.');
+});
+el('cancel-pick').addEventListener('click',()=>{if(!busy){pick(false);message('notice','Anulowano.');}});
+el('save-point').addEventListener('click',()=>{
+ if(!selected||busy)return;
+ const id=selected,first=trip.waypoints[0].id===id;
+ if(modify(()=>M.change(trip,id,{name:el('point-name').value,kind:el('point-kind').value,
+  ...(first?{}:{mode:el('point-mode').value})}))){
+  closeEditor();refresh();
+  message('notice','Zmieniono punkt. Nieaktualne odcinki będą ponownie obliczane.');
+ }
+});
+el('close-editor').addEventListener('click',()=>{if(!busy){closeEditor();refresh();}});
+el('visible-drive').addEventListener('change',redraw);
+el('visible-walk').addEventListener('change',redraw);
+el('trip-name').addEventListener('change',()=>{
+ if(!busy)modify(()=>M.renameTrip(trip,el('trip-name').value));
+});
+el('save-local').addEventListener('click',()=>{
+ if(busy)return;
+ try{
+  trip=M.renameTrip(trip,el('trip-name').value);
+  I.save(localStorage,trip,routes);
+  message('action-status','✓ Zapisano wyprawę v2 wraz z obliczonymi odcinkami. Stary zapis v1 bez zmian.');
+ }catch(_){message('action-status','Nie udało się zapisać wyprawy v2.',true);}
+});
+el('export-gpx').addEventListener('click',()=>{
+ if(busy)return;
+ try{
+  trip=M.renameTrip(trip,el('trip-name').value);
+  const s=segments(),draft=s.filter(x=>x.status==='draft').length;
+  if(draft&&!confirm('UWAGA: '+draft+' odcinków nadal jest szkicem po prostej. Eksportować GPX z oznaczonymi szkicami?'))return;
+  download('nordic-trail-trasy-test.gpx',I.gpx(trip,routes));
+  message('action-status','✓ GPX utworzony: '+(s.length-draft)+' odcinków OSM, '+draft+' szkiców. Nie jest to nawigacja.');
+ }catch(_){message('action-status','Nie udało się wyeksportować GPX.',true);}
+});
+el('new-trip').addEventListener('click',()=>{
+ if(busy||!confirm('Utworzyć pustą wyprawę? Niezapisane zmiany znikną.'))return;
+ trip=M.emptyTrip();routes=Object.create(null);
+ closeEditor();pick(false);refresh();
+ message('action-status','Nowa wyprawa. Poprzedni zapis v1/v2 nie został usunięty.');
+});
+try{
+ const loaded=I.load(localStorage);trip=loaded.trip;routes=loaded.routes;
+ if(loaded.from==='v1')message('notice','Wczytano starszą wyprawę v1 bez jej zmiany.');
+ if(loaded.from==='v2')message('notice','Przywrócono wyprawę v2 i obliczone trasy.');
+}catch(_){trip=M.emptyTrip();routes=Object.create(null);
+ message('notice','Nie udało się odczytać zapisu; stare dane pozostają nietknięte.',true);
+}
+try{
+ if(!M||!R||!I||!window.L)throw Error('Brak wymaganych modułów');
+ map=L.map('map').setView([62.2,15.2],5);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19,attribution:'© OpenStreetMap contributors'
+ }).addTo(map);
+ lines=L.layerGroup().addTo(map);pins=L.layerGroup().addTo(map);
+ map.on('click',event=>{
+  if(!picking||busy)return;
+  const n=trip.waypoints.length;
+  const added=modify(()=>M.add(trip,{lat:Number(event.latlng.lat.toFixed(6)),
+   lon:Number(event.latlng.lng.toFixed(6)),name:n===0?'Start':'Punkt '+(n+1),
+   kind:n===0?'start':'stop',mode:n===0?'none':'drive'}));
+  pick(false);
+  if(added){
+   fit();edit(trip.waypoints[trip.waypoints.length-1].id);
+   message('notice','Dodano punkt. Ustaw rodzaj i sposób dotarcia.');
+  }
+ });
+}catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
+refresh();fit();
+})();
+</script></body></html>
