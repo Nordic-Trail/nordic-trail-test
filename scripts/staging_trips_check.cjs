@@ -35,7 +35,44 @@ check('No app network data submission',()=>{
  assert.ok(!/\bfetch\s*\(|XMLHttpRequest|navigator\.geolocation|\.rpc\s*\(/.test(html));
  assert.ok(html.includes('localStorage.setItem'));
 });
+check('Save feedback is located directly below the action buttons',()=>{
+ const section=html.indexOf('<section class="card"><h2>Zapis i eksport</h2>');
+ const save=html.indexOf('id="save-local"',section);
+ const feedback=html.indexOf('id="action-status"',save);
+ const hint=html.indexOf('Plan zapisujemy wyłącznie',feedback);
+ assert.ok(section>=0&&save>section&&feedback>save&&hint>feedback);
+ assert.ok(html.slice(save,feedback).includes('id="export-gpx"'));
+ assert.ok(html.slice(feedback,hint).includes('aria-live="polite"'));
+});
+check('Save and export use the nearby status field',()=>{
+ assert.ok(html.includes("actionStatus('✓ Wyprawa zapisana lokalnie.')"));
+ assert.ok(html.includes("actionStatus('Nie udało się zapisać wyprawy w tej przeglądarce.',true)"));
+ assert.ok(html.includes("actionStatus('✓ Utworzono szkic GPX."));
+ assert.ok(html.includes("clearActionStatus();refresh()"));
+});
 check('UI includes all controls',()=>{
  for(const id of ['start-pick','cancel-pick','point-name','point-kind','point-mode','visible-drive','visible-walk','save-local','export-gpx','points'])assert.ok(html.includes('id="'+id+'"'));
+});
+check('Feedback helper works for success, failure and reset',()=>{
+ const source=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean)[0];
+ const start=source.indexOf('function actionStatus(');
+ const end=source.indexOf('function km(',start);
+ assert.ok(start>=0&&end>start);
+ const classes=new Set();
+ const status={textContent:'',hidden:true,classList:{
+   toggle(name,active){if(active)classes.add(name);else classes.delete(name)},
+   remove(name){classes.delete(name)}
+ }};
+ const ctx={el:id=>{assert.equal(id,'action-status');return status}};
+ vm.runInNewContext(source.slice(start,end)+';this.show=actionStatus;this.clear=clearActionStatus;',ctx);
+ ctx.show('✓ Wyprawa zapisana lokalnie.');
+ assert.equal(status.hidden,false);
+ assert.equal(status.textContent,'✓ Wyprawa zapisana lokalnie.');
+ ctx.show('Błąd zapisu',true);
+ assert.ok(classes.has('error'));
+ ctx.clear();
+ assert.equal(status.hidden,true);
+ assert.equal(status.textContent,'');
+ assert.ok(!classes.has('error'));
 });
 console.log('STAGING Trips checks: '+passed+' PASS');
