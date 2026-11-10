@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NORDIC TRAIL — Planer wypraw STAGING</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--bg:#15251c;--panel:#1c3325;--edge:#657c67;--ink:#f1f4e9;--accent:#c8dba4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:12px 16px;border-bottom:1px solid var(--edge)}header small{display:block;color:#bbccb8}header a{color:var(--accent)}
+main{max-width:1300px;margin:auto;padding:12px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(330px,.9fr);gap:12px}
+#map{height:min(78dvh,820px);min-height:450px;border:1px solid var(--edge);border-radius:14px;background:#264431}
+.panel{display:grid;align-content:start;gap:12px;min-width:0}.card{padding:14px;border:1px solid var(--edge);border-radius:14px;background:var(--panel)}
+h1,h2{margin:0 0 9px}h1{font-size:20px}h2{font-size:17px}.hint{font-size:13px;color:#c0cdc0;margin:7px 0}
+label{display:block;margin:9px 0 5px;font-size:13px;font-weight:700}input:not([type=checkbox]),select{display:block;width:100%;font:inherit;min-height:44px;padding:9px;background:#102219;color:white;border:1px solid #779179;border-radius:9px}
+button{font:inherit;min-height:44px;border:0;border-radius:9px;padding:9px 12px;background:var(--accent);color:#1b301f;font-weight:750;cursor:pointer}
+button.secondary{background:#2f4937;border:1px solid var(--edge);color:var(--ink)}button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid white;outline-offset:2px}
+.buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.buttons button{flex:1 1 125px}
+#notice{padding:10px;background:#31523b;border-radius:9px}#notice.error{background:#683b30}
+.stat{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+.layer{display:flex;align-items:center;gap:9px;font-weight:500}.layer input{width:18px;height:18px;accent-color:var(--accent)}
+#points{padding:0;margin:9px 0;display:grid;gap:8px;list-style:none}
+#points li{padding:10px;background:#274232;border:1px solid #59755e;border-radius:9px}
+#points li.active{outline:2px solid var(--accent)}
+.point-row{display:flex;justify-content:space-between;align-items:center;gap:8px}.point-row strong{overflow-wrap:anywhere}
+.point-meta{font-size:12px;color:#c4d3c2}.point-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.point-actions button{min-height:40px;font-size:12px}
+.warning{padding:10px;border-left:4px solid #ecc383;background:#304433;border-radius:7px;font-size:13px}
+.number{background:#163d2b;color:white;border:2px solid white;width:30px;height:30px;border-radius:100%;display:grid;place-items:center;font-weight:700;box-shadow:0 2px 5px #0008}
+@media(max-width:800px){main{display:block;padding:8px}#map{height:47dvh;min-height:260px}.panel{margin-top:10px}header{padding:9px;font-size:13px}}
+</style></head>
+<body><header><div><strong>NORDIC TRAIL</strong><small>STAGING · ręczny planer wypraw</small></div><a href="../staging-app/">Powrót do mapy</a></header>
+<main><section aria-label="Mapa planowania"><div id="map"></div><p class="hint">🚙 Samochód: linia żółta · 🥾 Pieszo: linia zielona, przerywana</p></section>
+<div class="panel">
+<section class="card"><h1>Zaplanuj wyprawę</h1>
+<label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
+<div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt na mapie</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj</button></div>
+<p id="notice" role="status" aria-live="polite">Kliknij „Dodaj punkt na mapie”, a następnie wybierz miejsce.</p>
+<div class="stat"><span>Punkty:</span><b id="count">0</b></div>
+<div class="stat"><span>Samochód (w linii prostej):</span><b id="drive-km">0 km</b></div>
+<div class="stat"><span>Pieszo (w linii prostej):</span><b id="walk-km">0 km</b></div>
+<p class="hint">To odległości między współrzędnymi po linii prostej — nie dystans drogowy.</p></section>
+<section class="card" id="editor" hidden><h2>Edytuj punkt</h2><p id="coords" class="hint"></p>
+<label for="point-name">Nazwa</label><input id="point-name" maxlength="80">
+<label for="point-kind">Rodzaj</label><select id="point-kind"><option value="start">Start</option><option value="parking">Parking</option><option value="stop">Postój</option><option value="view">Widok</option><option value="camp">Biwak</option><option value="finish">Meta</option></select>
+<div id="travel-row"><label for="point-mode">Dojazd od poprzedniego punktu</label><select id="point-mode"><option value="drive">🚙 Samochód</option><option value="walk">🥾 Pieszo</option></select></div>
+<div class="buttons"><button id="save-point" type="button">Zapisz punkt</button><button id="close-editor" type="button" class="secondary">Zamknij</button></div></section>
+<section class="card"><h2>Warstwy</h2><label class="layer"><input id="visible-drive" type="checkbox" checked> Samochód</label><label class="layer"><input id="visible-walk" type="checkbox" checked> Pieszo</label><p class="hint">Ukrywanie odcinków nie usuwa punktów.</p></section>
+<section class="card"><h2>Kolejność punktów</h2><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p></section>
+<section class="card"><h2>Zapis i eksport</h2>
+<div class="buttons"><button id="save-local" type="button">Zapisz lokalnie</button><button id="export-gpx" type="button" class="secondary">Eksport GPX</button><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div>
+<p class="hint">Plan zapisujemy wyłącznie w pamięci tej przeglądarki. Nie przesyłamy go na serwer ani do Supabase.</p></section>
+<section class="card"><h2>Ważne ograniczenia</h2><p class="warning">To szkic z prostych linii, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></section>
+</div></main>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="route-model.js"></script>
+<script>
+'use strict';
+(()=>{
+const M=window.NordicTripModel,el=id=>document.getElementById(id),KEY='nt-staging-trip-planner-v1';
+let trip=M.emptyTrip(),selected=null,picking=false,map=null,lines=null,pins=null;
+function notice(text,error=false){const n=el('notice');n.textContent=text;n.classList.toggle('error',error);}
+function km(n){return n.toLocaleString('pl-PL',{maximumFractionDigits:1,minimumFractionDigits:1})+' km';}
+function button(label,fn,disabled=false){const b=document.createElement('button');b.type='button';b.textContent=label;b.className='secondary';b.disabled=disabled;b.addEventListener('click',fn);return b;}
+function pick(on){picking=on;el('start-pick').textContent=on?'Wskaż miejsce na mapie':'+ Dodaj punkt na mapie';el('cancel-pick').hidden=!on;if(map)map.getContainer().style.cursor=on?'crosshair':'';}
+function redraw(){
+ if(!map)return;
+ lines.clearLayers();pins.clearLayers();
+ M.segments(trip).forEach(s=>{
+   if(s.mode==='drive'&&!el('visible-drive').checked||s.mode==='walk'&&!el('visible-walk').checked)return;
+   L.polyline([[s.from.lat,s.from.lon],[s.to.lat,s.to.lon]],{color:s.mode==='drive'?'#f3bb62':'#73d4a5',weight:5,dashArray:s.mode==='walk'?'6 9':null,interactive:false}).addTo(lines);
+ });
+ trip.waypoints.forEach((p,i)=>{
+   const icon=L.divIcon({className:'',html:'<div class="number">'+(i+1)+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
+   L.marker([p.lat,p.lon],{icon}).addTo(pins).on('click',()=>edit(p.id));
+ });
+}
+function refresh(){
+ el('trip-name').value=trip.name;const s=M.summary(trip);
+ el('count').textContent=String(s.waypoints);el('drive-km').textContent=km(s.driveKm);el('walk-km').textContent=km(s.walkKm);
+ el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;el('empty').hidden=trip.waypoints.length>0;
+ const list=el('points');list.replaceChildren();
+ trip.waypoints.forEach((p,i)=>{
+  const li=document.createElement('li');if(p.id===selected)li.className='active';
+  const row=document.createElement('div');row.className='point-row';
+  const title=document.createElement('strong');title.textContent=(i+1)+'. '+p.name;row.appendChild(title);row.appendChild(button('Edytuj',()=>edit(p.id)));li.appendChild(row);
+  const meta=document.createElement('div');meta.className='point-meta';
+  meta.textContent=M.KIND_LABELS[p.kind]+' · '+(i===0?'Punkt początkowy':M.MODE_LABELS[p.mode])+' · '+p.lat.toFixed(5)+', '+p.lon.toFixed(5);li.appendChild(meta);
+  const actions=document.createElement('div');actions.className='point-actions';
+  actions.appendChild(button('↑',()=>apply(()=>M.move(trip,p.id,-1)),i===0));
+  actions.appendChild(button('↓',()=>apply(()=>M.move(trip,p.id,1)),i===trip.waypoints.length-1));
+  actions.appendChild(button('Usuń',()=>{if(confirm('Usunąć ten punkt z wyprawy?'))apply(()=>M.remove(trip,p.id));}));
+  li.appendChild(actions);list.appendChild(li);
+ });
+ if(selected&&!trip.waypoints.some(p=>p.id===selected))closeEditor();
+ redraw();
+}
+function apply(fn){try{trip=fn();refresh();}catch(error){notice(error.message,true);}}
+function closeEditor(){selected=null;el('editor').hidden=true;}
+function edit(id){
+ const p=trip.waypoints.find(p=>p.id===id);if(!p)return;
+ pick(false);selected=id;el('editor').hidden=false;
+ el('point-name').value=p.name;el('point-kind').value=p.kind;
+ el('travel-row').hidden=trip.waypoints[0].id===id;
+ if(p.mode!=='none')el('point-mode').value=p.mode;
+ el('coords').textContent=p.lat.toFixed(6)+', '+p.lon.toFixed(6);
+ refresh();el('editor').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function download(name,text){
+ const blob=new Blob([text],{type:'application/gpx+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+el('start-pick').addEventListener('click',()=>{closeEditor();pick(true);notice('Dotknij pustego miejsca na mapie.');});
+el('cancel-pick').addEventListener('click',()=>{pick(false);notice('Anulowano wybieranie punktu.');});
+el('save-point').addEventListener('click',()=>{
+ if(!selected)return;
+ const id=selected,first=trip.waypoints[0].id===id;
+ apply(()=>M.change(trip,id,{name:el('point-name').value,kind:el('point-kind').value,...(first?{}:{mode:el('point-mode').value})}));
+ closeEditor();refresh();notice('Zmieniono punkt w szkicu. Zapisz wyprawę lokalnie, aby ją zachować.');
+});
+el('close-editor').addEventListener('click',()=>{closeEditor();refresh();});
+el('visible-drive').addEventListener('change',redraw);el('visible-walk').addEventListener('change',redraw);
+el('trip-name').addEventListener('change',()=>apply(()=>M.renameTrip(trip,el('trip-name').value)));
+el('save-local').addEventListener('click',()=>{
+ try{trip=M.renameTrip(trip,el('trip-name').value);localStorage.setItem(KEY,JSON.stringify(trip));notice('Wyprawa zapisana wyłącznie w tej przeglądarce.');}
+ catch(_error){notice('Nie można zapisać wyprawy w tej przeglądarce.',true);}
+});
+el('export-gpx').addEventListener('click',()=>{
+ if(trip.waypoints.length===0){notice('Najpierw dodaj punkty.',true);return;}
+ try{trip=M.renameTrip(trip,el('trip-name').value);download('nordic-trail-szkic.gpx',M.gpx(trip));notice('Wyeksportowano szkic GPX, nie trasę do nawigacji.');}
+ catch(_error){notice('Nie udało się wyeksportować pliku.',true);}
+});
+el('new-trip').addEventListener('click',()=>{
+ if(!confirm('Rozpocząć pustą wyprawę? Niezapisane zmiany znikną.'))return;
+ trip=M.emptyTrip();closeEditor();pick(false);refresh();notice('Utworzono pustą wyprawę. Lokalny zapis poprzedniej nie został skasowany.');
+});
+try{const saved=localStorage.getItem(KEY);if(saved){trip=M.normalize(JSON.parse(saved));notice('Przywrócono zapisaną lokalnie wyprawę.');}}
+catch(_error){trip=M.emptyTrip();notice('Nie udało się wczytać zapisu lokalnego.',true);}
+try{
+ if(!window.L)throw Error('Brak mapy');
+ map=L.map('map').setView([62.2,15.2],5);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ lines=L.layerGroup().addTo(map);pins=L.layerGroup().addTo(map);
+ map.on('click',event=>{
+  if(!picking)return;
+  const n=trip.waypoints.length;
+  apply(()=>M.add(trip,{lat:Number(event.latlng.lat.toFixed(6)),lon:Number(event.latlng.lng.toFixed(6)),name:n===0?'Start':'Punkt '+(n+1),kind:n===0?'start':'stop',mode:n===0?'none':'drive'}));
+  pick(false);const p=trip.waypoints[trip.waypoints.length-1];if(p){edit(p.id);notice('Dodano punkt. Wybierz rodzaj i sposób dotarcia.');}
+ });
+ if(trip.waypoints.length)map.fitBounds(L.latLngBounds(trip.waypoints.map(p=>[p.lat,p.lon])).pad(.2),{maxZoom:11});
+}catch(_error){notice('Nie udało się uruchomić mapy. Sprawdź połączenie.',true);}
+refresh();
+})();
+</script></body></html>
