@@ -44,7 +44,7 @@ test('Public sample uses a car and pedestrian section',()=>{
 test('Unrouted geometry is visibly labelled as draft',()=>{
  assert.ok(script.includes("s.status==='routed'"));
  assert.ok(script.includes("'tylko szkic po prostej'"));
- assert.ok(script.includes("legal"));
+ assert.ok(html.includes('dostępność drogi niezweryfikowana'));
 });
 test('Provider error and rate limit do not imply computed route',()=>{
  assert.ok(script.includes('Limit serwera demonstracyjnego (HTTP 429)'));
