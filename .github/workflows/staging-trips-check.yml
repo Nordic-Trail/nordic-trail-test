@@ -4,6 +4,8 @@ on:
     paths:
       - 'staging-trips/**'
       - 'staging-routing/**'
+      - 'staging-trips-integrated/**'
+      - 'scripts/staging_trips_integrated_check.cjs'
       - 'scripts/staging_routing_check.cjs'
       - 'scripts/staging_trips_check.cjs'
       - '.github/workflows/staging-trips-check.yml'
@@ -12,6 +14,8 @@ on:
     paths:
       - 'staging-trips/**'
       - 'staging-routing/**'
+      - 'staging-trips-integrated/**'
+      - 'scripts/staging_trips_integrated_check.cjs'
       - 'scripts/staging_routing_check.cjs'
       - 'scripts/staging_trips_check.cjs'
       - '.github/workflows/staging-trips-check.yml'
@@ -25,3 +29,4 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - run: node scripts/staging_trips_check.cjs
       - run: node scripts/staging_routing_check.cjs
+      - run: node scripts/staging_trips_integrated_check.cjs
