@@ -97,4 +97,49 @@ check('Feedback helper works for success, failure and reset',()=>{
  assert.equal(status.textContent,'');
  assert.ok(!classes.has('error'));
 });
+
+const R=require(path.join(dir,'routing-core.js'));
+check('Routing profiles distinguish car and pedestrian',()=>{
+ assert.equal(R.profile('drive'),'auto');
+ assert.equal(R.profile('walk'),'pedestrian');
+ assert.throws(()=>R.profile('offroad'));
+});
+check('Provider neutral routing requests',()=>{
+ assert.equal(R.request({lat:42.225139,lon:-8.670911},{lat:42.225224,lon:-8.670718},'walk').costing,'pedestrian');
+});
+check('Valhalla polyline6 official test shape',()=>{
+ assert.deepEqual(R.decodePolyline6('e~epoA|jfpOiDaK'),[{lat:42.225139,lon:-8.670911},{lat:42.225224,lon:-8.670718}]);
+});
+check('Malformed geometry and invalid coordinates rejected',()=>{
+ assert.throws(()=>R.decodePolyline6('?'));
+ assert.throws(()=>R.decodePolyline6('???'));
+ assert.throws(()=>R.coord({lat:92,lon:18}));
+});
+check('Read routing response but never claim legal access',()=>{
+ const a={lat:42.225139,lon:-8.670911},b={lat:42.225224,lon:-8.670718};
+ const response={trip:{legs:[{shape:'e~epoA|jfpOiDaK'}],summary:{length:0.025,time:22}}};
+ const s=R.parseValhallaResponse(response,a,b,'walk');
+ assert.equal(s.status,'routed');
+ assert.equal(s.legalAccess,'unverified');
+ assert.equal(s.km,0.025);
+});
+check('Reject unrelated route geometry',()=>{
+ const b={lat:42.225224,lon:-8.670718};
+ assert.throws(()=>R.parseValhallaResponse({trip:{legs:[{shape:'e~epoA|jfpOiDaK'}],summary:{length:0.025}}},{lat:59,lon:18},b,'drive'));
+});
+check('No routing data keeps local straight-line draft',()=>{
+ const t={waypoints:[{lat:59.19832,lon:17.85862,mode:'none'},{lat:59.15649,lon:17.8198,mode:'drive'}]};
+ assert.equal(R.displaySegments(t,{})[0].status,'draft');
+ assert.equal(R.displaySegments(t,{})[0].legalAccess,'unverified');
+});
+check('Changed route coordinates invalidate cached geometry',()=>{
+ const a={lat:42.225139,lon:-8.670911},b={lat:42.225224,lon:-8.670718};
+ const route=R.parseValhallaResponse({trip:{legs:[{shape:'e~epoA|jfpOiDaK'}],summary:{length:0.025}}},a,b,'walk');
+ assert.equal(R.displaySegments({waypoints:[{...a,mode:'none'},{...b,mode:'walk'}]},{[route.key]:route})[0].status,'routed');
+ assert.equal(R.displaySegments({waypoints:[{...a,mode:'none'},{lat:42.24,lon:-8.66,mode:'walk'}]},{[route.key]:route})[0].status,'draft');
+});
+check('Routing core uses no external requests, keys or storage',()=>{
+ assert.ok(!/\bfetch\s*\(|XMLHttpRequest|localStorage|api[-_]?key|https?:\/\//i.test(fs.readFileSync(path.join(dir,'routing-core.js'),'utf8')));
+});
+
 console.log('STAGING Trips checks: '+passed+' PASS');
