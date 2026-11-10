@@ -48,7 +48,7 @@ button:disabled{opacity:.5;cursor:wait}
 #my-points{list-style:none;margin:12px 0;padding:0;display:grid;gap:9px}
 #my-points li{background:#263c30;border:1px solid #486451;border-radius:12px;padding:12px;line-height:1.5;overflow-wrap:anywhere}
 #my-points li span{display:block}
-.point-sheet{position:fixed;left:50%;bottom:0;z-index:1200;transform:translateX(-50%);width:min(100%,550px);max-height:85dvh;overflow-y:auto;overscroll-behavior:contain;background:#1b2b22;border:1px solid #718873;border-radius:22px 22px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -15px 45px #0009;animation:sheet-enter .2s ease-out}
+.point-sheet{position:fixed;left:50%;bottom:var(--nt-visual-bottom,0px);z-index:1200;transform:translateX(-50%);width:min(100%,550px);max-height:min(85dvh,calc(var(--nt-visible-height,100dvh) - 110px));overflow-y:auto;overscroll-behavior:contain;background:#1b2b22;border:1px solid #718873;border-radius:22px 22px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -15px 45px #0009;animation:sheet-enter .2s ease-out}
 @keyframes sheet-enter{from{transform:translate(-50%,18px);opacity:.5}to{transform:translate(-50%,0);opacity:1}}
 .sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.sheet-header h2{margin:0;font-size:20px}
 .sheet-close{width:44px;min-height:44px;flex:0 0 44px;margin:0;padding:0;border-radius:50%;background:#31463a;color:var(--ink);border:1px solid #5e7765}
@@ -67,7 +67,7 @@ button:disabled{opacity:.5;cursor:wait}
 #change-location-btn{min-height:44px;font-size:13px;margin-top:8px}
 .point-sheet .sheet-header h2{min-width:0;flex:1}
 @media(max-height:650px){.point-sheet{max-height:78dvh}}
-@media(max-width:779px) and (orientation:portrait){.point-sheet{max-height:min(76dvh,calc(100dvh - 220px))}}
+@media(max-width:779px) and (orientation:portrait){.point-sheet{max-height:min(76dvh,calc(var(--nt-visible-height,100dvh) - var(--nt-map-clearance,220px)))}}
 
 .kind-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}
 .kind-option{margin:0;min-height:70px;padding:8px 5px;background:#30483b;border:1px solid #65836c;color:var(--ink);font-size:13px;line-height:1.2}
@@ -290,12 +290,37 @@ button:disabled{opacity:.5;cursor:wait}
     const dx=Math.round(marker.x-targetX),dy=Math.round(marker.y-targetY);
     if(Math.abs(dx)>2||Math.abs(dy)>2)map.panBy([dx,dy],{animate:false});
   }
+  // Align on actual layout changes rather than fixed browser-specific timeouts.
+  let mapAlignmentFrame=0;
   function adjustMapToPanel(){
-    const realign=()=>window.requestAnimationFrame(keepSelectionVisible);
-    realign();
-    // Recheck after the panel's entrance/resize and any mobile scroll settles.
-    window.setTimeout(realign,260);
-    window.setTimeout(realign,650);
+    if(!map||!selectedPoint||el('point-sheet').hidden)return;
+    if(mapAlignmentFrame)window.cancelAnimationFrame(mapAlignmentFrame);
+    mapAlignmentFrame=window.requestAnimationFrame(()=>{
+      mapAlignmentFrame=0;
+      keepSelectionVisible();
+    });
+  }
+  function syncVisualViewport(){
+    const vv=window.visualViewport;
+    if(vv){
+      const sheet=el('point-sheet');
+      const height=Math.max(0,Math.round(vv.height));
+      const inset=Math.max(0,Math.round(window.innerHeight-vv.offsetTop-vv.height));
+      const keyboardVisible=vv.scale<=1.05&&inset>120;
+      sheet.style.setProperty('--nt-visible-height',height+'px');
+      sheet.style.setProperty('--nt-visual-bottom',(keyboardVisible?inset:0)+'px');
+      sheet.style.setProperty('--nt-map-clearance',keyboardVisible?'110px':'220px');
+    }
+    adjustMapToPanel();
+  }
+  if(window.ResizeObserver){
+    const sheetObserver=new ResizeObserver(()=>adjustMapToPanel());
+    sheetObserver.observe(el('point-sheet'));
+  }
+  el('point-sheet').addEventListener('animationend',adjustMapToPanel);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize',syncVisualViewport);
+    window.visualViewport.addEventListener('scroll',syncVisualViewport);
   }
   function setSheetCollapsed(collapsed){
     const sheet=el('point-sheet');
@@ -316,7 +341,7 @@ button:disabled{opacity:.5;cursor:wait}
     });
   }
   function updatePointAction(){
-    el('add-point-btn').textContent=selectedPoint?(editingDraft?'✎ Wróć do szkicu':'✎ Edytuj punkt'):'＋ Punkt';
+    el('add-point-btn').textContent=!selectedPoint?'＋ Punkt':movingPoint?'↩ Wróć do formularza':editingDraft?'✎ Wróć do szkicu':'✎ Edytuj punkt';
     el('add-point-btn').setAttribute('aria-label',selectedPoint?'Wróć do formularza wybranego punktu':'Dodaj punkt do mapy');
   }
   function clearSelection(){
@@ -339,8 +364,9 @@ button:disabled{opacity:.5;cursor:wait}
   el('change-location-btn').addEventListener('click',()=>{
     if(writingDraft)return;
     movingPoint=true;
+    updatePointAction();
     closePointSheet();
-    message('map-action-status','Dotknij innego miejsca na mapie. Wybrany rodzaj, status i opis zostaną zachowane.');
+    message('map-action-status','Dotknij raz nowego miejsca na mapie. Rodzaj, status i opis pozostaną bez zmian. Aby anulować wybór, kliknij „Wróć do formularza”.');
   });
   el('change-kind-btn').addEventListener('click',()=>{
     if(writingDraft)return;
@@ -369,9 +395,8 @@ button:disabled{opacity:.5;cursor:wait}
   if(map)map.on('click',event=>{
     if(writingDraft)return;
     if(!el('point-sheet').hidden){
-      movingPoint=true;
-      closePointSheet();
-      el('map-action-status').hidden=true;
+      // An incidental map tap must never close a form with unsaved changes.
+      message('point-sheet-status','Aby zmienić lokalizację, użyj przycisku „Zmień lokalizację”.');
       return;
     }
     if(!activeUser||!db){
@@ -382,7 +407,6 @@ button:disabled{opacity:.5;cursor:wait}
     if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
     const hadPoint=!!selectedPoint;
     selectedPoint={lat,lon};
-    updatePointAction();
     if(selectionMarker)map.removeLayer(selectionMarker);
     selectionMarker=L.circleMarker([lat,lon],{radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false}).addTo(map);
     el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
@@ -394,6 +418,7 @@ button:disabled{opacity:.5;cursor:wait}
       show('kind-picker',true);show('sheet-fields',false);
     }
     movingPoint=false;
+    updatePointAction();
     setSheetCollapsed(false);
     el('map-action-status').hidden=true;el('point-sheet-status').hidden=true;
     show('point-sheet',true);
@@ -750,6 +775,7 @@ button:disabled{opacity:.5;cursor:wait}
     if(writingDraft)return;
     if(selectedPoint){
       movingPoint=false;
+      updatePointAction();
       el('map-action-status').hidden=true;
       setSheetCollapsed(false);
       show('point-sheet',true);
@@ -760,8 +786,9 @@ button:disabled{opacity:.5;cursor:wait}
   });
   window.addEventListener('resize',()=>{
     if(map)map.invalidateSize({pan:false});
-    if(!el('point-sheet').hidden)adjustMapToPanel();
+    syncVisualViewport();
   });
+  syncVisualViewport();
   let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
   if(saved&&validKey(saved))connect(saved);
 })();
