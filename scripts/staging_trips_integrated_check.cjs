@@ -80,4 +80,45 @@ check('UI provides edit, save, layers, routing, status',()=>{
  for(const id of ['map','fit-trip','points','save-local','export-gpx','route-consent','compute-routes','clear-routes','routing-status','action-status','visible-drive','visible-walk'])
   assert.ok(html.includes('id="'+id+'"'));
 });
+check('Overlapping points form a stable group without moving coordinates',()=>{
+ const G=require('../staging-trips-integrated/marker-groups.js');
+ const points=[
+  {id:'p1',lat:59.19832,lon:17.85862},
+  {id:'p2',lat:59.155,lon:17.8198},
+  {id:'p3',lat:59.16255,lon:17.87723},
+  {id:'p4',lat:59.16210,lon:17.8818}
+ ];
+ const xy=[{x:0,y:0},{x:100,y:110},{x:300,y:300},{x:326,y:310}];
+ const original=JSON.stringify(points);
+ const grouped=G.group(points,p=>xy[points.indexOf(p)],46);
+ assert.equal(grouped.length,3);
+ assert.deepEqual(grouped[2].ids,['p3','p4']);
+ assert.equal(JSON.stringify(points),original);
+});
+check('Expanded zoom separates points and exact coordinates remain',()=>{
+ const G=require('../staging-trips-integrated/marker-groups.js');
+ const points=[{id:'p3',lat:59.16255,lon:17.87723},{id:'p4',lat:59.16210,lon:17.8818}];
+ const close=G.group(points,p=>({x:points.indexOf(p)*20,y:0}));
+ const far=G.group(points,p=>({x:points.indexOf(p)*100,y:0}));
+ assert.equal(close.length,1);
+ assert.equal(far.length,2);
+ assert.equal(far[1].lat,59.16210);
+});
+check('Map group popup allows selecting exact point safely',()=>{
+ const source=html.match(/<script>\n('use strict';[\s\S]*?)<\/script>/)[1];
+ assert.ok(html.includes('src="marker-groups.js"'));
+ assert.ok(source.includes('G.group(trip.waypoints'));
+ assert.ok(source.includes('document.createElement'));
+ assert.ok(source.includes("item.textContent=(i+1)+'. '+p.name"));
+ assert.ok(source.includes('edit(p.id)'));
+ assert.ok(source.includes("map.on('zoomend moveend',drawMarkers)"));
+ assert.ok(!source.includes('innerHTML='));
+});
+check('Restoring v2 route produces accurate route status',()=>{
+ const source=html.match(/<script>\n('use strict';[\s\S]*?)<\/script>/)[1];
+ assert.ok(source.includes("if(loaded.from==='v2'){"));
+ assert.ok(source.includes('Przywrócono '+ "'+saved+'" +' obliczonych odcinków OSM'));
+ assert.ok(source.includes('Nie trzeba ponownie wysyłać współrzędnych'));
+});
+
 console.log('Integrated planner: '+count+' PASS');

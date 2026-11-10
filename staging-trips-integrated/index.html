@@ -25,6 +25,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .point-meta{font-size:12px;color:#c4d3c2}.point-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.point-actions button{min-height:40px;font-size:12px}
 .warning{padding:10px;border-left:4px solid #ecc383;background:#304433;border-radius:7px;font-size:13px}
 .number{background:#163d2b;color:white;border:2px solid white;width:30px;height:30px;border-radius:100%;display:grid;place-items:center;font-weight:700;box-shadow:0 2px 5px #0008}.number.start{background:#714f19;border-color:#ffe3a3}
+.number.group{background:#2a5265;border-color:#d7f0fa;width:36px;height:36px;font-size:13px}
+.group-menu{display:grid;gap:6px;min-width:190px;color:#1c3023}
+.group-menu button{display:block;width:100%;text-align:left;font-size:13px;min-height:38px}
 @media(max-width:800px){main{display:block;padding:8px}#map{height:47dvh;min-height:260px}.panel{margin-top:10px}header{padding:9px;font-size:13px}}
 </style></head>
 <body><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a href="../staging-app/">Powrót do mapy</a></header>
@@ -61,10 +64,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 <script src="../staging-trips/route-model.js"></script>
 <script src="../staging-trips/routing-core.js"></script>
 <script src="integration-model.js"></script>
+<script src="marker-groups.js"></script>
 <script>
 'use strict';
 (()=>{
-const M=window.NordicTripModel,R=window.NordicRoutingCore,I=window.NordicIntegratedTrip;
+const M=window.NordicTripModel,R=window.NordicRoutingCore,I=window.NordicIntegratedTrip,G=window.NordicMarkerGroups;
 const el=id=>document.getElementById(id);
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null;
@@ -109,17 +113,56 @@ function showPoint(id){
 }
 function redraw(){
  if(!map)return;
- lines.clearLayers();pins.clearLayers();
+ lines.clearLayers();
  segments().forEach(s=>{
   if(s.mode==='drive'&&!el('visible-drive').checked||s.mode==='walk'&&!el('visible-walk').checked)return;
   const routed=s.status==='routed';
   L.polyline(s.points.map(p=>[p.lat,p.lon]),{color:s.mode==='drive'?'#f3bb62':'#73d4a5',
    weight:routed?5:4,opacity:routed?0.95:0.48,dashArray:routed?null:'5 10',interactive:false}).addTo(lines);
  });
- trip.waypoints.forEach((p,i)=>{
-  const icon=L.divIcon({className:'',html:'<div class="number'+(i===0?' start':'')+'">'+(i+1)+'</div>',
-   iconSize:[30,30],iconAnchor:[15,15]});
-  L.marker([p.lat,p.lon],{icon}).addTo(pins).on('click',()=>edit(p.id));
+ drawMarkers();
+}
+function drawMarkers(){
+ if(!map||!pins)return;
+ pins.clearLayers();
+ const groups=G.group(trip.waypoints,p=>map.latLngToContainerPoint([p.lat,p.lon]),46);
+ groups.forEach(g=>{
+  if(g.indices.length===1){
+   const i=g.indices[0],p=trip.waypoints[i];
+   const icon=L.divIcon({className:'',html:'<div class="number'+(i===0?' start':'')+'">'+(i+1)+'</div>',
+    iconSize:[30,30],iconAnchor:[15,15]});
+   L.marker([p.lat,p.lon],{icon}).addTo(pins).on('click',()=>edit(p.id));
+   return;
+  }
+  const icon=L.divIcon({className:'',html:'<div class="number group">'+g.indices.length+'</div>',
+   iconSize:[36,36],iconAnchor:[18,18]});
+  const marker=L.marker([g.lat,g.lon],{icon}).addTo(pins);
+  marker.on('click',()=>{
+   const menu=document.createElement('div');
+   menu.className='group-menu';
+   const title=document.createElement('strong');
+   title.textContent='Punkty w grupie ('+g.indices.length+')';
+   menu.appendChild(title);
+   g.indices.forEach(i=>{
+    const p=trip.waypoints[i];
+    const item=document.createElement('button');
+    item.type='button';item.textContent=(i+1)+'. '+p.name;
+    item.addEventListener('click',()=>{map.closePopup();edit(p.id);});
+    menu.appendChild(item);
+   });
+   if(map.getZoom()<17){
+    const zoom=document.createElement('button');
+    zoom.type='button';zoom.textContent='Przybliż punkty';
+    zoom.addEventListener('click',()=>{
+     map.closePopup();
+     const bounds=L.latLngBounds(g.indices.map(i=>[trip.waypoints[i].lat,trip.waypoints[i].lon]));
+     if(bounds.getNorthEast().equals(bounds.getSouthWest()))map.setView([g.lat,g.lon],Math.min(19,map.getZoom()+2));
+     else map.fitBounds(bounds,{padding:[64,64],maxZoom:18,animate:false});
+    });
+    menu.appendChild(zoom);
+   }
+   marker.bindPopup(menu,{autoPan:true,maxWidth:290}).openPopup();
+  });
  });
 }
 function refresh(){
@@ -276,17 +319,24 @@ el('new-trip').addEventListener('click',()=>{
 try{
  const loaded=I.load(localStorage);trip=loaded.trip;routes=loaded.routes;
  if(loaded.from==='v1')message('notice','Wczytano starszą wyprawę v1 bez jej zmiany.');
- if(loaded.from==='v2')message('notice','Przywrócono wyprawę v2 i obliczone trasy.');
+ if(loaded.from==='v2'){
+  message('notice','Przywrócono wyprawę v2 i obliczone trasy.');
+  const saved=segments().filter(s=>s.status==='routed').length;
+  message('routing-status',saved
+   ?'✓ Przywrócono '+saved+' obliczonych odcinków OSM. Nie trzeba ponownie wysyłać współrzędnych. Dostępność dróg pozostaje niezweryfikowana.'
+   :'Wczytano wyprawę v2. Nie ma zapisanych obliczonych odcinków OSM.');
+ }
 }catch(_){trip=M.emptyTrip();routes=Object.create(null);
  message('notice','Nie udało się odczytać zapisu; stare dane pozostają nietknięte.',true);
 }
 try{
- if(!M||!R||!I||!window.L)throw Error('Brak wymaganych modułów');
+ if(!M||!R||!I||!G||!window.L)throw Error('Brak wymaganych modułów');
  map=L.map('map').setView([62.2,15.2],5);
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:19,attribution:'© OpenStreetMap contributors'
  }).addTo(map);
  lines=L.layerGroup().addTo(map);pins=L.layerGroup().addTo(map);
+ map.on('zoomend moveend',drawMarkers);
  map.on('click',event=>{
   if(!picking||busy)return;
   const n=trip.waypoints.length;
