@@ -15,6 +15,7 @@ const cases=[
  ['Relocation uses explicit button and one next map click',html.includes("el('change-location-btn').addEventListener('click'")&&html.includes("if(!hadPoint&&!movingPoint)")],
  ['Return-to-form action present',html.includes("movingPoint?'↩ Wróć do formularza'")],
  ['Draft edit and save RPC preserved',html.includes("db.rpc('update_private_map_point'")&&html.includes("db.rpc('submit_map_point_for_review'")],
+ ['Map notices configured for five seconds',html.includes('},5000);')&&html.includes("if(id==='map-action-status'&&!isError)")],
 ];
 for(const [label,passed] of cases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
 function extract(name){
@@ -40,4 +41,45 @@ function recenter(pointY,hidden=false){
 assert.deepEqual(recenter(370),[-200,88],'Must center in the exposed map area');
 assert.equal(recenter(370,true),null,'Must not pan with sheet hidden');
 console.log('PASS: Geometry checks and hidden-sheet guard');
-console.log('Mobile map checks: '+(cases.length+1)+' PASS');
+
+const noticeSnippetStart=scripts[0].indexOf('  let mapNoticeTimer=null;');
+const noticeSnippetEnd=scripts[0].indexOf('  const validKey=',noticeSnippetStart);
+assert.ok(noticeSnippetStart>=0&&noticeSnippetEnd>noticeSnippetStart,'Notification helper exists');
+const noticeElement={textContent:'',hidden:true,classList:{
+  errors:new Set(),
+  toggle(key,on){if(on)this.errors.add(key);else this.errors.delete(key)},
+  contains(key){return this.errors.has(key)}
+}};
+const timers=new Map();let nextTimerId=1;
+const noticeContext={
+  el:id=>{assert.equal(id,'map-action-status');return noticeElement},
+  window:{
+    setTimeout(callback,ms){assert.equal(ms,5000);const id=nextTimerId++;timers.set(id,callback);return id;},
+    clearTimeout(id){timers.delete(id)}
+  }
+};
+vm.runInNewContext(scripts[0].slice(noticeSnippetStart,noticeSnippetEnd)+
+  ';this.showNotice=message;this.closeNotice=dismissMapNotice;',noticeContext);
+noticeContext.showNotice('map-action-status','Dotknij miejsca na mapie.');
+assert.equal(noticeElement.hidden,false);
+assert.equal(timers.size,1);
+for(const callback of timers.values())callback();
+timers.clear();
+assert.equal(noticeElement.hidden,true,'Normal hint hides after five seconds');
+console.log('PASS: Map hint dismisses automatically');
+noticeContext.showNotice('map-action-status','First hint');
+const staleCallback=[...timers.values()][0];
+noticeContext.showNotice('map-action-status','Updated hint');
+staleCallback();
+assert.equal(noticeElement.hidden,false,'Stale callback must not hide replacement notice');
+assert.equal(timers.size,1,'Old timer cancelled');
+noticeContext.closeNotice();
+assert.equal(noticeElement.hidden,true);
+assert.equal(timers.size,0);
+console.log('PASS: New map hint cancels prior timer; close clears timer');
+noticeContext.showNotice('map-action-status','Important error',true);
+assert.equal(noticeElement.hidden,false);
+assert.equal(timers.size,0,'Error stays visible');
+console.log('PASS: Important map errors remain visible');
+
+console.log('Mobile map checks: '+(cases.length+4)+' PASS');
