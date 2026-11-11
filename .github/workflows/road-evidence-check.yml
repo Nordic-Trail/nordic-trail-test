@@ -1,0 +1,26 @@
+name: NORDIC TRAIL - Road Evidence Contract
+on:
+  pull_request:
+    paths:
+      - 'road-data/**'
+      - 'scripts/road_evidence_*.cjs'
+      - '.github/workflows/road-evidence-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'road-data/**'
+      - 'scripts/road_evidence_*.cjs'
+      - '.github/workflows/road-evidence-check.yml'
+permissions:
+  contents: read
+jobs:
+  validate-road-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Contract tests without API credentials
+        run: node scripts/road_evidence_check.cjs
+      - name: Validate curated evidence (initially empty)
+        run: node scripts/road_evidence_validate.cjs road-data/reviewed-evidence.geojson
