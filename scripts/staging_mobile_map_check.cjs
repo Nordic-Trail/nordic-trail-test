@@ -82,4 +82,19 @@ assert.equal(noticeElement.hidden,false);
 assert.equal(timers.size,0,'Error stays visible');
 console.log('PASS: Important map errors remain visible');
 
-console.log('Mobile map checks: '+(cases.length+4)+' PASS');
+
+const layerCases=[
+ ['Map layers icon is accessible, not a text-heavy tile',html.includes('id="open-layers-btn" aria-label="Warstwy mapy"')&&html.includes('<svg viewBox="0 0 24 24"')],
+ ['Glass design matches accepted prototype',html.includes('--nt-glass-icon:rgba(18,42,29,.28)')&&html.includes('--nt-glass:rgba(20,42,30,.80)')],
+ ['Layer sheet is responsive and does not replace point editor',html.includes('id="map-layers-sheet"')&&html.includes('z-index:1180')&&html.includes('.point-sheet{position:fixed;')],
+ ['Only real public markers are toggleable',html.includes('id="nt-public-points-layer" checked')&&html.includes('if(!visible&&map.hasLayer(markers))map.removeLayer(markers)')],
+ ['Public marker display cannot mutate Supabase data',html.includes("map.removeLayer(markers)")&&html.includes("db.rpc('moderate_map_point'")&&html.includes("db.rpc('update_private_map_point'")],
+ ['Panel closes by X, backdrop, Escape and second downward drag',html.includes("el('nt-layer-close').addEventListener('click',closeLayers)")&&html.includes("layersBackdrop.addEventListener('click',closeLayers)")&&html.includes("if(event.key==='Escape')")&&html.includes("d>125&&layersSheet.classList.contains('is-collapsed')")],
+ ['Handle supports tap, up/down gestures and pointer cancellation',html.includes("layerHandle.addEventListener('pointerdown'")&&html.includes("layerHandle.addEventListener('pointermove'")&&html.includes("layerHandle.addEventListener('pointercancel'")&&html.includes("layerHandle.addEventListener('click'")],
+ ['Panel is not opened over the existing point editor',html.includes("if(!el('point-sheet').hidden){")&&html.includes('Najpierw zamknij edytor punktu.')],
+ ['Keyboard focus is kept inside modal sheet',html.includes("if(event.key!=='Tab')return")&&html.includes("const els=[...layersSheet.querySelectorAll")],
+ ['No unverified NVDB or STFS status layer is presented',html.includes('Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł')&&!html.includes('id="nt-nvdb-layer"')]
+];
+for(const [label,passed] of layerCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+console.log('Mobile map checks: '+(cases.length+4+layerCases.length)+' PASS');
