@@ -208,6 +208,24 @@ button:disabled{opacity:.5;cursor:wait}
   backdrop-filter:none;-webkit-backdrop-filter:none;
  }
 }
+/* Approved refinements: brighter microtext, Mapa aligned to the RIGHT,
+   and a slightly more transparent workspace header and cards. */
+:root{--muted:#e1ecd9}
+.workspace-nav{justify-content:flex-end;background:rgba(18,42,29,.20)}
+.workspace-nav #back-to-map-btn{margin-left:auto;min-width:106px;text-align:center}
+.workspace .card,#my-points li{background:rgba(18,42,29,.22)}
+.nt-layer-intro,.nt-layer-option small,.nt-layer-note,
+.workspace .hint,.workspace .note,.workspace .status,
+.point-sheet .hint,.point-sheet .note,
+.sheet-coords summary,.note-details summary{
+ color:#f1f6e9;text-shadow:0 1px 2px rgba(4,18,10,.90);
+}
+.nt-layer-intro,.nt-layer-option small,.workspace .hint,
+.point-sheet .hint,.sheet-coords summary,.note-details summary{
+ font-size:14px;
+}
+.nt-layer-note{font-size:14px;line-height:1.5}
+.workspace .card h2,.nt-layer-header h2{color:#fffef5}
 </style>
 </head>
 <body>
@@ -234,8 +252,8 @@ button:disabled{opacity:.5;cursor:wait}
 </div></section>
 <div class="workspace" id="workspace">
 <nav class="workspace-nav" aria-label="Nawigacja panelu">
-<button type="button" id="back-to-map-btn" class="secondary">← Mapa</button>
 <button type="button" id="jump-mine-btn" class="secondary" hidden>Moje punkty</button>
+<button type="button" id="back-to-map-btn" class="secondary">← Mapa</button>
 </nav>
 <p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłaszanie zmian przy publicznych szlabanach i drogach jest dostępne w osobnym panelu STAGING. Zgłoszenia wymagają moderacji i nie zmieniają automatycznie punktów. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
 <section class="card" id="public-points-panel">

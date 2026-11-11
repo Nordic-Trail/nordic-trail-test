@@ -108,4 +108,12 @@ const glassCases=[
 ];
 for(const [label,passed] of glassCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
 
-console.log('Mobile map checks: '+(cases.length+4+layerCases.length+glassCases.length)+' PASS');
+const polishCases=[
+ ['Map return button is rightmost even if My points is visible',html.indexOf('id="jump-mine-btn"')<html.indexOf('id="back-to-map-btn"')&&html.includes('.workspace-nav #back-to-map-btn{margin-left:auto')],
+ ['Workspace navigation is right aligned',html.includes('.workspace-nav{justify-content:flex-end;background:rgba(18,42,29,.20)')],
+ ['Tiny helper labels use bright high-contrast text',html.includes('.nt-layer-intro,.nt-layer-option small,.nt-layer-note,')&&html.includes('color:#f1f6e9;text-shadow:0 1px 2px rgba(4,18,10,.90)')],
+ ['Workspace cards remain translucent with 22 percent opacity',html.includes('.workspace .card,#my-points li{background:rgba(18,42,29,.22)')],
+];
+for(const [label,passed] of polishCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+console.log('Mobile map checks: '+(cases.length+4+layerCases.length+glassCases.length+polishCases.length)+' PASS');

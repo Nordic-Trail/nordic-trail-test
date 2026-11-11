@@ -204,6 +204,24 @@ button:disabled{opacity:.5;cursor:wait}
   backdrop-filter:none;-webkit-backdrop-filter:none;
  }
 }
+/* Approved refinements: brighter microtext, Mapa aligned to the RIGHT,
+   and a slightly more transparent workspace header and cards. */
+:root{--muted:#e1ecd9}
+.workspace-nav{justify-content:flex-end;background:rgba(18,42,29,.20)}
+.workspace-nav #back-to-map-btn{margin-left:auto;min-width:106px;text-align:center}
+.workspace .card,#my-points li{background:rgba(18,42,29,.22)}
+.nt-layer-intro,.nt-layer-option small,.nt-layer-note,
+.workspace .hint,.workspace .note,.workspace .status,
+.point-sheet .hint,.point-sheet .note,
+.sheet-coords summary,.note-details summary{
+ color:#f1f6e9;text-shadow:0 1px 2px rgba(4,18,10,.90);
+}
+.nt-layer-intro,.nt-layer-option small,.workspace .hint,
+.point-sheet .hint,.sheet-coords summary,.note-details summary{
+ font-size:14px;
+}
+.nt-layer-note{font-size:14px;line-height:1.5}
+.workspace .card h2,.nt-layer-header h2{color:#fffef5}
 
 
 /* Preview-only safety and affordance styles, live app styles remain unmodified. */
@@ -211,9 +229,9 @@ button:disabled{opacity:.5;cursor:wait}
 .preview-workspace-intro{margin:8px 0 18px}
 .preview-controls{display:flex;flex-wrap:wrap;gap:8px}
 .preview-controls button{width:auto;min-width:150px}
-.preview-note{font-size:13px;color:#d9e5d4}
+.preview-note{font-size:14px;color:#f1f6e9;text-shadow:0 1px 2px rgba(4,18,10,.90)}
 .preview-note strong{color:#fff}
-.preview-demo-badge{display:inline-block;font-size:11px;letter-spacing:.05em;color:#fff2cb;border:1px solid #dfd19e;border-radius:30px;padding:3px 8px}
+.preview-demo-badge{display:inline-block;font-size:13px;letter-spacing:.05em;color:#fff6de;border:1px solid #dfd19e;border-radius:30px;padding:3px 8px}
 #point-sheet .sheet-header h2{overflow-wrap:anywhere}
 .preview-marker{display:grid;place-items:center;height:30px;width:30px;border:2px solid white;border-radius:50%;background:rgba(26,60,44,.55);color:white;font-size:15px;font-weight:800;text-shadow:0 1px 2px #051209}
 @media(max-width:500px){.preview-banner{top:calc(82px + env(safe-area-inset-top));font-size:11px;max-width:230px}.preview-controls button{flex:1 1 100%}}
