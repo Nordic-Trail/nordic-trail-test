@@ -28,3 +28,15 @@ STFS można obecnie przeglądać ręcznie bez logowania, ale nie przyjmujemy
 jego geometrii jako pełnej. Dane NVDB wymagające rejestracji są odłożone na koniec.
 
 To nie import do bazy i nie automatyczne moderowanie. Nie ma żadnych kluczy.
+
+## Diagnostic update (2026-11-11)
+
+When a browser reports a fetch failure, account login is not required.
+The preview now uses form-encoded POST, as documented by Overpass. Choose
+between a Europe-region instance (`ovp.dresel.systems`, daily refreshed)
+and the main global server (`overpass-api.de`). The selection is manual,
+never automatic. HTTP 406/429/502/503/504, timeout, and network/CORS failures
+have distinct messages. Public server usage is rate-limited to one attempt
+per minute (including errors). No credentials, identifiers, or location
+permissions are requested. The Europa endpoint is independently listed in
+the OSM wiki, but browser CORS/success still require an on-device test.

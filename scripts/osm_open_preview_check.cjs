@@ -9,7 +9,7 @@ const cases=[
  ['Only public Overpass data on explicit button',html.includes("el('load-osm').addEventListener('click',async()=>")&&html.includes('https://overpass-api.de/api/interpreter')],
  ['No automatic fetch, auto refresh or geolocation',!html.includes('navigator.geolocation')&&!html.includes('setInterval(')],
  ['No Supabase or persistent storage',!html.toLowerCase().includes('supabase')&&!html.includes('localStorage')&&!html.includes('sessionStorage')],
- ['No OSM editing API',!html.includes('api.openstreetmap.org')&&!html.includes('method:"POST"')],
+ ['POST restricted to allowlisted public Overpass endpoints, not OSM write API',!html.includes('api.openstreetmap.org')&&html.includes("method:'POST'")&&html.includes('OVERPASS_ENDPOINTS[selected]')],
  ['Bbox and max response guards',html.includes('if(data.elements.length>3000)')&&html.includes('raw.length>2000000')&&html.includes('bounded(c.lat,c.lon)')],
  ['Maximum 150 displayed per type',html.includes('points.slice(0,150)')&&html.includes('lines.slice(0,150)')],
  ['Only potentially restricted ways',html.includes("['no','private'].some(v=>e.tags.motor_vehicle===v||e.tags.access===v)")],
@@ -19,8 +19,21 @@ const cases=[
  ['No driving permission claims',html.includes('nie oznacza')&&html.includes('niezweryfikowana')],
  ['Approved translucent layers button preserved',html.includes('--glass:rgba(18,42,29,.28)')&&html.includes('width:48px;height:48px')],
  ['Gesture panel present',html.includes("handle.addEventListener('pointerdown'")&&html.includes("handle.addEventListener('pointerup'")],
- ['Respects public Overpass via cooldown',html.includes('now-lastLoadedAt<60000')&&html.includes('requested=true')],
+ ['Respects public Overpass via per-attempt cooldown',html.includes('now-lastAttemptAt<60000')&&html.includes('lastAttemptAt=now')],
  ['Abort on slow response',html.includes('AbortController()')&&html.includes('abort.abort(),25000')]
 ];
 for(const [label,passed] of cases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label)}
-console.log('Open OSM pilot preview: '+cases.length+' PASS');
+
+const diagnostics=[
+ ['European server is selectable and free of login',html.includes('https://ovp.dresel.systems/api/interpreter')&&html.includes('id="overpass-server"')],
+ ['Browser CSP allows both public official-known Overpass sources',html.includes('connect-src https://overpass-api.de https://ovp.dresel.systems')],
+ ['Form-encoded POST matches Overpass documentation',html.includes("body:new URLSearchParams({data:query})")&&html.includes("method:'POST'")],
+ ['No automatic retry or parallel query on failed fetch',!html.includes('Promise.any')&&!html.includes('Promise.race')&&html.includes('if(requested)return')],
+ ['Rate limiter covers failed attempts',html.includes('lastAttemptAt=now')&&html.includes('now-lastAttemptAt<60000')],
+ ['Diagnose HTTP overload and network/CORS separately',html.includes('HTTP (406|429|502|503|504)')&&html.includes("err?.name==='TypeError'")],
+ ['No login tokens or user credentials sent to Overpass',html.includes("credentials:'omit'")&&!html.includes('Authorization')],
+ ['On failed fetch previous observations are not cleared',html.indexOf('render(parsed);')<html.indexOf('}catch(err){',html.indexOf("el('load-osm').addEventListener('click'"))],
+];
+for(const [label,passed] of diagnostics){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+console.log('Open OSM pilot preview: '+(cases.length+diagnostics.length)+' PASS');
