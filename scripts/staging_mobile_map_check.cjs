@@ -125,4 +125,31 @@ const backdropCases=[
 ];
 for(const [label,passed] of backdropCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
 
+
+// Regression: scrollIntoView on the sticky map cannot reliably close the
+// below-the-map workspace on Android. The return button must scroll the
+// DOCUMENT itself back to zero, without hiding/modifying any data.
+const navSource=scripts[0];
+const revealStart=navSource.indexOf('  function revealMapViewport(){');
+const revealEnd=navSource.indexOf("  el('open-workspace-btn')",revealStart);
+assert.ok(revealStart>0&&revealEnd>revealStart,'Return-to-map helper exists');
+const scroller={scrollTop:940};
+const navigationCalls=[],invalidates=[];
+const navigationContext={
+ document:{scrollingElement:scroller},
+ window:{scrollTo(...args){navigationCalls.push(args)},requestAnimationFrame(callback){callback();}},
+ map:{invalidateSize(value){invalidates.push(value)}}
+};
+vm.runInNewContext(navSource.slice(revealStart,revealEnd)+'; revealMapViewport();',navigationContext);
+assert.equal(scroller.scrollTop,0,'Map button resets the actual document scroll position');
+assert.deepEqual(JSON.parse(JSON.stringify(navigationCalls)),[[0,0]],'Scroll window to absolute document origin');
+assert.deepEqual(JSON.parse(JSON.stringify(invalidates)),[{pan:false}],'Leaflet size recalculated after navigation');
+assert.ok(html.includes("el('back-to-map-btn').addEventListener('click',revealMapViewport)"),
+ 'Back-to-map button invokes direct viewport reset');
+assert.ok(html.includes("      revealMapViewport();\n      adjustMapToPanel();"),
+ 'Opening a draft uses the same robust map navigation');
+assert.ok(!html.includes("el('map-section').scrollIntoView("),
+ 'No sticky map scrollIntoView calls remain');
+console.log('PASS: Sticky map return navigation regression, editing draft and Leaflet redraw');
+
 console.log('Mobile map checks: '+(cases.length+4+layerCases.length+glassCases.length+polishCases.length+backdropCases.length)+' PASS');

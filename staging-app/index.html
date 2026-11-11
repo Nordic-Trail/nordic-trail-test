@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src https://bairmdubhnodwplioxld.supabase.co; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; object-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://bairmdubhnodwplioxld.supabase.co; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; object-src 'none'; form-action 'none'">
 <title>NORDIC TRAIL | STAGING — mapa testowa</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -239,6 +239,28 @@ button:disabled{opacity:.5;cursor:wait}
 .workspace .card,#my-points li{background:rgba(18,42,29,.30);border-color:rgba(225,241,215,.82)}
 .workspace-nav{background:rgba(18,42,29,.32);border-color:rgba(213,235,206,.78)}
 .workspace-nav #back-to-map-btn{margin-left:auto}
+
+/* Read-only OSM trial: approved translucent controls; no interaction with Supabase. */
+.nt-osm-group{margin-top:14px;border-top:1px solid rgba(231,245,219,.56)}
+.nt-osm-area-btn{margin:12px 0 0;min-height:48px;background:rgba(18,42,29,.28);color:#fffef4;border:1px solid rgba(231,245,219,.82);border-radius:14px;font-weight:750;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.nt-osm-status{font-size:14px;line-height:1.55;color:#f1f6e9;margin:10px 0 0;text-shadow:0 1px 2px rgba(4,18,10,.86)}
+.nt-osm-pin{display:grid;place-items:center;width:28px;height:28px;border:2px solid #fff;border-radius:50%;color:#fff;font-size:17px;font-weight:800;text-shadow:0 1px 3px #06130e;box-shadow:0 2px 8px #06130e88}
+.nt-osm-pin.barrier{background:#95612dc9}
+.nt-osm-pin.road{background:#793d24c9;border-style:dashed}
+.nt-osm-pin.path{background:#295c7dc9;border-style:dotted}
+.nt-osm-detail-sheet{position:fixed;z-index:1230;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,550px);max-height:min(76dvh,680px);overflow-y:auto;overscroll-behavior:contain;background:rgba(18,42,29,.28);border:1.5px solid rgba(231,245,219,.82);border-radius:20px 20px 0 0;padding:20px 18px calc(23px + env(safe-area-inset-bottom));color:#f5f8ee;backdrop-filter:blur(7px) saturate(1.1);-webkit-backdrop-filter:blur(7px) saturate(1.1);box-shadow:0 -12px 38px #06130e99}
+.nt-osm-detail-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.nt-osm-detail-heading h2{font-size:21px;margin:0}
+#nt-osm-detail-close{width:48px;min-width:48px;min-height:48px;margin:0;padding:0;font-size:24px;background:rgba(18,42,29,.28);color:#fff;border:1px solid rgba(231,245,219,.82);border-radius:12px}
+.nt-osm-detail-sheet h3{font-size:16px;color:#fffef4;margin:18px 0 8px}
+.nt-osm-micro{font-size:14px;line-height:1.55;color:#f1f6e9}
+.nt-osm-meta,.nt-osm-tags{border:1px solid rgba(231,245,219,.62);border-radius:12px;background:rgba(18,42,29,.20);padding:0 12px}
+.nt-osm-meta>div,.nt-osm-tags>div{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid rgba(231,245,219,.27)}
+.nt-osm-meta>div:last-child,.nt-osm-tags>div:last-child{border-bottom:0}
+.nt-osm-meta span,.nt-osm-tags span{font-size:13px;color:#f1f6e9}
+.nt-osm-meta strong,.nt-osm-tags strong{font-size:13px;text-align:right;color:#fffef4;overflow-wrap:anywhere}
+.nt-osm-detail-sheet a{color:#f7ffe8;text-decoration:underline}
+.nt-osm-warning{border-left:3px solid #f5d68e;border-radius:9px;background:rgba(49,61,37,.42);padding:12px;font-size:14px;line-height:1.55;color:#fffef4}
 </style>
 </head>
 <body>
@@ -261,8 +283,24 @@ button:disabled{opacity:.5;cursor:wait}
 <div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wyświetlaj tylko potrzebne informacje.</p>
 <label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne<small>Zatwierdzone punkty NORDIC TRAIL</small></span>
 <input type="checkbox" id="nt-public-points-layer" checked></label>
+<div class="nt-osm-group" aria-label="Obserwacje OpenStreetMap z obszaru Tumba–Lida">
+<p class="nt-layer-intro"><strong>OSM — Tumba–Lida (pilotaż)</strong></p>
+<label class="nt-layer-option" for="nt-osm-barriers-layer"><span>Szlabany i przeszkody<small>29 oznaczeń społeczności OSM</small></span><input type="checkbox" id="nt-osm-barriers-layer"></label>
+<label class="nt-layer-option" for="nt-osm-roads-layer"><span>Drogi — tagi ograniczeń<small>26 odcinków, środki orientacyjne</small></span><input type="checkbox" id="nt-osm-roads-layer"></label>
+<label class="nt-layer-option" for="nt-osm-paths-layer"><span>Ścieżki piesze i rowerowe<small>11 odcinków, oddzielonych od dróg</small></span><input type="checkbox" id="nt-osm-paths-layer"></label>
+<button type="button" id="nt-osm-area-btn" class="nt-osm-area-btn">Pokaż Tumba–Lida na mapie</button>
+<p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite">Warstwy OSM są wyłączone. Dane wczytamy po włączeniu jednej z nich; nie wymagają logowania.</p>
+</div>
 <p class="nt-layer-note">Dostępność dróg pozostaje niezweryfikowana. Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł. Routing nie oznacza prawa przejazdu.</p>
 </div></section>
+<section id="nt-osm-detail-sheet" class="nt-osm-detail-sheet" role="dialog" aria-modal="false" aria-labelledby="nt-osm-detail-title" hidden>
+<div class="nt-osm-detail-heading"><h2 id="nt-osm-detail-title">Obserwacja OSM</h2><button type="button" id="nt-osm-detail-close" aria-label="Zamknij kartę OSM">×</button></div>
+<p id="nt-osm-detail-kind" class="nt-osm-micro">Dane niezweryfikowane</p>
+<div id="nt-osm-detail-meta" class="nt-osm-meta"></div>
+<h3>Oznaczenia zapisane w OSM</h3><div id="nt-osm-detail-tags" class="nt-osm-tags"></div>
+<p><a id="nt-osm-original" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Otwórz oryginalny wpis OSM</a></p>
+<p class="nt-osm-warning"><strong>Dostępność prawna: niezweryfikowana.</strong> Tagi OSM nie zastępują oznakowania ani obowiązujących przepisów. Środki odcinków nie określają prawnego zasięgu ograniczenia.</p>
+</section>
 <div class="workspace" id="workspace">
 <nav class="workspace-nav" aria-label="Nawigacja panelu">
 <button type="button" id="jump-mine-btn" class="secondary" hidden>Moje punkty</button>
@@ -702,7 +740,7 @@ button:disabled{opacity:.5;cursor:wait}
       show('kind-picker',false);show('sheet-fields',true);
       setSheetCollapsed(false);
       show('point-sheet',true);
-      el('map-section').scrollIntoView({behavior:'instant',block:'start'});
+      revealMapViewport();
       adjustMapToPanel();
       message('draft-status','Otworzono szkic #'+p.id+'. Zmiany zostaną zapisane dopiero po zatwierdzeniu w formularzu.');
     }catch(_error){
@@ -991,6 +1029,150 @@ button:disabled{opacity:.5;cursor:wait}
   el('nt-layer-close').addEventListener('click',closeLayers);
   layersBackdrop.addEventListener('click',closeLayers);
   el('nt-public-points-layer').addEventListener('change',event=>setPublicLayerVisible(event.target.checked));
+
+  // Read-only OSM observation layers. Separate from authenticated map_points,
+  // moderation, drafts, Supabase sessions, routing and saved user data.
+  const osmBBox=[59.155,17.81,59.203,17.875];
+  const osmChecks={
+    barrier:el('nt-osm-barriers-layer'),
+    road:el('nt-osm-roads-layer'),
+    path:el('nt-osm-paths-layer')
+  };
+  const osmLayers=map&&window.L?{
+    barrier:L.layerGroup().addTo(map),
+    road:L.layerGroup().addTo(map),
+    path:L.layerGroup().addTo(map)
+  }:null;
+  let osmPack=null,osmLoadPromise=null;
+  const osmStatus=text=>{el('nt-osm-status').textContent=text;};
+  const osmValidPoint=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)
+    &&p.lat>=osmBBox[0]&&p.lat<=osmBBox[2]&&p.lon>=osmBBox[1]&&p.lon<=osmBBox[3];
+  const osmKinds={barrier:'Szlaban lub przeszkoda',road:'Oznaczenie na drodze',path:'Ścieżka piesza lub rowerowa'};
+  const osmSafeTags=['barrier','highway','motor_vehicle','motorcar','access','locked','name','surface'];
+  function checkOsmPack(pack){
+    if(!pack||pack.schema_version!==1||pack.area!=='tumba-lida'||pack.coverage!=='collected'
+       ||pack.source!=='OpenStreetMap'||pack.licence!=='ODbL'
+       ||JSON.stringify(pack.bbox)!==JSON.stringify(osmBBox)
+       ||!Array.isArray(pack.objects)||pack.objects.length>300
+       ||typeof pack.source_checked_at!=='string'||Number.isNaN(Date.parse(pack.source_checked_at))
+       ||typeof pack.source_as_of!=='string'||Number.isNaN(Date.parse(pack.source_as_of)))return false;
+    const ids=new Set(),counts={barrier:0,road:0,path:0};
+    for(const p of pack.objects){
+      if(!p||!['node','way'].includes(p.osm_type)||!Number.isSafeInteger(p.osm_id)||p.osm_id<=0
+         ||p.legal_access!=='unverified'||!osmValidPoint(p)
+         ||!p.tags||typeof p.tags!=='object'||Array.isArray(p.tags))return false;
+      const kind=p.kind==='barrier'?'barrier':
+        p.kind==='restriction'&&['path','footway','cycleway'].includes(p.tags.highway)?'path':
+        p.kind==='restriction'?'road':null;
+      if(!kind)return false;
+      if((kind==='barrier')!==(p.osm_type==='node')
+         ||p.location_precision!==(kind==='barrier'?'mapped_point':'approximate_way_center')
+         ||Object.entries(p.tags).some(([key,value])=>!osmSafeTags.includes(key)
+             ||typeof value!=='string'||value.length>120||/[\u0000-\u001f<>]/.test(value)))return false;
+      if(kind==='barrier'&&!['gate','lift_gate','swing_gate','bollard'].includes(p.tags.barrier))return false;
+      if(kind!=='barrier'&&(!p.tags.highway||!['no','private'].some(v=>p.tags.access===v||p.tags.motor_vehicle===v)))return false;
+      const id=p.osm_type+':'+p.osm_id;if(ids.has(id))return false;ids.add(id);
+      counts[kind]++;if(counts[kind]>150)return false;
+    }
+    return pack.objects.length===66&&counts.barrier===29&&counts.road===26&&counts.path===11;
+  }
+  function setOsmVisible(){
+    if(!map||!osmLayers)return;
+    for(const [kind,group] of Object.entries(osmLayers)){
+      if(osmChecks[kind].checked&&!map.hasLayer(group))map.addLayer(group);
+      else if(!osmChecks[kind].checked&&map.hasLayer(group))map.removeLayer(group);
+    }
+    const active=Object.entries(osmChecks).filter(([,input])=>input.checked).map(([kind])=>kind);
+    if(!active.length){
+      el('nt-osm-detail-sheet').hidden=true;
+      osmStatus('Warstwy OSM są wyłączone.');
+    }else if(osmPack)osmStatus('OSM: '+active.map(kind=>kind==='barrier'?'29 szlabanów':kind==='road'?'26 dróg':'11 ścieżek').join(', ')+'. Niezweryfikowane.');
+  }
+  function addOsmDetailRow(container,label,value){
+    const row=document.createElement('div'),name=document.createElement('span'),text=document.createElement('strong');
+    name.textContent=label;text.textContent=String(value);row.append(name,text);container.appendChild(row);
+  }
+  function showOsmDetail(p,kind){
+    if(!el('point-sheet').hidden){message('map-action-status','Najpierw zamknij edytor punktu.');return;}
+    if(!osmPack)return;
+    const sheet=el('nt-osm-detail-sheet'),meta=el('nt-osm-detail-meta'),tags=el('nt-osm-detail-tags');
+    meta.replaceChildren();tags.replaceChildren();
+    el('nt-osm-detail-title').textContent=osmKinds[kind];
+    el('nt-osm-detail-kind').textContent=kind==='barrier'
+      ?'Punkt oznaczony w OSM — brak weryfikacji w terenie.'
+      :kind==='road'?'Środek odcinka jest przybliżony, nie stanowi zasięgu ograniczenia.'
+      :'Oznaczenie ścieżki pieszej/rowerowej, nie drogi dla samochodów.';
+    addOsmDetailRow(meta,'Źródło','OpenStreetMap · ODbL');
+    addOsmDetailRow(meta,'Identyfikator',(p.osm_type==='node'?'Węzeł ':'Odcinek OSM ')+'#'+p.osm_id);
+    addOsmDetailRow(meta,'Stan źródła OSM',osmPack.source_as_of.slice(0,16).replace('T',' ')+' UTC');
+    addOsmDetailRow(meta,'Paczka przygotowana',osmPack.source_checked_at.slice(0,16).replace('T',' ')+' UTC');
+    addOsmDetailRow(meta,'Weryfikacja w terenie','Brak');
+    for(const key of osmSafeTags){
+      if(Object.hasOwn(p.tags,key))addOsmDetailRow(tags,key,p.tags[key]);
+    }
+    el('nt-osm-original').href='https://www.openstreetmap.org/'+p.osm_type+'/'+p.osm_id;
+    sheet.hidden=false;el('nt-osm-detail-close').focus();
+  }
+  el('nt-osm-detail-close').addEventListener('click',()=>{el('nt-osm-detail-sheet').hidden=true;layersButton.focus();});
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!el('nt-osm-detail-sheet').hidden){
+      event.preventDefault();el('nt-osm-detail-sheet').hidden=true;layersButton.focus();
+    }
+  });
+  function addOsmMarkers(pack){
+    if(!map||!osmLayers)return;
+    for(const group of Object.values(osmLayers))group.clearLayers();
+    for(const p of pack.objects){
+      const kind=p.kind==='barrier'?'barrier':
+        ['path','footway','cycleway'].includes(p.tags.highway)?'path':'road';
+      const symbol=kind==='barrier'?'!':kind==='road'?'?':'P';
+      const icon=L.divIcon({
+        className:'',
+        html:'<div class="nt-osm-pin '+kind+'">'+symbol+'</div>',
+        iconSize:[28,28],iconAnchor:[14,14]
+      });
+      L.marker([p.lat,p.lon],{icon,bubblingMouseEvents:false,keyboard:true,
+        title:osmKinds[kind]+' · OSM (niezweryfikowane)'})
+      .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind);})
+      .addTo(osmLayers[kind]);
+    }
+  }
+  async function ensureOsmPack(){
+    if(osmPack)return osmPack;
+    if(osmLoadPromise)return osmLoadPromise;
+    osmStatus('Wczytywanie statycznej paczki OSM Tumba–Lida…');
+    osmLoadPromise=(async()=>{
+      const response=await fetch('data/tumba-lida.json',{method:'GET',credentials:'omit',cache:'no-store'});
+      if(!response.ok)throw Error('Invalid snapshot status');
+      const contents=await response.text();
+      if(contents.length>120000)throw Error('OSM snapshot exceeds size limit');
+      const data=JSON.parse(contents);
+      if(!checkOsmPack(data))throw Error('OSM snapshot failed source/bounds review');
+      addOsmMarkers(data);osmPack=data;
+      return data;
+    })();
+    try{return await osmLoadPromise;}
+    catch(_error){
+      for(const input of Object.values(osmChecks))input.checked=false;
+      setOsmVisible();
+      osmStatus('Nie udało się odczytać paczki OSM. Pozostałe funkcje mapy działają.');
+      return null;
+    }finally{osmLoadPromise=null;}
+  }
+  for(const input of Object.values(osmChecks)){
+    input.addEventListener('change',async()=>{
+      if(input.checked){
+        if(!osmPack){const result=await ensureOsmPack();if(!result)return;}
+      }
+      setOsmVisible();
+    });
+  }
+  el('nt-osm-area-btn').addEventListener('click',()=>{
+    if(!map)return;
+    map.fitBounds([[osmBBox[0],osmBBox[1]],[osmBBox[2],osmBBox[3]]],{padding:[18,18],maxZoom:13});
+    closeLayers();
+  });
+
   let handleDragging=false,handleStart=0,handleLast=0,handleMoved=false,suppressHandleClick=false;
   layerHandle.addEventListener('pointerdown',event=>{
     if(layersSheet.hidden||event.button!==0||!['touch','pen'].includes(event.pointerType))return;
@@ -1032,11 +1214,17 @@ button:disabled{opacity:.5;cursor:wait}
     if(event.shiftKey&&document.activeElement===els[0]){els[els.length-1].focus();event.preventDefault();}
     else if(!event.shiftKey&&document.activeElement===els[els.length-1]){els[0].focus();event.preventDefault();}
   });
+  // The map stays sticky underneath the workspace. scrollIntoView() on a
+  // sticky element can be a no-op because it is already at viewport top,
+  // even while the workspace visually covers it. Move the document scroll.
+  function revealMapViewport(){
+    const root=document.scrollingElement;
+    if(root)root.scrollTop=0;
+    window.scrollTo(0,0);
+    if(map)window.requestAnimationFrame(()=>map.invalidateSize({pan:false}));
+  }
   el('open-workspace-btn').addEventListener('click',()=>{el('workspace').scrollIntoView({behavior:'smooth',block:'start'});});
-  el('back-to-map-btn').addEventListener('click',()=>{
-    el('map-section').scrollIntoView({behavior:'smooth',block:'start'});
-    if(map)window.setTimeout(()=>{map.invalidateSize({pan:false});},350);
-  });
+  el('back-to-map-btn').addEventListener('click',revealMapViewport);
   el('add-point-btn').addEventListener('click',()=>{
     if(!db||!activeUser){
       message('map-action-status','Aby dodać punkt, najpierw zaloguj się w panelu STAGING.');

@@ -1,0 +1,883 @@
+{
+  "schema_version": 1,
+  "area": "tumba-lida",
+  "coverage": "collected",
+  "bbox": [
+    59.155,
+    17.81,
+    59.203,
+    17.875
+  ],
+  "source": "OpenStreetMap",
+  "licence": "ODbL",
+  "source_checked_at": "2026-11-11T17:36:24.338Z",
+  "source_as_of": "2026-11-11T17:34:24Z",
+  "geometry_note": "Way locations are approximate centers, not exact legal extents",
+  "objects": [
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 226059349,
+      "lat": 59.1689593,
+      "lon": 17.8224692,
+      "tags": {
+        "barrier": "swing_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 226059380,
+      "lat": 59.1679312,
+      "lon": 17.8233713,
+      "tags": {
+        "barrier": "gate",
+        "access": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 453541965,
+      "lat": 59.1599374,
+      "lon": 17.86266,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 597703959,
+      "lat": 59.1930896,
+      "lon": 17.8638281,
+      "tags": {
+        "barrier": "swing_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 597703961,
+      "lat": 59.1930278,
+      "lon": 17.8636351,
+      "tags": {
+        "barrier": "swing_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 614681358,
+      "lat": 59.1862,
+      "lon": 17.870929,
+      "tags": {
+        "barrier": "swing_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 972124384,
+      "lat": 59.2017728,
+      "lon": 17.8253301,
+      "tags": {
+        "barrier": "gate",
+        "access": "private"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 1276813745,
+      "lat": 59.1836566,
+      "lon": 17.8719614,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 2439158574,
+      "lat": 59.2017018,
+      "lon": 17.8253015,
+      "tags": {
+        "barrier": "gate",
+        "access": "private"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 2604726549,
+      "lat": 59.1983874,
+      "lon": 17.8389135,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 2833908540,
+      "lat": 59.1862464,
+      "lon": 17.871112,
+      "tags": {
+        "barrier": "swing_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 5095446924,
+      "lat": 59.1884405,
+      "lon": 17.8587535,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 5274347045,
+      "lat": 59.1705021,
+      "lon": 17.8186104,
+      "tags": {
+        "barrier": "swing_gate",
+        "motor_vehicle": "no",
+        "access": "yes"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 7533600123,
+      "lat": 59.1595702,
+      "lon": 17.8392931,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 9694618469,
+      "lat": 59.200801,
+      "lon": 17.8497022,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 9694618495,
+      "lat": 59.200037,
+      "lon": 17.8525827,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 9831398353,
+      "lat": 59.1970555,
+      "lon": 17.8604763,
+      "tags": {
+        "barrier": "lift_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 10053699001,
+      "lat": 59.1870312,
+      "lon": 17.8447097,
+      "tags": {
+        "barrier": "lift_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 10053757927,
+      "lat": 59.1868327,
+      "lon": 17.8440841,
+      "tags": {
+        "barrier": "lift_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 10053768300,
+      "lat": 59.1870472,
+      "lon": 17.8436287,
+      "tags": {
+        "barrier": "lift_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 10055904697,
+      "lat": 59.1812817,
+      "lon": 17.8287774,
+      "tags": {
+        "barrier": "lift_gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 10130062752,
+      "lat": 59.1707221,
+      "lon": 17.8115849,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 10130255549,
+      "lat": 59.1928974,
+      "lon": 17.8267971,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 10130255550,
+      "lat": 59.192604,
+      "lon": 17.8263003,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 10138390850,
+      "lat": 59.2002874,
+      "lon": 17.8524825,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 11109296481,
+      "lat": 59.2016276,
+      "lon": 17.8249338,
+      "tags": {
+        "barrier": "gate",
+        "access": "private"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 11109296482,
+      "lat": 59.201445,
+      "lon": 17.8229063,
+      "tags": {
+        "barrier": "gate",
+        "access": "private"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 13983225329,
+      "lat": 59.1996143,
+      "lon": 17.835195,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "barrier",
+      "osm_type": "node",
+      "osm_id": 13983231164,
+      "lat": 59.1995826,
+      "lon": 17.8381857,
+      "tags": {
+        "barrier": "gate"
+      },
+      "legal_access": "unverified",
+      "location_precision": "mapped_point"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 5133882,
+      "lat": 59.1897416,
+      "lon": 17.819977,
+      "tags": {
+        "highway": "residential",
+        "access": "no",
+        "name": "Grödingevägen"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 9664074,
+      "lat": 59.1986689,
+      "lon": 17.8379716,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Tumba Torg"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 9664075,
+      "lat": 59.1989666,
+      "lon": 17.8376509,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Tumba Torg"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 9664076,
+      "lat": 59.1989559,
+      "lon": 17.8380606,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Tumba Torg"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 11812162,
+      "lat": 59.1990728,
+      "lon": 17.8547559,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "surface": "asphalt"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 11812163,
+      "lat": 59.1996147,
+      "lon": 17.8548848,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "surface": "asphalt"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 11812164,
+      "lat": 59.1992773,
+      "lon": 17.8548073,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "surface": "asphalt"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 20831996,
+      "lat": 59.1913377,
+      "lon": 17.8557785,
+      "tags": {
+        "highway": "service",
+        "access": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 22376271,
+      "lat": 59.181939,
+      "lon": 17.8450326,
+      "tags": {
+        "highway": "service",
+        "access": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 24043135,
+      "lat": 59.1773612,
+      "lon": 17.8125883,
+      "tags": {
+        "highway": "service",
+        "access": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 62136389,
+      "lat": 59.1990964,
+      "lon": 17.8364308,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Tumba Torg"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 83482317,
+      "lat": 59.2016318,
+      "lon": 17.82418,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Bruksvägen"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 83485812,
+      "lat": 59.201769,
+      "lon": 17.8252875,
+      "tags": {
+        "highway": "footway",
+        "access": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 117607547,
+      "lat": 59.1868012,
+      "lon": 17.8600091,
+      "tags": {
+        "highway": "track",
+        "motor_vehicle": "no",
+        "surface": "gravel"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 123491155,
+      "lat": 59.1686293,
+      "lon": 17.8229203,
+      "tags": {
+        "highway": "residential",
+        "motor_vehicle": "private",
+        "name": "Finkmossvägen"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 238371484,
+      "lat": 59.200345,
+      "lon": 17.8713262,
+      "tags": {
+        "highway": "cycleway",
+        "motor_vehicle": "no",
+        "surface": "asphalt"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 263614078,
+      "lat": 59.1859755,
+      "lon": 17.8565307,
+      "tags": {
+        "highway": "path",
+        "motor_vehicle": "no",
+        "surface": "roots"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 263617146,
+      "lat": 59.1861205,
+      "lon": 17.8467929,
+      "tags": {
+        "highway": "path",
+        "motor_vehicle": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 379093730,
+      "lat": 59.1992853,
+      "lon": 17.8367703,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Tumba Torg"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 380978795,
+      "lat": 59.1991594,
+      "lon": 17.8383101,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Tumba Torg"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 380978796,
+      "lat": 59.199055,
+      "lon": 17.8378744,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Tumba Torg"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 398486369,
+      "lat": 59.1979685,
+      "lon": 17.8592669,
+      "tags": {
+        "highway": "service",
+        "motor_vehicle": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 439084728,
+      "lat": 59.1930557,
+      "lon": 17.8532845,
+      "tags": {
+        "highway": "service",
+        "motor_vehicle": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 444635914,
+      "lat": 59.1930613,
+      "lon": 17.8386838,
+      "tags": {
+        "highway": "service",
+        "motor_vehicle": "no"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 636517447,
+      "lat": 59.1616152,
+      "lon": 17.8671667,
+      "tags": {
+        "highway": "footway",
+        "motor_vehicle": "no",
+        "surface": "fine_gravel"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 669392194,
+      "lat": 59.1639759,
+      "lon": 17.8151134,
+      "tags": {
+        "highway": "path",
+        "motor_vehicle": "no",
+        "access": "private",
+        "surface": "clay"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 689973206,
+      "lat": 59.1567468,
+      "lon": 17.8156601,
+      "tags": {
+        "highway": "service",
+        "access": "private"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 793821939,
+      "lat": 59.1933054,
+      "lon": 17.8548659,
+      "tags": {
+        "highway": "footway",
+        "motor_vehicle": "no",
+        "surface": "asphalt"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 793821942,
+      "lat": 59.1887772,
+      "lon": 17.8580576,
+      "tags": {
+        "highway": "path",
+        "motor_vehicle": "no",
+        "surface": "gravel"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 793827391,
+      "lat": 59.1906355,
+      "lon": 17.8575805,
+      "tags": {
+        "highway": "footway",
+        "motor_vehicle": "no",
+        "access": "no",
+        "surface": "asphalt"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 1008687166,
+      "lat": 59.1608045,
+      "lon": 17.8620138,
+      "tags": {
+        "highway": "path",
+        "motor_vehicle": "no",
+        "surface": "unpaved"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 1108031947,
+      "lat": 59.2005174,
+      "lon": 17.852422,
+      "tags": {
+        "highway": "service",
+        "access": "private"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 1108031948,
+      "lat": 59.2000701,
+      "lon": 17.8511185,
+      "tags": {
+        "highway": "service",
+        "access": "private"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 1137252088,
+      "lat": 59.2018028,
+      "lon": 17.8232564,
+      "tags": {
+        "highway": "service",
+        "access": "no",
+        "name": "Peter Mommas väg"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 1137257538,
+      "lat": 59.1933177,
+      "lon": 17.8529338,
+      "tags": {
+        "highway": "service",
+        "motor_vehicle": "no",
+        "name": "Grytstigen"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 1197316323,
+      "lat": 59.2014592,
+      "lon": 17.8229824,
+      "tags": {
+        "highway": "residential",
+        "access": "no",
+        "name": "Bruksvägen",
+        "surface": "asphalt"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    },
+    {
+      "kind": "restriction",
+      "osm_type": "way",
+      "osm_id": 1433998888,
+      "lat": 59.162349,
+      "lon": 17.8748614,
+      "tags": {
+        "highway": "footway",
+        "motor_vehicle": "no",
+        "surface": "fine_gravel"
+      },
+      "legal_access": "unverified",
+      "location_precision": "approximate_way_center"
+    }
+  ]
+}
