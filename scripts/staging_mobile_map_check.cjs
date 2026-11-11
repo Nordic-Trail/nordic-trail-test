@@ -97,4 +97,32 @@ const layerCases=[
 ];
 for(const [label,passed] of layerCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
 
-console.log('Mobile map checks: '+(cases.length+4+layerCases.length)+' PASS');
+
+const glassCases=[
+ ['Approved Layers icon alpha remains 28%',html.includes('--nt-glass-icon:rgba(18,42,29,.28)')],
+ ['Main and layer point sheets use the shared transparent surface',html.includes('.point-sheet,.nt-layers-sheet{')&&html.includes('background:var(--nt-glass-icon)')],
+ ['Top and bottom map controls use a shared transparent surface',html.includes('.map-top-actions button:not(#open-layers-btn)')&&html.includes('.map-toolbar #add-point-btn,')],
+ ['Workspace cards and controls participate in unified styling',html.includes('.workspace .card,')&&html.includes('.workspace input:not([type="checkbox"])')],
+ ['Readable error messages remain differentiated',html.includes('background:rgba(105,32,28,.65)')&&html.includes('color:#fff0e7')],
+ ['Approved map and moderation functions remain intact',html.includes("db.rpc('update_private_map_point'")&&html.includes("db.rpc('moderate_map_point'")],
+];
+for(const [label,passed] of glassCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+const polishCases=[
+ ['Map return button is rightmost even if My points is visible',html.indexOf('id="jump-mine-btn"')<html.indexOf('id="back-to-map-btn"')&&html.includes('.workspace-nav #back-to-map-btn{margin-left:auto')],
+ ['Workspace navigation is right aligned',html.includes('.workspace-nav{justify-content:flex-end;background:rgba(18,42,29,.20)')],
+ ['Tiny helper labels use bright high-contrast text',html.includes('.nt-layer-intro,.nt-layer-option small,.nt-layer-note,')&&html.includes('color:#f1f6e9;text-shadow:0 1px 2px rgba(4,18,10,.90)')],
+ ['Workspace cards remain translucent with 22 percent opacity',html.includes('.workspace .card,#my-points li{background:rgba(18,42,29,.22)')],
+];
+for(const [label,passed] of polishCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+const backdropCases=[
+ ['Existing map persists under cards',html.includes('#map-section{position:sticky;top:0;z-index:0}')],
+ ['Transparent workspace exposes actual map',html.includes('background:rgba(9,24,17,.43)')&&html.includes('backdrop-filter:blur(2.5px) saturate(.90)')],
+ ['Card and list backgrounds remain translucent',html.includes('.workspace .card,#my-points li{background:rgba(18,42,29,.30)')],
+ ['Return to map stays on right',html.includes('.workspace-nav #back-to-map-btn{margin-left:auto}')],
+ ['No duplicate Leaflet map', (html.match(/L.map\('map'/g)||[]).length===1]
+];
+for(const [label,passed] of backdropCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+console.log('Mobile map checks: '+(cases.length+4+layerCases.length+glassCases.length+polishCases.length+backdropCases.length)+' PASS');
