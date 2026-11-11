@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "area": "tumba-lida",
+  "coverage": "not_collected",
+  "bbox": [
+    59.155,
+    17.81,
+    59.203,
+    17.875
+  ],
+  "source": "OpenStreetMap",
+  "licence": "ODbL",
+  "source_checked_at": null,
+  "source_as_of": null,
+  "geometry_note": "Way locations are approximate centers, not exact legal extents",
+  "objects": []
+}
