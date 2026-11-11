@@ -10,7 +10,7 @@ const cases=[
  ['No automatic fetch, auto refresh or geolocation',!html.includes('navigator.geolocation')&&!html.includes('setInterval(')],
  ['No Supabase or persistent storage',!html.toLowerCase().includes('supabase')&&!html.includes('localStorage')&&!html.includes('sessionStorage')],
  ['POST restricted to allowlisted public Overpass endpoints, not OSM write API',!html.includes('api.openstreetmap.org')&&html.includes("method:'POST'")&&html.includes('OVERPASS_ENDPOINTS[selected]')],
- ['Bbox and max response guards',html.includes('if(data.elements.length>3000)')&&html.includes('raw.length>2000000')&&html.includes('bounded(c.lat,c.lon)')],
+ ['Bbox and max response guards',html.includes('if(data.elements.length>3000)')&&html.includes('raw.length>2000000')&&html.includes('bounded(e.center.lat,e.center.lon)')],
  ['Maximum 150 displayed per type',html.includes('points.slice(0,150)')&&html.includes('lines.slice(0,150)')],
  ['Only potentially restricted ways',html.includes("['no','private'].some(v=>e.tags.motor_vehicle===v||e.tags.access===v)")],
  ['Map info text set without injecting HTML tags',html.includes('value.textContent=tags[key]')&&html.includes('rows.replaceChildren()')],
@@ -36,4 +36,13 @@ const diagnostics=[
 ];
 for(const [label,passed] of diagnostics){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
 
-console.log('Open OSM pilot preview: '+(cases.length+diagnostics.length)+' PASS');
+const leanChecks=[
+ ['Reduced query box smaller than full pilot envelope',html.includes('const QUERY_BOX=[59.155,17.81,59.203,17.875]')&&html.includes('const BBOX=[59.145,17.775,59.225,17.920]')],
+ ['Lean query requests centers rather than full line geometries',html.includes(');out center;')&&!html.includes(');out geom;')],
+ ['Visible road marks are approximate center points',html.includes('L.marker([e.center.lat,e.center.lon],{icon})')&&html.includes('nie jako pełny zasięg zakazu')],
+ ['Overpass errors in HTTP 200 JSON are rejected',html.includes("typeof decoded.remark==='string'")],
+ ['Short server timeout budget',html.includes('[timeout:18][maxsize:53687091]')]
+];
+for(const [label,passed] of leanChecks){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+console.log('Open OSM pilot preview: '+(cases.length+diagnostics.length+leanChecks.length)+' PASS');

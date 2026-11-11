@@ -50,6 +50,7 @@ a{color:#e9f6d7;text-decoration:underline}
 .tags li span{color:#e1ecd9;min-width:115px}
 .tags li strong{text-align:right;overflow-wrap:anywhere}
 .pin{display:grid;place-items:center;width:30px;height:30px;border:2px solid #fff;border-radius:50%;background:rgba(116,70,35,.78);color:#fff;font-weight:800;box-shadow:0 2px 8px #07190db0}
+.pin.restriction{background:rgba(100,51,28,.80);border-style:dashed}
 .leaflet-control-zoom.leaflet-bar{border:1px solid var(--edge);border-radius:12px;overflow:hidden}
 .leaflet-control-zoom a,.leaflet-control-zoom a:focus{width:46px;height:46px;line-height:46px;background:rgba(18,42,29,.36);color:#fff;font-size:25px}
 .leaflet-control-attribution{background:rgba(248,249,242,.78)!important;color:#17271d!important;font-size:10px!important}
@@ -69,9 +70,9 @@ a{color:#e9f6d7;text-decoration:underline}
 <button id="layer-handle" type="button" class="handle" aria-label="Zwiń lub rozwiń panel warstw" aria-expanded="true" aria-controls="layer-body"></button>
 <div class="sheet-head"><h2 id="layer-heading">Warstwy OSM</h2><button id="layer-close" type="button" class="close" aria-label="Zamknij panel">×</button></div>
 <div id="layer-body" class="sheet-body">
-<p class="micro">Bezpłatne dane bez logowania. Pobierane wyłącznie po naciśnięciu przycisku.</p>
+<p class="micro">Bezpłatne dane bez logowania. Pobieramy lżejszą próbkę w centrum Tumba–Lida, wyłącznie po naciśnięciu przycisku.</p>
 <label class="switch" for="show-barriers"><span>Szlabany i przeszkody<small>Obiekty oznaczone w OpenStreetMap</small></span><input id="show-barriers" type="checkbox" checked></label>
-<label class="switch" for="show-restrictions"><span>Ograniczenia oznaczone w OSM<small>Tagi access / motor_vehicle = no lub private</small></span><input id="show-restrictions" type="checkbox" checked></label>
+<label class="switch" for="show-restrictions"><span>Ograniczenia oznaczone w OSM<small>Punkty reprezentujące drogi z tagami access / motor_vehicle = no lub private</small></span><input id="show-restrictions" type="checkbox" checked></label>
 <label class="server-label" for="overpass-server">Serwer danych (bez logowania)</label>
 <select id="overpass-server" aria-describedby="server-help">
 <option value="europe">Overpass Europa — dzienna aktualizacja</option>
@@ -80,7 +81,7 @@ a{color:#e9f6d7;text-decoration:underline}
 <p id="server-help" class="micro">Jeśli pierwszy serwer nie odpowie, możesz ręcznie wybrać drugi. Nie tworzymy konta i nie wysyłamy haseł.</p>
 <button id="load-osm" class="load" type="button">Pobierz publiczne dane OSM</button>
 <p id="load-result" class="micro" role="status" aria-live="polite">Pobrane obiekty: 0. Stan niezweryfikowany.</p>
-<div class="caution">Uwaga: wpis w OSM jest wskazówką do weryfikacji, nie urzędowym potwierdzeniem ograniczenia. Brak wpisu <strong>nie oznacza</strong>, że drogą wolno przejechać. Nie pokazujemy statusu „legalnie dostępna”.</div>
+<div class="caution">Uwaga: wpis w OSM jest wskazówką do weryfikacji, nie urzędowym potwierdzeniem ograniczenia. Oznaczenia dróg są pokazane w punkcie przybliżonego środka, <strong>nie jako pełny zasięg zakazu</strong>. Brak wpisu <strong>nie oznacza</strong>, że drogą wolno przejechać.</div>
 <p class="source"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors — ODbL</a> · Źródło zapytań: <a href="https://wiki.openstreetmap.org/wiki/Overpass_API" target="_blank" rel="noopener noreferrer">Overpass API</a></p>
 </div></section>
 <section id="info-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="info-heading" hidden>
@@ -96,7 +97,8 @@ a{color:#e9f6d7;text-decoration:underline}
 'use strict';
 (()=>{
  const el=id=>document.getElementById(id);
- const BBOX=[59.145,17.775,59.225,17.920]; // south west north east, fixed pilot study envelope
+ const BBOX=[59.145,17.775,59.225,17.920]; // southwest-northeast, broader pilot study envelope
+ const QUERY_BOX=[59.155,17.81,59.203,17.875]; // smaller sample around Tumba-Lida
  const OVERPASS_ENDPOINTS=Object.freeze({
   europe:'https://ovp.dresel.systems/api/interpreter',
   main:'https://overpass-api.de/api/interpreter'
@@ -190,8 +192,8 @@ a{color:#e9f6d7;text-decoration:underline}
     if(bounded(e.lat,e.lon))points.push(e);
    }
    if(e.type==='way'&&e.tags.highway&&['no','private'].some(v=>e.tags.motor_vehicle===v||e.tags.access===v)){
-    if(!Array.isArray(e.geometry)||e.geometry.length<2||e.geometry.length>4000)continue;
-    if(!e.geometry.every(c=>bounded(c.lat,c.lon)))continue;
+    // out center returns a representative point, not the legal/physical road extent.
+    if(!e.center||!bounded(e.center.lat,e.center.lon))continue;
     lines.push(e);
    }
   }
@@ -204,12 +206,12 @@ a{color:#e9f6d7;text-decoration:underline}
    L.marker([e.lat,e.lon],{icon}).on('click',()=>info('node',e.id,e.tags)).addTo(barriers);
   }
   for(const e of parsed.lines){
-   L.polyline(e.geometry.map(c=>[c.lat,c.lon]),{color:'#e6ab59',weight:5,opacity:.85,bubblingMouseEvents:false})
-    .on('click',()=>info('way',e.id,e.tags)).addTo(restrictions);
+   const icon=L.divIcon({className:'',html:'<div class="pin restriction">?</div>',iconSize:[30,30],iconAnchor:[15,15]});
+   L.marker([e.center.lat,e.center.lon],{icon}).on('click',()=>info('way',e.id,e.tags)).addTo(restrictions);
   }
   records=parsed.points.length+parsed.lines.length;
   toggleMap();
-  el('load-result').textContent='OSM: '+parsed.points.length+' przeszkód i '+parsed.lines.length+' odcinków z tagami ograniczeń. Niezweryfikowane.';
+  el('load-result').textContent='OSM: '+parsed.points.length+' przeszkód i '+parsed.lines.length+' dróg z tagami ograniczeń (przybliżone punkty). Niezweryfikowane.';
   notice(records?'Wyświetlono '+records+' obiektów OSM. Nie potwierdzono ich aktualności ani prawa przejazdu.':'Nie znaleziono wybranych tagów OSM; nie oznacza to braku ograniczeń.');
  }
  function toggleMap(){
@@ -218,7 +220,7 @@ a{color:#e9f6d7;text-decoration:underline}
  }
  el('show-barriers').addEventListener('change',toggleMap);
  el('show-restrictions').addEventListener('change',toggleMap);
- const query='[out:json][timeout:20];(node["barrier"~"^(gate|lift_gate|swing_gate|bollard)$"]('+BBOX.join(',')+');way["highway"]["motor_vehicle"~"^(no|private)$"]('+BBOX.join(',')+');way["highway"]["access"~"^(no|private)$"]('+BBOX.join(',')+'););out geom;';
+ const query='[out:json][timeout:18][maxsize:53687091];(node["barrier"~"^(gate|lift_gate|swing_gate|bollard)$"]('+QUERY_BOX.join(',')+');way["highway"]["motor_vehicle"~"^(no|private)$"]('+QUERY_BOX.join(',')+');way["highway"]["access"~"^(no|private)$"]('+QUERY_BOX.join(',')+'););out center;';
  // User must explicitly choose a public endpoint. No automatic fallback/retry:
  // public Overpass servers have usage limits shared by many applications.
  function humanError(err){
@@ -229,6 +231,7 @@ a{color:#e9f6d7;text-decoration:underline}
   if(match)return 'Serwer przeciążony lub ogranicza zapytania (HTTP '+match[1]+'). Nie ponawiaj od razu.';
   if(msg.startsWith('HTTP '))return 'Serwer zwrócił błąd '+msg+'.';
   if(msg.includes('Odpowiedź zbyt duża'))return msg;
+  if(msg.startsWith('Overpass: '))return 'Serwer Overpass zgłosił: '+msg.slice(10,120)+'.';
   if(msg.includes('JSON'))return 'Serwer nie zwrócił prawidłowych danych JSON.';
   return 'Nie udało się przetworzyć odpowiedzi serwera.';
  }
@@ -261,7 +264,9 @@ a{color:#e9f6d7;text-decoration:underline}
    if(!reply.ok)throw Error('HTTP '+reply.status);
    const raw=await reply.text();
    if(raw.length>2000000)throw Error('Odpowiedź zbyt duża (ponad 2 MB).');
-   const parsed=parseOsm(JSON.parse(raw));
+   const decoded=JSON.parse(raw);
+   if(typeof decoded.remark==='string'&&decoded.remark.trim())throw Error('Overpass: '+decoded.remark.slice(0,180));
+   const parsed=parseOsm(decoded);
    render(parsed);
    el('load-result').textContent+=' Źródło: '+sourceLabel+'.';
   }catch(err){

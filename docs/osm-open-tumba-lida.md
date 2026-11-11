@@ -40,3 +40,13 @@ have distinct messages. Public server usage is rate-limited to one attempt
 per minute (including errors). No credentials, identifiers, or location
 permissions are requested. The Europa endpoint is independently listed in
 the OSM wiki, but browser CORS/success still require an on-device test.
+
+## Smaller read-only query (2026-11-11)
+
+The Android test experienced an Overpass Europa timeout at 25 seconds. This
+is not a sign of an account/login requirement. We reduced the sample to
+[59.155, 17.810, 59.203, 17.875], lowered the server time budget to 18 s,
+limited requested memory, and now use `out center` instead of `out geom`.
+Ways are displayed **as approximate central points**, not the precise legal
+extent of restrictions. We also reject `remark` runtime error responses
+returned with HTTP 200. No cached official data has been imported yet.
