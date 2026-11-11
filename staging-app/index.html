@@ -740,7 +740,7 @@ button:disabled{opacity:.5;cursor:wait}
       show('kind-picker',false);show('sheet-fields',true);
       setSheetCollapsed(false);
       show('point-sheet',true);
-      el('map-section').scrollIntoView({behavior:'instant',block:'start'});
+      revealMapViewport();
       adjustMapToPanel();
       message('draft-status','Otworzono szkic #'+p.id+'. Zmiany zostaną zapisane dopiero po zatwierdzeniu w formularzu.');
     }catch(_error){
@@ -1214,11 +1214,17 @@ button:disabled{opacity:.5;cursor:wait}
     if(event.shiftKey&&document.activeElement===els[0]){els[els.length-1].focus();event.preventDefault();}
     else if(!event.shiftKey&&document.activeElement===els[els.length-1]){els[0].focus();event.preventDefault();}
   });
+  // The map stays sticky underneath the workspace. scrollIntoView() on a
+  // sticky element can be a no-op because it is already at viewport top,
+  // even while the workspace visually covers it. Move the document scroll.
+  function revealMapViewport(){
+    const root=document.scrollingElement;
+    if(root)root.scrollTop=0;
+    window.scrollTo(0,0);
+    if(map)window.requestAnimationFrame(()=>map.invalidateSize({pan:false}));
+  }
   el('open-workspace-btn').addEventListener('click',()=>{el('workspace').scrollIntoView({behavior:'smooth',block:'start'});});
-  el('back-to-map-btn').addEventListener('click',()=>{
-    el('map-section').scrollIntoView({behavior:'smooth',block:'start'});
-    if(map)window.setTimeout(()=>{map.invalidateSize({pan:false});},350);
-  });
+  el('back-to-map-btn').addEventListener('click',revealMapViewport);
   el('add-point-btn').addEventListener('click',()=>{
     if(!db||!activeUser){
       message('map-action-status','Aby dodać punkt, najpierw zaloguj się w panelu STAGING.');
