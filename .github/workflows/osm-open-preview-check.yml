@@ -1,0 +1,24 @@
+name: NORDIC TRAIL - Open OSM Pilot Preview
+on:
+  pull_request:
+    paths:
+      - 'preview/osm-road-observations/**'
+      - 'scripts/osm_open_preview_check.cjs'
+      - '.github/workflows/osm-open-preview-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'preview/osm-road-observations/**'
+      - 'scripts/osm_open_preview_check.cjs'
+      - '.github/workflows/osm-open-preview-check.yml'
+permissions:
+  contents: read
+jobs:
+  validate-open-osm-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Offline UX and security regression checks
+        run: node scripts/osm_open_preview_check.cjs
