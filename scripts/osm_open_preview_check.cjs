@@ -27,4 +27,11 @@ const cases=[
  ['Static preview does not send passwords',html.includes("credentials:'omit'")&&!html.includes('Authorization')]
 ];
 for(const [label,pass] of cases){console.log((pass?'PASS':'FAIL')+': '+label);assert.ok(pass,label);}
-console.log('Static OSM browser preview: '+cases.length+' PASS');
+const layerChecks=[
+ ['Three switch IDs',html.includes('id="show-barriers"')&&html.includes('id="show-restrictions"')&&html.includes('id="show-paths"')],
+ ['Paths are classified separately from roads',html.includes("(['footway','path','cycleway'].includes(e.tags.highway)?paths:lines)")],
+ ['Map has three independent layer groups',html.includes("['show-paths',paths]")&&html.includes("el('show-paths').addEventListener('change',toggleMap)")],
+ ['No path draw as automotive restriction',html.includes('class="pin path"')&&html.includes('paths.clearLayers()')]
+];
+for(const [name,passed] of layerChecks){console.log((passed?'PASS':'FAIL')+': '+name);assert.ok(passed,name)}
+console.log('Static OSM browser preview: '+(cases.length+layerChecks.length)+' PASS');

@@ -51,6 +51,7 @@ a{color:#e9f6d7;text-decoration:underline}
 .tags li strong{text-align:right;overflow-wrap:anywhere}
 .pin{display:grid;place-items:center;width:30px;height:30px;border:2px solid #fff;border-radius:50%;background:rgba(116,70,35,.78);color:#fff;font-weight:800;box-shadow:0 2px 8px #07190db0}
 .pin.restriction{background:rgba(100,51,28,.80);border-style:dashed}
+.pin.path{background:rgba(39,87,121,.82);border-style:dotted}
 .leaflet-control-zoom.leaflet-bar{border:1px solid var(--edge);border-radius:12px;overflow:hidden}
 .leaflet-control-zoom a,.leaflet-control-zoom a:focus{width:46px;height:46px;line-height:46px;background:rgba(18,42,29,.36);color:#fff;font-size:25px}
 .leaflet-control-attribution{background:rgba(248,249,242,.78)!important;color:#17271d!important;font-size:10px!important}
@@ -72,7 +73,8 @@ a{color:#e9f6d7;text-decoration:underline}
 <div id="layer-body" class="sheet-body">
 <p class="micro">Bezpłatna paczka OSM przechowywana razem ze stroną. Wczytujemy plik lokalny z GitHub Pages, bez logowania i bez odpytywania Overpass.</p>
 <label class="switch" for="show-barriers"><span>Szlabany i przeszkody<small>Obiekty oznaczone w OpenStreetMap</small></span><input id="show-barriers" type="checkbox" checked></label>
-<label class="switch" for="show-restrictions"><span>Ograniczenia oznaczone w OSM<small>Punkty reprezentujące drogi z tagami access / motor_vehicle = no lub private</small></span><input id="show-restrictions" type="checkbox" checked></label>
+<label class="switch" for="show-restrictions"><span>Drogi — oznaczenia OSM<small>26 odcinków z tagami dostępu (niezweryfikowane)</small></span><input id="show-restrictions" type="checkbox" checked></label>
+<label class="switch" for="show-paths"><span>Ścieżki piesze i rowerowe<small>11 ścieżek z tagami ograniczeń (niezweryfikowane)</small></span><input id="show-paths" type="checkbox" checked></label>
 <p class="micro">Źródło: statyczny plik <strong>Tumba–Lida</strong>. Stan i datę pozyskania pokażemy po odczytaniu metadanych.</p>
 <button id="load-osm" class="load" type="button">Sprawdź paczkę danych OSM</button>
 <p id="load-result" class="micro" role="status" aria-live="polite">Nie sprawdzono jeszcze paczki. Nie wyciągamy wniosków o ograniczeniach.</p>
@@ -99,7 +101,7 @@ a{color:#e9f6d7;text-decoration:underline}
  L.control.zoom({position:'bottomleft'}).addTo(map);
  map.attributionControl.setPrefix('');
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
- const barriers=L.layerGroup().addTo(map),restrictions=L.layerGroup().addTo(map);
+ const barriers=L.layerGroup().addTo(map),restrictions=L.layerGroup().addTo(map),paths=L.layerGroup().addTo(map);
  const button=el('layers-button'),scrim=el('scrim');
  const sheets={layers:el('layer-sheet'),info:el('info-sheet')};
  let current=null,requested=false,records=0;
@@ -180,12 +182,12 @@ a{color:#e9f6d7;text-decoration:underline}
    !Array.isArray(pack.objects)||pack.objects.length>300)throw Error('Nieprawidłowy plik paczki OSM.');
   if(pack.coverage==='not_collected'){
    if(pack.objects.length!==0||pack.source_checked_at!==null||pack.source_as_of!==null)throw Error('Nieprawidłowy status paczki.');
-   return {coverage:'not_collected',points:[],lines:[],asOf:null};
+   return {coverage:'not_collected',points:[],lines:[],paths:[],asOf:null};
   }
   if(typeof pack.source_checked_at!=='string'||!Number.isFinite(Date.parse(pack.source_checked_at))||
    !(pack.source_as_of===null||(typeof pack.source_as_of==='string'&&!Number.isNaN(Date.parse(pack.source_as_of)))))
    throw Error('Brak poprawnej daty paczki.');
-  const points=[],lines=[],seen=new Set();
+  const points=[],lines=[],paths=[],seen=new Set();
   for(const e of pack.objects){
    if(!e||!['node','way'].includes(e.osm_type)||!Number.isSafeInteger(e.osm_id)||e.osm_id<=0||
     !bounded(e.lat,e.lon)||e.legal_access!=='unverified'||!e.tags||
@@ -198,14 +200,14 @@ a{color:#e9f6d7;text-decoration:underline}
     points.push({id:e.osm_id,lat:e.lat,lon:e.lon,tags:e.tags});
    else if(e.kind==='restriction'&&e.osm_type==='way'&&e.location_precision==='approximate_way_center'&&
     e.tags.highway&&['no','private'].some(v=>e.tags.motor_vehicle===v||e.tags.access===v))
-    lines.push({id:e.osm_id,center:{lat:e.lat,lon:e.lon},tags:e.tags});
+    (['footway','path','cycleway'].includes(e.tags.highway)?paths:lines).push({id:e.osm_id,center:{lat:e.lat,lon:e.lon},tags:e.tags});
    else throw Error('Nieznana kategoria danych.');
   }
-  if(points.length>150||lines.length>150)throw Error('Zbyt wiele obiektów.');
-  return {coverage:'collected',points,lines,asOf:pack.source_as_of||pack.source_checked_at};
+  if(points.length>150||lines.length+paths.length>150)throw Error('Zbyt wiele obiektów.');
+  return {coverage:'collected',points,lines,paths,asOf:pack.source_as_of||pack.source_checked_at};
  }
  function render(parsed){
-  barriers.clearLayers();restrictions.clearLayers();
+  barriers.clearLayers();restrictions.clearLayers();paths.clearLayers();
   for(const e of parsed.points){
    const icon=L.divIcon({className:'',html:'<div class="pin">!</div>',iconSize:[30,30],iconAnchor:[15,15]});
    L.marker([e.lat,e.lon],{icon}).on('click',()=>info('node',e.id,e.tags)).addTo(barriers);
@@ -214,17 +216,22 @@ a{color:#e9f6d7;text-decoration:underline}
    const icon=L.divIcon({className:'',html:'<div class="pin restriction">?</div>',iconSize:[30,30],iconAnchor:[15,15]});
    L.marker([e.center.lat,e.center.lon],{icon}).on('click',()=>info('way',e.id,e.tags)).addTo(restrictions);
   }
-  records=parsed.points.length+parsed.lines.length;
+  for(const e of parsed.paths){
+   const icon=L.divIcon({className:'',html:'<div class="pin path">P</div>',iconSize:[30,30],iconAnchor:[15,15]});
+   L.marker([e.center.lat,e.center.lon],{icon}).on('click',()=>info('way',e.id,e.tags)).addTo(paths);
+  }
+  records=parsed.points.length+parsed.lines.length+parsed.paths.length;
   toggleMap();
-  el('load-result').textContent='OSM: '+parsed.points.length+' przeszkód i '+parsed.lines.length+' dróg z tagami ograniczeń (przybliżone punkty). Niezweryfikowane.';
+  el('load-result').textContent='OSM: '+parsed.points.length+' barier, '+parsed.lines.length+' odcinków dróg i '+parsed.paths.length+' ścieżek. Wszystkie obserwacje niezweryfikowane.';
   notice(records?'Wyświetlono '+records+' obserwacji OSM z paczki. Nie potwierdzono ich aktualności ani prawa przejazdu.':'W zweryfikowanej strukturze paczki nie znaleziono oznaczeń OSM. Nie oznacza to braku ograniczeń.');
  }
  function toggleMap(){
-  const config=[['show-barriers',barriers],['show-restrictions',restrictions]];
+  const config=[['show-barriers',barriers],['show-restrictions',restrictions],['show-paths',paths]];
   for(const [id,layer] of config){if(el(id).checked){if(!map.hasLayer(layer))map.addLayer(layer);}else if(map.hasLayer(layer))map.removeLayer(layer);}
  }
  el('show-barriers').addEventListener('change',toggleMap);
  el('show-restrictions').addEventListener('change',toggleMap);
+ el('show-paths').addEventListener('change',toggleMap);
  el('load-osm').addEventListener('click',async()=>{
   if(requested)return;
   requested=true;
@@ -238,7 +245,7 @@ a{color:#e9f6d7;text-decoration:underline}
    if(raw.length>250000)throw Error('Paczka przekracza limit rozmiaru.');
    const result=parsePack(JSON.parse(raw));
    if(result.coverage==='not_collected'){
-    barriers.clearLayers();restrictions.clearLayers();records=0;
+    barriers.clearLayers();restrictions.clearLayers();paths.clearLayers();records=0;
     el('load-result').textContent='Nie przygotowano jeszcze paczki z rzeczywistymi danymi OSM. Stan: niepobrane. Nie oznacza to braku szlabanów.';
     notice('Paczka danych OSM nie została jeszcze przygotowana. Nie wyciągamy wniosków o dostępności dróg.');
    }else{
