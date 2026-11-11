@@ -21,6 +21,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #f5f8
 #layers-button[aria-expanded="true"]{background:rgba(18,42,29,.36)}
 #layers-button svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px #07190d)}
 .preview-notice{position:fixed;z-index:690;left:12px;top:calc(70px + env(safe-area-inset-top));max-width:min(340px,calc(100vw - 96px));padding:9px 11px;border:1px solid #f0d99b;border-radius:10px;background:rgba(18,42,29,.45);color:#fff0ca;font-size:12px;line-height:1.4;backdrop-filter:blur(3px)}
+.preview-notice.is-compact{max-width:260px;padding:6px 9px;background:rgba(18,42,29,.28);border-color:rgba(231,245,219,.82);font-size:12px;color:#fff8e2;box-shadow:0 1px 6px rgba(5,15,10,.42)}
 .status{position:fixed;z-index:690;bottom:calc(28px + env(safe-area-inset-bottom));left:12px;right:100px;max-width:400px;padding:10px 12px;border:1px solid var(--edge);border-radius:11px;background:rgba(18,42,29,.55);color:#fff;font-size:13px;backdrop-filter:blur(4px)}
 .scrim{position:fixed;z-index:850;inset:0;background:rgba(6,20,13,.16)}
 .sheet{position:fixed;z-index:900;left:50%;bottom:0;transform:translate(-50%,var(--drag,0px));width:min(100%,560px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;padding:22px 18px calc(22px + env(safe-area-inset-bottom));background:var(--glass);border:1.5px solid var(--edge);border-radius:20px 20px 0 0;box-shadow:0 -12px 36px #07190d9a;backdrop-filter:blur(7px) saturate(1.1);-webkit-backdrop-filter:blur(7px) saturate(1.1);text-shadow:0 1px 2px #04120b;transition:transform .18s,max-height .18s}
@@ -68,7 +69,7 @@ a{color:#e9f6d7;text-decoration:underline}
 </head><body>
 <div id="map" aria-label="Mapa OSM — pilotaż Tumba–Lida"></div>
 <header class="brand"><strong>NORDIC TRAIL</strong><small>PODGLĄD OSM · TUMBA–LIDA</small></header>
-<div class="preview-notice">Podgląd statycznych danych OSM. Nie pobiera danych z Overpass na telefonie. Informacje nie potwierdzają prawa przejazdu.</div>
+<div id="source-notice" class="preview-notice" role="note">Podgląd statycznych danych OSM. Nie pobiera danych z Overpass na telefonie. Informacje nie potwierdzają prawa przejazdu.</div>
 <nav class="map-tools" aria-label="Narzędzia mapy">
 <button id="layers-button" type="button" aria-controls="layer-sheet" aria-expanded="false" aria-label="Warstwy mapy" title="Warstwy mapy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></button>
 </nav>
@@ -124,6 +125,11 @@ a{color:#e9f6d7;text-decoration:underline}
  const sheets={layers:el('layer-sheet'),info:el('info-sheet')};
  let current=null,requested=false,records=0,sourceMeta={asOf:null,checkedAt:null};
  function notice(message){el('status').textContent=message;}
+ function compactNotice(message){
+  const panel=el('source-notice');
+  panel.textContent=message;
+  panel.classList.add('is-compact');
+ }
  function close(){
   if(!current)return;
   for(const sheet of Object.values(sheets)){sheet.hidden=true;delete sheet.dataset.collapsed;sheet.style.removeProperty('--drag');}
@@ -193,7 +199,7 @@ a{color:#e9f6d7;text-decoration:underline}
   el('info-heading').textContent=title;
   el('info-kind').textContent='Rodzaj: '+title;
   el('info-location-note').textContent=note;
-  el('info-source-id').textContent=(type==='node'?'Węzeł ':'Droga ')+'#'+safeId;
+  el('info-source-id').textContent=(type==='node'?'Węzeł ':'Odcinek OSM ')+'#'+safeId;
   const readable=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)?s.slice(0,16).replace('T',' ')+' UTC':'Nie podano';
   el('info-source-asof').textContent=readable(sourceMeta.asOf);
   el('info-source-checked').textContent=readable(sourceMeta.checkedAt);
@@ -278,11 +284,13 @@ a{color:#e9f6d7;text-decoration:underline}
    if(raw.length>250000)throw Error('Paczka przekracza limit rozmiaru.');
    const result=parsePack(JSON.parse(raw));
    if(result.coverage==='not_collected'){
+    compactNotice('OSM · paczka jeszcze nieprzygotowana');
     barriers.clearLayers();restrictions.clearLayers();paths.clearLayers();records=0;sourceMeta={asOf:null,checkedAt:null};
     el('load-result').textContent='Nie przygotowano jeszcze paczki z rzeczywistymi danymi OSM. Stan: niepobrane. Nie oznacza to braku szlabanów.';
     notice('Paczka danych OSM nie została jeszcze przygotowana. Nie wyciągamy wniosków o dostępności dróg.');
    }else{
     render(result);
+    compactNotice('OSM · 66 obserwacji niezweryfikowanych');
     el('load-result').textContent+=' Źródło OSM: '+(result.asOf?String(result.asOf).slice(0,10):'data niepodana')+'.';
    }
   }catch(error){

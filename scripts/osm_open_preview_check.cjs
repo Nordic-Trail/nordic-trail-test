@@ -44,4 +44,12 @@ const infoCases=[
  ['Legal caution and field verification remain explicit',html.includes('Dostępność prawna: niezweryfikowana.')&&html.includes('Weryfikacja w terenie')]
 ];
 for(const [label,ok] of infoCases){console.log((ok?'PASS':'FAIL')+': '+label);assert.ok(ok,label);}
-console.log('Static OSM browser preview: '+(cases.length+layerChecks.length+infoCases.length)+' PASS');
+const clarityCases=[
+ ['Way labels do not call pedestrian segments a road',html.includes("type==='node'?'Węzeł ':'Odcinek OSM '")],
+ ['Persistent source notice shrinks after loading data',html.includes('id="source-notice" class="preview-notice" role="note"')&&html.includes("panel.classList.add('is-compact')")],
+ ['Compact banner keeps explicit unverified status',html.includes("compactNotice('OSM · 66 obserwacji niezweryfikowanych')")],
+ ['Caution remains in detail sheet',html.includes('Dostępność prawna: niezweryfikowana.')]
+];
+for(const [label,passed] of clarityCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+console.log('Static OSM browser preview: '+(cases.length+layerChecks.length+infoCases.length+clarityCases.length)+' PASS');
