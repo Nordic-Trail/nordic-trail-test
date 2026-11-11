@@ -14,7 +14,7 @@ const cases=[
  ['Maximum 150 displayed per type',html.includes('points.slice(0,150)')&&html.includes('lines.slice(0,150)')],
  ['Only potentially restricted ways',html.includes("['no','private'].some(v=>e.tags.motor_vehicle===v||e.tags.access===v)")],
  ['Map info text set without injecting HTML tags',html.includes('value.textContent=tags[key]')&&html.includes('rows.replaceChildren()')],
- ['OSM object URL limited to validated numeric ID',html.includes('Number.isSafeInteger(safeId)')&&html.includes("'/'+type+'/'+safeId")],
+ ['OSM object URL limited to validated numeric ID',html.includes('Number.isSafeInteger(safeId)')&&html.includes("el('osm-object-link').href='https://www.openstreetmap.org/'+type+'/'+safeId")],
  ['Attribution and ODbL',html.includes('https://www.openstreetmap.org/copyright')&&html.includes('ODbL')],
  ['No driving permission claims',html.includes('nie oznacza')&&html.includes('niezweryfikowana')],
  ['Approved translucent layers button preserved',html.includes('--glass:rgba(18,42,29,.28)')&&html.includes('width:48px;height:48px')],
