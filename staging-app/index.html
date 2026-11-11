@@ -1153,9 +1153,9 @@ button:disabled{opacity:.5;cursor:wait}
     })();
     try{return await osmLoadPromise;}
     catch(_error){
-      osmStatus('Nie udało się odczytać paczki OSM. Pozostałe funkcje mapy działają.');
       for(const input of Object.values(osmChecks))input.checked=false;
       setOsmVisible();
+      osmStatus('Nie udało się odczytać paczki OSM. Pozostałe funkcje mapy działają.');
       return null;
     }finally{osmLoadPromise=null;}
   }
