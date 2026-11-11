@@ -46,4 +46,43 @@ events.click({latlng:{lat:59.18,lng:17.84}});
 assert.equal(modal.hidden,true);
 assert.equal(state.created,0);
 console.log('PASS: map tap closes OSM card without entering draft creation');
-console.log('OSM and approved-point interaction audit: '+(cases.length+2)+' PASS');
+
+const freezeCases=[
+ ['Overlay scroll locks root and body',page.includes("html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}")],
+ ['Stylus scroll protection only when modal open',page.includes("if(pageScrollLocked&&Math.abs((window.scrollY||0)-lockedScrollY)>1)")],
+ ['Layer sheet scrolls separately',page.includes('.nt-layers-sheet{')&&page.includes('overflow-y:auto;overscroll-behavior:contain')],
+ ['OSM details scroll separately',page.includes('.nt-osm-detail-sheet{position:fixed;')&&page.includes('overflow-y:auto;overscroll-behavior:contain')],
+ ['Opening Layers restores map behind the translucent modal',page.includes("revealMapViewport();\n    setLayersCollapsed(false)")],
+ ['Backdrop prevents background touch scroll',page.includes('background:rgba(6,20,13,.16);touch-action:none')],
+ ['Disabling an OSM layer updates the background lock',page.includes("    syncOverlayPageScroll();\n  }\n  function addOsmDetailRow")],
+ ['Opening and dismissing cards update background lock',page.includes("sheet.hidden=false;\n    syncOverlayPageScroll();")&&page.includes("function closeOsmDetail(){")]
+];
+for(const [label,ok] of freezeCases){console.log((ok?'PASS':'FAIL')+': '+label);assert.ok(ok,label);}
+const scrollStart=js[0].indexOf('  let pageScrollLocked=false,lockedScrollX=0,lockedScrollY=0;');
+const scrollEnd=js[0].indexOf('  function setLayersCollapsed(',scrollStart);
+assert.ok(scrollStart>0&&scrollEnd>scrollStart);
+const freezeCode=js[0].slice(scrollStart,scrollEnd);
+function fakeClasses(){
+ const vals=new Set();
+ return {add(x){vals.add(x)},remove(x){vals.delete(x)},has(x){return vals.has(x)}};
+}
+const rootClasses=fakeClasses(),bodyClasses=fakeClasses();
+const layerBox={hidden:true},detailBox={hidden:true};
+const fakeDocument={documentElement:{classList:rootClasses},body:{classList:bodyClasses},scrollingElement:{scrollTop:830}};
+const scrollEvents={},scrollCalls=[];
+const fakeWindow={scrollY:830,scrollX:0,scrollTo(x,y){scrollCalls.push([x,y]);this.scrollY=y;fakeDocument.scrollingElement.scrollTop=y;},addEventListener(name,fn){scrollEvents[name]=fn;}};
+const scrollCtx={document:fakeDocument,window:fakeWindow,layersSheet:layerBox,el(id){assert.equal(id,'nt-osm-detail-sheet');return detailBox;}};
+vm.runInNewContext(freezeCode+';this.sync=syncOverlayPageScroll;',scrollCtx);
+assert.ok(!rootClasses.has('nt-page-scroll-locked'));
+layerBox.hidden=false;scrollCtx.sync();
+assert.ok(rootClasses.has('nt-page-scroll-locked')&&bodyClasses.has('nt-page-scroll-locked'));
+fakeWindow.scrollY=900;scrollEvents.scroll();
+assert.equal(fakeWindow.scrollY,830,'System edge scroll cannot move underlying page');
+detailBox.hidden=false;layerBox.hidden=true;scrollCtx.sync();
+assert.ok(rootClasses.has('nt-page-scroll-locked'));
+detailBox.hidden=true;scrollCtx.sync();
+assert.ok(!rootClasses.has('nt-page-scroll-locked')&&!bodyClasses.has('nt-page-scroll-locked'));
+assert.equal(scrollCalls.at(-1)[1],830);
+console.log('PASS: scroll lock, stylus guard, overlay handoff, restore position');
+
+console.log('OSM and approved-point interaction audit: '+(cases.length+2+freezeCases.length+1)+' PASS');

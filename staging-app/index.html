@@ -104,7 +104,8 @@ button:disabled{opacity:.5;cursor:wait}
 .leaflet-control-zoom a.leaflet-disabled{color:#bcc5b6;background:rgba(26,43,33,.55)}
 .leaflet-control-attribution{font-size:10px!important;background:rgba(246,249,240,.74)!important;color:#14251c!important}
 .leaflet-control-attribution a{color:#143e61!important}
-#map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16)}
+html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}
+#map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16);touch-action:none}
 .nt-layers-sheet{--nt-offset:0px;position:fixed;left:50%;bottom:0;z-index:1180;transform:translate(-50%,var(--nt-offset));width:min(100%,550px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
 .nt-layers-sheet[data-dragging="true"]{transition:none}
 .nt-layers-sheet.is-collapsed{max-height:min(135px,28dvh);overflow:hidden}
@@ -627,6 +628,7 @@ button:disabled{opacity:.5;cursor:wait}
     if(!el('nt-osm-detail-sheet').hidden){
       el('nt-osm-detail-sheet').hidden=true;
       activeOsmKind=null;
+      syncOverlayPageScroll();
       return;
     }
     if(writingDraft)return;
@@ -1007,6 +1009,27 @@ button:disabled{opacity:.5;cursor:wait}
   }
   const layersSheet=el('map-layers-sheet'),layersBackdrop=el('map-layers-backdrop');
   const layersButton=el('open-layers-btn'),layerHandle=el('nt-layer-handle');
+  let pageScrollLocked=false,lockedScrollX=0,lockedScrollY=0;
+  function syncOverlayPageScroll(){
+    const shouldLock=!layersSheet.hidden||!el('nt-osm-detail-sheet').hidden;
+    if(shouldLock&&!pageScrollLocked){
+      lockedScrollX=window.scrollX||0;
+      lockedScrollY=window.scrollY||document.scrollingElement?.scrollTop||0;
+      pageScrollLocked=true;
+      document.documentElement.classList.add('nt-page-scroll-locked');
+      document.body.classList.add('nt-page-scroll-locked');
+    }else if(!shouldLock&&pageScrollLocked){
+      document.documentElement.classList.remove('nt-page-scroll-locked');
+      document.body.classList.remove('nt-page-scroll-locked');
+      pageScrollLocked=false;
+      window.scrollTo(lockedScrollX,lockedScrollY);
+    }
+  }
+  window.addEventListener('scroll',()=>{
+    if(pageScrollLocked&&Math.abs((window.scrollY||0)-lockedScrollY)>1){
+      window.scrollTo(lockedScrollX,lockedScrollY);
+    }
+  },{passive:true});
   function setLayersCollapsed(value){
     layersSheet.classList.toggle('is-collapsed',value);
     layerHandle.setAttribute('aria-expanded',value?'false':'true');
@@ -1015,6 +1038,7 @@ button:disabled{opacity:.5;cursor:wait}
   function closeLayers(){
     if(layersSheet.hidden)return;
     layersSheet.hidden=true;layersBackdrop.hidden=true;
+    syncOverlayPageScroll();
     layersSheet.style.removeProperty('--nt-offset');
     delete layersSheet.dataset.dragging;
     setLayersCollapsed(false);
@@ -1030,9 +1054,12 @@ button:disabled{opacity:.5;cursor:wait}
     if(!el('nt-osm-detail-sheet').hidden){
       el('nt-osm-detail-sheet').hidden=true;
       activeOsmKind=null;
+      syncOverlayPageScroll();
     }
+    revealMapViewport();
     setLayersCollapsed(false);
     layersSheet.hidden=false;layersBackdrop.hidden=false;
+    syncOverlayPageScroll();
     layersButton.setAttribute('aria-expanded','true');
     el('nt-layer-close').focus();
   }
@@ -1108,6 +1135,7 @@ button:disabled{opacity:.5;cursor:wait}
       activeOsmKind=null;
       osmStatus('Warstwy OSM są wyłączone.');
     }else if(osmPack)osmStatus('OSM: '+active.map(kind=>kind==='barrier'?'29 szlabanów':kind==='road'?'26 dróg':'11 ścieżek').join(', ')+'. Niezweryfikowane.');
+    syncOverlayPageScroll();
   }
   function addOsmDetailRow(container,label,value){
     const row=document.createElement('div'),name=document.createElement('span'),text=document.createElement('strong');
@@ -1133,11 +1161,14 @@ button:disabled{opacity:.5;cursor:wait}
     }
     el('nt-osm-original').href='https://www.openstreetmap.org/'+p.osm_type+'/'+p.osm_id;
     activeOsmKind=kind;
-    sheet.hidden=false;el('nt-osm-detail-close').focus();
+    sheet.hidden=false;
+    syncOverlayPageScroll();
+    el('nt-osm-detail-close').focus();
   }
   function closeOsmDetail(){
     el('nt-osm-detail-sheet').hidden=true;
     activeOsmKind=null;
+    syncOverlayPageScroll();
   }
   el('nt-osm-detail-close').addEventListener('click',()=>{closeOsmDetail();layersButton.focus();});
   document.addEventListener('keydown',event=>{
