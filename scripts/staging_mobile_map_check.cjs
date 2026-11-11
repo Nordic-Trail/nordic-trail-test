@@ -97,4 +97,15 @@ const layerCases=[
 ];
 for(const [label,passed] of layerCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
 
-console.log('Mobile map checks: '+(cases.length+4+layerCases.length)+' PASS');
+
+const glassCases=[
+ ['Approved Layers icon alpha remains 28%',html.includes('--nt-glass-icon:rgba(18,42,29,.28)')],
+ ['Main and layer point sheets use the shared transparent surface',html.includes('.point-sheet,.nt-layers-sheet{')&&html.includes('background:var(--nt-glass-icon)')],
+ ['Top and bottom map controls use a shared transparent surface',html.includes('.map-top-actions button:not(#open-layers-btn)')&&html.includes('.map-toolbar #add-point-btn,')],
+ ['Workspace cards and controls participate in unified styling',html.includes('.workspace .card,')&&html.includes('.workspace input:not([type="checkbox"])')],
+ ['Readable error messages remain differentiated',html.includes('background:rgba(105,32,28,.65)')&&html.includes('color:#fff0e7')],
+ ['Approved map and moderation functions remain intact',html.includes("db.rpc('update_private_map_point'")&&html.includes("db.rpc('moderate_map_point'")],
+];
+for(const [label,passed] of glassCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+console.log('Mobile map checks: '+(cases.length+4+layerCases.length+glassCases.length)+' PASS');
