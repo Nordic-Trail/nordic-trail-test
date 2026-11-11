@@ -37,7 +37,7 @@ const last=js[0].indexOf('    if(writingDraft)return;',first);
 assert.ok(first>=0&&last>first);
 const prefix=js[0].slice(first,last);
 const modal={hidden:false},state={selectedKind:'road',created:0},events={};
-vm.runInNewContext("const activeOsmKind='road'; const selectedPoint=null; "+prefix+" state.created++;});",{
+vm.runInNewContext("let activeOsmKind='road'; const selectedPoint=null; "+prefix+" state.created++;});",{
  map:{on(name,fn){events[name]=fn;}},el(id){assert.equal(id,'nt-osm-detail-sheet');return modal;},
  state,activeOsmKind:'road'
 });
