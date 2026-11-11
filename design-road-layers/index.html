@@ -23,7 +23,8 @@ button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offse
 .line{display:inline-block;width:18px;height:4px;border-radius:9px;vertical-align:middle;margin-right:4px}.line.drive{background:var(--road)}.line.walk{background:var(--foot)}
 .mode-ribbon{position:fixed;top:calc(68px + env(safe-area-inset-top));left:12px;z-index:550;background:#182c21e8;color:#f8e1aa;border:1px solid #ae995f80;border-radius:7px;padding:5px 9px;font-size:11px;font-weight:700}
 .scrim{position:fixed;inset:0;background:#06140d70;z-index:850}
-.sheet{position:fixed;right:12px;top:calc(65px + env(safe-area-inset-top));z-index:900;background:var(--card);border:1px solid var(--stroke);border-radius:18px;width:min(362px,calc(100vw - 24px));max-height:calc(100dvh - 85px);overflow:auto;box-shadow:0 18px 35px #07170d90;padding:16px}
+.sheet{--swipe-offset:0px;position:fixed;right:12px;top:calc(65px + env(safe-area-inset-top));z-index:900;background:var(--card);border:1px solid var(--stroke);border-radius:18px;width:min(362px,calc(100vw - 24px));max-height:calc(100dvh - 85px);overflow:auto;box-shadow:0 18px 35px #07170d90;padding:16px}
+.sheet-handle{display:none}
 .sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
 .sheet h2{font-size:18px;margin:0}.sheet h3{font-size:12px;text-transform:uppercase;letter-spacing:.075em;color:var(--muted);margin:18px 0 8px}
 .close{min-width:44px;min-height:44px;border-radius:11px;background:#2d4635;border:1px solid var(--stroke);color:var(--ink);font-size:22px}
@@ -48,8 +49,18 @@ button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offse
   max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;
   border-radius:20px 20px 0 0;padding:23px 18px calc(22px + env(safe-area-inset-bottom));
   font-size:18px;line-height:1.5}
- .sheet::before{content:"";position:absolute;top:9px;left:calc(50% - 22px);
-  width:44px;height:4px;border-radius:6px;background:#8aa18d}
+ .sheet{transform:translateY(var(--swipe-offset));transition:transform 180ms ease,max-height 180ms ease}
+ .sheet[data-dragging="true"]{transition:none;touch-action:none}
+ .sheet[data-collapsed="true"]{max-height:min(195px,32dvh);overflow:hidden}
+ .sheet-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;
+  border:0;background:transparent;color:var(--muted);padding:0;margin:-21px 0 8px;cursor:grab;
+  touch-action:none;user-select:none;-webkit-user-select:none}
+ .sheet-handle::before{content:"";display:block;width:54px;height:6px;border-radius:9px;background:#a9bda8}
+ .sheet-handle:active{cursor:grabbing}
+ .sheet[data-collapsed="true"] .sheet-handle::before{background:#d2dda8}
+ .sheet .sheet-content{min-height:0}
+ .sheet[data-collapsed="true"] .sheet-content{visibility:hidden;pointer-events:none}
+ @media(prefers-reduced-motion:reduce){.sheet{transition:none}}
  .sheet h2{font-size:23px}
  .sheet h3{font-size:15px;letter-spacing:.065em}
  .sheet .hint{font-size:15px;line-height:1.5}
@@ -80,8 +91,9 @@ button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offse
 <div class="legend"><span><i class="line drive"></i> Samochód</span><span><i class="line walk"></i> Pieszo</span></div></div>
 <div id="scrim" class="scrim" hidden></div>
 <section id="layers-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="layers-heading" hidden>
+<button class="sheet-handle" type="button" aria-label="Zwiń lub rozwiń panel warstw" aria-expanded="true" aria-controls="layers-content" title="Przesuń, aby rozwinąć lub zamknąć panel"></button>
 <div class="sheet-head"><h2 id="layers-heading">Warstwy</h2><button id="close-layers" type="button" class="close" aria-label="Zamknij panel warstw">×</button></div>
-<p class="hint">Widoczne są tylko najważniejsze informacje. Pozostałe włączasz na żądanie.</p>
+<div class="sheet-content" id="layers-content"><p class="hint">Widoczne są tylko najważniejsze informacje. Pozostałe włączasz na żądanie.</p>
 <h3>Moja wyprawa</h3>
 <label class="switch-row"><span><strong>🚙 Samochód</strong><small>Przebieg odcinka samochodowego</small></span><input id="layer-drive" type="checkbox" checked></label>
 <label class="switch-row"><span><strong>🥾 Pieszo</strong><small>Przebieg odcinka pieszego</small></span><input id="layer-walk" type="checkbox" checked></label>
@@ -90,11 +102,12 @@ button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offse
 <label class="switch-row"><span><strong>Szlabany i przeszkody</strong><small>Pokazywane dopiero po włączeniu</small></span><input id="layer-gates" type="checkbox"></label>
 <label class="switch-row"><span><strong>Nawierzchnia</strong><small>Warstwa planowana — brak danych demo</small></span><input id="layer-surface" type="checkbox"></label>
 <label class="switch-row"><span><strong>Punkty publiczne</strong><small>Ukryte w domyślnym widoku</small></span><input id="layer-places" type="checkbox"></label>
-<p id="layers-feedback" class="hint" role="status" aria-live="polite">Przy trasie dostępność prawna pozostaje niezweryfikowana, niezależnie od warstw.</p>
+<p id="layers-feedback" class="hint" role="status" aria-live="polite">Przy trasie dostępność prawna pozostaje niezweryfikowana, niezależnie od warstw.</p></div>
 </section>
 <section id="road-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="road-heading" hidden>
+<button class="sheet-handle" type="button" aria-label="Zwiń lub rozwiń informacje o drodze" aria-expanded="true" aria-controls="road-content" title="Przesuń, aby rozwinąć lub zamknąć panel"></button>
 <div class="sheet-head"><h2 id="road-heading">Informacja o odcinku</h2><button id="close-road" class="close" type="button" aria-label="Zamknij informacje o drodze">×</button></div>
-<p class="hint">Karta otwierana wyłącznie po dotknięciu odcinka na mapie.</p>
+<div class="sheet-content" id="road-content"><p class="hint">Karta otwierana wyłącznie po dotknięciu odcinka na mapie.</p>
 <div class="status"><span class="dot"></span><strong>Dostępność niezweryfikowana</strong></div>
 <div class="row"><span>Trasa</span><strong>Przykład samochodowy</strong></div>
 <div class="row"><span>OSM</span><strong>Podgląd geometrii</strong></div>
@@ -102,7 +115,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offse
 <div class="row"><span>STFS</span><strong>Niepodłączone w makiecie</strong></div>
 <div class="row"><span>Ostatnia weryfikacja</span><strong>Brak</strong></div>
 <p class="caution">Nie oznaczamy drogi jako legalnie dostępnej tylko dlatego, że znajduje się w OSM lub silnik wyznaczył po niej trasę. Znaki i aktualne ograniczenia mają pierwszeństwo.</p>
-<p class="note">To karta demonstracyjna UX. Nie odnosi się do faktycznego statusu żadnej konkretnej drogi.</p>
+<p class="note">To karta demonstracyjna UX. Nie odnosi się do faktycznego statusu żadnej konkretnej drogi.</p></div>
 </section>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -117,11 +130,19 @@ button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offse
   if(!opened) returnFocus=document.activeElement;
   for(const key in modal)modal[key].hidden=key!==name;
   scrim.hidden=false;opened=name;
+  modal[name].dataset.collapsed='false';
+  modal[name].style.removeProperty('--swipe-offset');
+  modal[name].querySelector('.sheet-handle').setAttribute('aria-expanded','true');
   el('open-layers').setAttribute('aria-expanded',name==='layers'?'true':'false');
   el(name==='layers'?'close-layers':'close-road').focus();
  }
  function close(){
   if(!opened)return;
+  for(const key in modal){
+   modal[key].style.removeProperty('--swipe-offset');
+   delete modal[key].dataset.dragging;
+   delete modal[key].dataset.collapsed;
+  }
   modal.layers.hidden=true;modal.road.hidden=true;scrim.hidden=true;opened=null;
   el('open-layers').setAttribute('aria-expanded','false');
   if(returnFocus&&typeof returnFocus.focus==='function')returnFocus.focus();
@@ -130,6 +151,52 @@ button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offse
  el('open-layers').addEventListener('click',()=>open('layers'));
  el('close-layers').addEventListener('click',close);
  el('close-road').addEventListener('click',close);
+ // A real, keyboard-accessible drag handle: tap to toggle, swipe up to expand,
+ // swipe down to collapse, then swipe down again to dismiss.
+ for(const sheet of Object.values(modal)){
+  const handle=sheet.querySelector('.sheet-handle');
+  let dragging=false,startY=0,lastY=0,moved=false,suppressClick=false;
+  function setCollapsed(value){
+   sheet.dataset.collapsed=value?'true':'false';
+   handle.setAttribute('aria-expanded',value?'false':'true');
+   if(value)handle.focus();
+  }
+  handle.addEventListener('pointerdown',event=>{
+   if(opened===null||modal[opened]!==sheet||event.button!==0)return;
+   if(event.pointerType!=='touch'&&event.pointerType!=='pen')return;
+   dragging=true;moved=false;startY=event.clientY;lastY=event.clientY;
+   sheet.dataset.dragging='true';
+   handle.setPointerCapture(event.pointerId);
+  });
+  handle.addEventListener('pointermove',event=>{
+   if(!dragging)return;
+   lastY=event.clientY;
+   const distance=lastY-startY;
+   if(Math.abs(distance)>8)moved=true;
+   const offset=Math.max(-100,Math.min(distance,240));
+   sheet.style.setProperty('--swipe-offset',offset+'px');
+  });
+  function endDrag(event){
+   if(!dragging)return;
+   dragging=false;delete sheet.dataset.dragging;
+   sheet.style.removeProperty('--swipe-offset');
+   const distance=lastY-startY;
+   if(moved){
+    suppressClick=true;
+    if(distance>130&&sheet.dataset.collapsed==='true')close();
+    else if(distance>55)setCollapsed(true);
+    else if(distance< -55)setCollapsed(false);
+   }
+   if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+  }
+  handle.addEventListener('pointerup',endDrag);
+  handle.addEventListener('pointercancel',endDrag);
+  handle.addEventListener('click',()=>{
+   if(suppressClick){suppressClick=false;return;}
+   if(opened===null||modal[opened]!==sheet)return;
+   setCollapsed(sheet.dataset.collapsed!=='true');
+  });
+ }
  scrim.addEventListener('click',close);
  document.addEventListener('keydown',event=>{
   if(event.key==='Escape')close();
