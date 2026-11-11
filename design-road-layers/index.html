@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>NORDIC TRAIL — koncepcja minimalistycznej mapy</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--ink:#f2f2e8;--muted:#bdcdbc;--card:rgba(20,42,30,.80);--stroke:rgba(188,215,182,.72);--accent:#c8dba4;--road:#e0ad5c;--foot:#67c39b}
+*{box-sizing:border-box}body{font:15px/1.45 system-ui,-apple-system,Arial,sans-serif;margin:0;background:#13231a;color:var(--ink)}
+[hidden]{display:none!important}button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offset:3px}
+#map{position:fixed;inset:0;background:#c0d1c0}
+.map-veil{position:fixed;inset:0;pointer-events:none;background:linear-gradient(#12241955,transparent 24%)}
+.brand{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:550;text-shadow:0 1px 4px #102016;pointer-events:none}
+.brand strong{font-size:15px;letter-spacing:.08em}.brand span{display:block;font-size:10px;letter-spacing:.06em;color:#eff0dc}
+.map-tools{position:fixed;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:875;display:flex;align-items:center;gap:9px}
+.layers-button{display:grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;border:1.5px solid rgba(241,249,228,.90);background:rgba(18,42,29,.28);color:#fffef4;padding:0;border-radius:12px;box-shadow:0 2px 9px #091a1466;backdrop-filter:none;-webkit-backdrop-filter:none}
+.layers-button svg{display:block;width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px #06140de6)}
+.layers-button[aria-expanded="true"]{background:rgba(33,62,42,.44);border-color:#f1f5dd}
+.layers-button:active{transform:scale(.97)}
+.footer{position:fixed;bottom:calc(21px + env(safe-area-inset-bottom));left:12px;z-index:550;background:rgba(23,47,32,.66);border:1px solid rgba(219,234,209,.69);border-radius:12px;padding:8px 10px;max-width:min(370px,calc(100vw - 125px));font-size:12px;box-shadow:0 3px 12px #10201666;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);text-shadow:0 1px 2px #102016
+.footer span{display:block;color:#d3e0cf}
+.pill{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.legend{display:flex;gap:12px;margin-top:3px}
+.line{display:inline-block;width:18px;height:4px;border-radius:9px;vertical-align:middle;margin-right:4px}.line.drive{background:var(--road)}.line.walk{background:var(--foot)}
+.mode-ribbon{position:fixed;top:calc(68px + env(safe-area-inset-top));left:12px;z-index:550;background:rgba(24,44,33,.62);color:#fff0c5;border:1px solid rgba(244,210,135,.7);border-radius:7px;padding:5px 9px;font-size:11px;font-weight:700;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);text-shadow:0 1px 2px #07170d}
+.scrim{position:fixed;inset:0;background:rgba(6,20,13,.16);z-index:850}
+.sheet{--swipe-offset:0px;position:fixed;right:12px;top:calc(65px + env(safe-area-inset-top));z-index:900;background:var(--card);border:1px solid var(--stroke);border-radius:18px;width:min(362px,calc(100vw - 24px));max-height:calc(100dvh - 85px);overflow:auto;box-shadow:0 18px 35px #07170d8c;padding:16px;backdrop-filter:blur(3px) saturate(1.05);-webkit-backdrop-filter:blur(3px) saturate(1.05);text-shadow:0 1px 1px #07170d66}
+.sheet-handle{display:none}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+.sheet h2{font-size:18px;margin:0}.sheet h3{font-size:12px;text-transform:uppercase;letter-spacing:.075em;color:var(--muted);margin:18px 0 8px}
+.close{min-width:44px;min-height:44px;border-radius:11px;background:rgba(46,75,52,.62);border:1px solid rgba(218,237,209,.65);color:#fffef4;font-size:23px;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.hint{color:var(--muted);font-size:12px;margin:8px 0 14px}
+.switch-row{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid #455c4966;cursor:pointer;min-height:56px}
+.switch-row:last-of-type{border-bottom:0}.switch-row strong{font-weight:650}.switch-row small{display:block;color:var(--muted);font-size:11px}
+.switch-row input{height:23px;width:23px;accent-color:#afc987;flex:none}
+.status{display:flex;gap:9px;align-items:center;border-radius:11px;background:rgba(37,62,44,.70);border:1px solid rgba(182,207,177,.68);padding:11px;margin:10px 0}
+.status .dot{height:12px;width:12px;background:#d5be80;border-radius:50%;flex:none}
+.row{display:flex;justify-content:space-between;gap:15px;padding:9px 0;border-bottom:1px solid #455c4966}
+.row span{color:var(--muted)}.row strong{text-align:right;max-width:58%}
+.caution{background:rgba(50,59,39,.71);border-left:3px solid #f3d98a;border-radius:8px;padding:10px;margin-top:14px;font-size:12px}
+.note{color:var(--muted);font-size:11px}
+.fake-pin{display:grid;place-items:center;height:31px;width:31px;border:2px solid rgba(255,255,250,.96);background:rgba(33,77,54,.72);color:#fffef7;border-radius:50%;font-weight:800;text-shadow:0 1px 3px #06170dee;box-shadow:0 2px 8px #06170db5;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.fake-pin.question{background:rgba(97,77,41,.72);border-color:#ffe7ae}
+.fake-pin.barrier{background:rgba(140,73,43,.72)}
+.fake-pin.place{background:rgba(57,92,117,.72)}
+.leaflet-control-attribution{font-size:10px!important;background:rgba(246,249,240,.74)!important;color:#14251c!important;border-radius:7px 0 0 0;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.leaflet-control-attribution a{color:#143e61!important;text-decoration:underline}
+.leaflet-control-zoom.leaflet-bar{border:1px solid rgba(221,237,214,.75);border-radius:12px;overflow:hidden;box-shadow:0 3px 14px #10201655}
+.leaflet-control-zoom a,.leaflet-control-zoom a:focus{display:block;width:46px;height:46px;line-height:46px;color:#f5f8ee;background:rgba(18,42,29,.66);font-size:25px;font-weight:700;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.leaflet-control-zoom a:hover{color:#fff;background:rgba(32,61,40,.76)}
+.leaflet-control-zoom a.leaflet-disabled{color:#bcc5b6;background:rgba(26,43,33,.68)}
+.leaflet-control-zoom a:first-child{border-radius:10px 10px 0 0}
+.leaflet-control-zoom a:last-child{border-radius:0 0 10px 10px}
+@media(forced-colors:active){.sheet,.layers-button,.close,.footer,.fake-pin,.leaflet-control-zoom a,.leaflet-control-attribution{backdrop-filter:none;-webkit-backdrop-filter:none}}
+/* Portrait layouts also cover Android browsers using wide/desktop-style CSS viewports. */
+@media(max-width:900px), (orientation:portrait){
+ .sheet{left:0;right:0;top:auto;bottom:0;width:100%;max-width:none;
+  max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;
+  border-radius:20px 20px 0 0;padding:23px 18px calc(22px + env(safe-area-inset-bottom));
+  font-size:18px;line-height:1.5}
+ .sheet{transform:translateY(var(--swipe-offset));transition:transform 180ms ease,max-height 180ms ease}
+ .sheet[data-dragging="true"]{transition:none;touch-action:none}
+ .sheet[data-collapsed="true"]{max-height:min(195px,32dvh);overflow:hidden}
+ .sheet-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;
+  border:0;background:transparent;color:var(--muted);padding:0;margin:-21px 0 8px;cursor:grab;
+  touch-action:none;user-select:none;-webkit-user-select:none}
+ .sheet-handle::before{content:"";display:block;width:54px;height:6px;border-radius:9px;background:#a9bda8}
+ .sheet-handle:active{cursor:grabbing}
+ .sheet[data-collapsed="true"] .sheet-handle::before{background:#d2dda8}
+ .sheet .sheet-content{min-height:0}
+ .sheet[data-collapsed="true"] .sheet-content{visibility:hidden;pointer-events:none}
+ @media(prefers-reduced-motion:reduce){.sheet{transition:none}}
+ .sheet h2{font-size:23px}
+ .sheet h3{font-size:15px;letter-spacing:.065em}
+ .sheet .hint{font-size:15px;line-height:1.5}
+ .sheet .row{font-size:16px;padding:12px 0}
+ .sheet .row strong{max-width:55%}
+ .sheet .close{min-width:48px;min-height:48px}
+ .sheet .status{min-height:52px}
+ .sheet .caution{font-size:15px;line-height:1.5;padding:13px}
+ .sheet .note{font-size:14px}
+ .switch-row{min-height:68px}
+ .switch-row small{font-size:14px}
+ .switch-row input{width:27px;height:27px}
+ .footer{bottom:calc(16px + env(safe-area-inset-bottom))}
+}
+@media(max-width:390px){
+ .brand strong{font-size:13px}.brand span{font-size:9px}
+ .layers-button{width:48px;height:48px}
+}
+</style></head><body>
+<div id="map" aria-label="Mapa OpenStreetMap — wersja koncepcyjna"></div><div class="map-veil"></div>
+<header class="brand"><strong>NORDIC TRAIL</strong><span>PROJEKT INTERFEJSU</span></header>
+<div class="mode-ribbon">MAKIETA · nie pokazuje rzeczywistych ograniczeń</div>
+<nav class="map-tools" aria-label="Narzędzia mapy">
+<button id="open-layers" class="layers-button" type="button" aria-label="Warstwy mapy" title="Warstwy mapy" aria-controls="layers-sheet" aria-expanded="false">
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+</button></nav>
+<div class="footer"><div class="pill"><strong>Przykładowa wyprawa</strong> · dotknij linii samochodowej</div>
+<div class="legend"><span><i class="line drive"></i> Samochód</span><span><i class="line walk"></i> Pieszo</span></div></div>
+<div id="scrim" class="scrim" hidden></div>
+<section id="layers-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="layers-heading" hidden>
+<button class="sheet-handle" type="button" aria-label="Zwiń lub rozwiń panel warstw" aria-expanded="true" aria-controls="layers-content" title="Przesuń, aby rozwinąć lub zamknąć panel"></button>
+<div class="sheet-head"><h2 id="layers-heading">Warstwy</h2><button id="close-layers" type="button" class="close" aria-label="Zamknij panel warstw">×</button></div>
+<div class="sheet-content" id="layers-content"><p class="hint">Widoczne są tylko najważniejsze informacje. Pozostałe włączasz na żądanie.</p>
+<h3>Moja wyprawa</h3>
+<label class="switch-row"><span><strong>🚙 Samochód</strong><small>Przebieg odcinka samochodowego</small></span><input id="layer-drive" type="checkbox" checked></label>
+<label class="switch-row"><span><strong>🥾 Pieszo</strong><small>Przebieg odcinka pieszego</small></span><input id="layer-walk" type="checkbox" checked></label>
+<h3>Informacje drogowe</h3>
+<label class="switch-row"><span><strong>Status dostępności</strong><small>Domyślnie: niezweryfikowany</small></span><input id="layer-access" type="checkbox"></label>
+<label class="switch-row"><span><strong>Szlabany i przeszkody</strong><small>Pokazywane dopiero po włączeniu</small></span><input id="layer-gates" type="checkbox"></label>
+<label class="switch-row"><span><strong>Nawierzchnia</strong><small>Warstwa planowana — brak danych demo</small></span><input id="layer-surface" type="checkbox"></label>
+<label class="switch-row"><span><strong>Punkty publiczne</strong><small>Ukryte w domyślnym widoku</small></span><input id="layer-places" type="checkbox"></label>
+<p id="layers-feedback" class="hint" role="status" aria-live="polite">Przy trasie dostępność prawna pozostaje niezweryfikowana, niezależnie od warstw.</p></div>
+</section>
+<section id="road-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="road-heading" hidden>
+<button class="sheet-handle" type="button" aria-label="Zwiń lub rozwiń informacje o drodze" aria-expanded="true" aria-controls="road-content" title="Przesuń, aby rozwinąć lub zamknąć panel"></button>
+<div class="sheet-head"><h2 id="road-heading">Informacja o odcinku</h2><button id="close-road" class="close" type="button" aria-label="Zamknij informacje o drodze">×</button></div>
+<div class="sheet-content" id="road-content"><p class="hint">Karta otwierana wyłącznie po dotknięciu odcinka na mapie.</p>
+<div class="status"><span class="dot"></span><strong>Dostępność niezweryfikowana</strong></div>
+<div class="row"><span>Trasa</span><strong>Przykład samochodowy</strong></div>
+<div class="row"><span>OSM</span><strong>Podgląd geometrii</strong></div>
+<div class="row"><span>NVDB</span><strong>Niepodłączone w makiecie</strong></div>
+<div class="row"><span>STFS</span><strong>Niepodłączone w makiecie</strong></div>
+<div class="row"><span>Ostatnia weryfikacja</span><strong>Brak</strong></div>
+<p class="caution">Nie oznaczamy drogi jako legalnie dostępnej tylko dlatego, że znajduje się w OSM lub silnik wyznaczył po niej trasę. Znaki i aktualne ograniczenia mają pierwszeństwo.</p>
+<p class="note">To karta demonstracyjna UX. Nie odnosi się do faktycznego statusu żadnej konkretnej drogi.</p></div>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+(()=>{
+ const el=id=>document.getElementById(id);
+ const modal={layers:el('layers-sheet'),road:el('road-sheet')},scrim=el('scrim');
+ let opened=null,returnFocus=null;
+ function open(name){
+  if(opened===name){close();return;}
+  if(!modal[name])return;
+  if(!opened) returnFocus=document.activeElement;
+  for(const key in modal)modal[key].hidden=key!==name;
+  scrim.hidden=false;opened=name;
+  modal[name].dataset.collapsed='false';
+  modal[name].style.removeProperty('--swipe-offset');
+  modal[name].querySelector('.sheet-handle').setAttribute('aria-expanded','true');
+  el('open-layers').setAttribute('aria-expanded',name==='layers'?'true':'false');
+  el(name==='layers'?'close-layers':'close-road').focus();
+ }
+ function close(){
+  if(!opened)return;
+  for(const key in modal){
+   modal[key].style.removeProperty('--swipe-offset');
+   delete modal[key].dataset.dragging;
+   delete modal[key].dataset.collapsed;
+  }
+  modal.layers.hidden=true;modal.road.hidden=true;scrim.hidden=true;opened=null;
+  el('open-layers').setAttribute('aria-expanded','false');
+  if(returnFocus&&typeof returnFocus.focus==='function')returnFocus.focus();
+  returnFocus=null;
+ }
+ el('open-layers').addEventListener('click',()=>open('layers'));
+ el('close-layers').addEventListener('click',close);
+ el('close-road').addEventListener('click',close);
+ // A real, keyboard-accessible drag handle: tap to toggle, swipe up to expand,
+ // swipe down to collapse, then swipe down again to dismiss.
+ for(const sheet of Object.values(modal)){
+  const handle=sheet.querySelector('.sheet-handle');
+  let dragging=false,startY=0,lastY=0,moved=false,suppressClick=false;
+  function setCollapsed(value){
+   sheet.dataset.collapsed=value?'true':'false';
+   handle.setAttribute('aria-expanded',value?'false':'true');
+   if(value)handle.focus();
+  }
+  handle.addEventListener('pointerdown',event=>{
+   if(opened===null||modal[opened]!==sheet||event.button!==0)return;
+   if(event.pointerType!=='touch'&&event.pointerType!=='pen')return;
+   dragging=true;moved=false;startY=event.clientY;lastY=event.clientY;
+   sheet.dataset.dragging='true';
+   handle.setPointerCapture(event.pointerId);
+  });
+  handle.addEventListener('pointermove',event=>{
+   if(!dragging)return;
+   lastY=event.clientY;
+   const distance=lastY-startY;
+   if(Math.abs(distance)>8)moved=true;
+   const offset=Math.max(-100,Math.min(distance,240));
+   sheet.style.setProperty('--swipe-offset',offset+'px');
+  });
+  function endDrag(event){
+   if(!dragging)return;
+   dragging=false;delete sheet.dataset.dragging;
+   sheet.style.removeProperty('--swipe-offset');
+   const distance=lastY-startY;
+   if(moved){
+    suppressClick=true;
+    if(distance>130&&sheet.dataset.collapsed==='true')close();
+    else if(distance>55)setCollapsed(true);
+    else if(distance< -55)setCollapsed(false);
+   }
+   if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+  }
+  handle.addEventListener('pointerup',endDrag);
+  handle.addEventListener('pointercancel',endDrag);
+  handle.addEventListener('click',()=>{
+   if(suppressClick){suppressClick=false;return;}
+   if(opened===null||modal[opened]!==sheet)return;
+   setCollapsed(sheet.dataset.collapsed!=='true');
+  });
+ }
+ scrim.addEventListener('click',close);
+ document.addEventListener('keydown',event=>{
+  if(event.key==='Escape')close();
+  if(event.key==='Tab'&&opened){
+   const sheet=modal[opened],focusable=[...sheet.querySelectorAll('button:not(:disabled), input:not(:disabled)')];
+   if(!focusable.length)return;
+   const first=focusable[0],last=focusable[focusable.length-1];
+   if(event.shiftKey&&document.activeElement===first){last.focus();event.preventDefault();}
+   else if(!event.shiftKey&&document.activeElement===last){first.focus();event.preventDefault();}
+  }
+ });
+ if(!window.L){el('map').textContent='Mapa wymaga połączenia z internetem.';return;}
+ const map=L.map('map',{zoomControl:false}).setView([59.181,17.856],12);
+ L.control.zoom({position:'bottomright'}).addTo(map);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19,attribution:'© OpenStreetMap contributors'
+ }).addTo(map);
+ const drive=L.polyline([
+  [59.19965,17.83708],[59.1931,17.845],[59.1832,17.858],
+  [59.1722,17.870],[59.1625,17.88028]
+ ],{color:'#e0ad5c',weight:6,opacity:.94}).addTo(map);
+ const walk=L.polyline([
+  [59.1625,17.88028],[59.164,17.875],[59.1636,17.8622]
+ ],{color:'#67c39b',weight:5,dashArray:'7 7',opacity:.94}).addTo(map);
+ drive.on('click',()=>open('road'));
+ const icon=(label,style='')=>L.divIcon({
+  className:'',iconSize:[31,31],iconAnchor:[15,15],
+  html:'<div class="fake-pin '+style+'">'+label+'</div>'
+ });
+ const a=L.marker([59.19965,17.83708],{icon:icon('1')}).addTo(map);
+ const b=L.marker([59.1625,17.88028],{icon:icon('2')}).addTo(map);
+ const c=L.marker([59.1636,17.8622],{icon:icon('3')}).addTo(map);
+ for(const m of [a,b,c])m.on('click',()=>open('road'));
+ const access=L.marker([59.1785,17.865],{icon:icon('?','question')});
+ access.on('click',()=>open('road'));
+ const gate=L.marker([59.186,17.850],{icon:icon('!','barrier')});
+ gate.on('click',()=>open('road'));
+ const place=L.marker([59.169,17.877],{icon:icon('P','place')});
+ place.on('click',()=>open('road'));
+ const layers={
+  'layer-drive':drive,'layer-walk':walk,'layer-access':access,'layer-gates':gate,'layer-places':place
+ };
+ for(const [id,layer] of Object.entries(layers)){
+  el(id).addEventListener('change',()=>{
+   if(el(id).checked)map.addLayer(layer);else map.removeLayer(layer);
+   el('layers-feedback').textContent='Zmieniono widoczność. Warstwy nie zmieniają współrzędnych ani statusu prawnego drogi.';
+  });
+ }
+ el('layer-surface').addEventListener('change',()=>{
+  el('layers-feedback').textContent='Warstwa nawierzchni jest planowana. W makiecie nie ma jeszcze danych NVDB ani OSM o nawierzchni.';
+ });
+ const previewBounds=L.latLngBounds([[59.19965,17.83708],[59.1625,17.88028],[59.1636,17.8622]]);
+ function fitPreview(){
+  map.invalidateSize({pan:false});
+  map.fitBounds(previewBounds,{padding:[65,50],maxZoom:14,animate:false});
+ }
+ fitPreview();
+ requestAnimationFrame(fitPreview);
+})();
+</script></body></html>
