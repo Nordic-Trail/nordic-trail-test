@@ -1,0 +1,439 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; connect-src https://tile.openstreetmap.org; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>NORDIC TRAIL — bezpieczny podgląd przezroczystości PR #17</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--bg:#101b17;--card:#1b2b22;--line:#3d5547;--accent:#c8d49c;--ink:#f2f1e8;--muted:#b9c7bb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Arial,sans-serif}
+header{position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;z-index:900;pointer-events:none;padding:7px 9px;background:transparent;border:0;border-radius:0;box-shadow:none}
+header strong{font-size:14px;letter-spacing:.045em;text-shadow:0 1px 3px #06130ee8,0 0 7px #06130eb8}
+header small{display:block;color:#f4f6db;font-size:10px;letter-spacing:.07em;margin-top:1px;text-shadow:0 1px 3px #06130ef2,0 0 7px #06130ed9}
+main{margin:0;padding:0;max-width:none}
+.workspace{max-width:900px;margin:auto;padding:0 14px 52px}
+.workspace-nav{position:sticky;top:0;z-index:1100;display:flex;align-items:center;justify-content:flex-start;gap:10px;margin:0 -14px 12px;padding:10px 14px;background:#102019f4;border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.workspace-nav button{width:auto;min-width:106px;min-height:44px;margin:0;padding:8px 15px;border-radius:22px;font-size:14px}
+.card{border:1px solid var(--line);background:var(--card);border-radius:13px;padding:16px;margin:14px 0}
+h2{font-size:17px;margin:0 0 10px}
+p{line-height:1.5}
+.hint{color:var(--muted);font-size:13px}
+label{display:block;margin:10px 0 5px;font-weight:600;font-size:13px}
+input,button,select{width:100%;min-height:44px;border-radius:9px;font:inherit;padding:10px 12px}
+input,select{border:1px solid #66806b;background:#102019;color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{border:0;background:var(--accent);color:#172219;font-weight:750;cursor:pointer;margin-top:10px}
+button.secondary{background:#31463a;border:1px solid #5e7765;color:var(--ink)}
+button:disabled{opacity:.5;cursor:wait}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1 1 150px}
+.status{border-radius:8px;background:#293f31;padding:10px 12px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.status.error{background:#55302e;color:#ffdfd9}
+#map-section{position:relative;width:100%;height:100vh;height:100dvh;min-height:340px;margin:0;padding:0;border:0;border-radius:0;background:#203026;overflow:hidden}
+#map{height:100%;width:100%;min-height:0;max-height:none;border:0;border-radius:0;background:#203026}
+.map-top-actions{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:900}
+.map-top-actions button{margin:0;width:auto;min-width:52px;min-height:49px;padding:8px 12px;border-radius:13px;background:#203a2ff0;border:1px solid #607d66;color:var(--ink);box-shadow:0 3px 14px #1420178a}
+.map-toolbar{position:absolute;bottom:calc(38px + env(safe-area-inset-bottom));left:12px;right:12px;z-index:900;display:flex;justify-content:flex-end;align-items:center;gap:9px;pointer-events:none}
+.map-toolbar>button{width:auto;flex:0 1 auto;margin:0;padding:9px 14px;min-width:48px;min-height:48px;font-size:14px;background:#254b37eb;border:1px solid #85a586;color:var(--ink);border-radius:24px;box-shadow:0 4px 16px #1420179a;pointer-events:auto}
+.map-toolbar #add-point-btn{background:#96b47c;color:#102015;padding:10px 18px}
+#map-action-status{position:absolute;left:12px;right:12px;bottom:calc(100px + env(safe-area-inset-bottom));z-index:850;margin:0;background:#172720f2;border:1px solid #637e66}
+#map-status{margin-top:12px}
+#public-list-details{margin-top:12px}#public-list-details summary{cursor:pointer;color:var(--accent);font-weight:600;padding:8px 0;min-height:44px}
+@media(max-width:380px){.map-toolbar>button{font-size:12px;padding:9px 10px}.map-top-actions button{font-size:13px}}
+@media(min-width:780px){.map-toolbar{left:auto;right:22px;bottom:48px}.map-top-actions{right:22px}}
+#my-points{list-style:none;margin:12px 0;padding:0;display:grid;gap:9px}
+#my-points li{background:#263c30;border:1px solid #486451;border-radius:12px;padding:12px;line-height:1.5;overflow-wrap:anywhere}
+#my-points li span{display:block}
+.point-sheet{position:fixed;left:50%;bottom:var(--nt-visual-bottom,0px);z-index:1200;transform:translateX(-50%);width:min(100%,550px);max-height:min(85dvh,calc(var(--nt-visible-height,100dvh) - 110px));overflow-y:auto;overscroll-behavior:contain;background:#1b2b22;border:1px solid #718873;border-radius:22px 22px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -15px 45px #0009;animation:sheet-enter .2s ease-out}
+@keyframes sheet-enter{from{transform:translate(-50%,18px);opacity:.5}to{transform:translate(-50%,0);opacity:1}}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.sheet-header h2{margin:0;font-size:20px}
+.sheet-close{width:44px;min-height:44px;flex:0 0 44px;margin:0;padding:0;border-radius:50%;background:#31463a;color:var(--ink);border:1px solid #5e7765}
+.point-sheet #selected-coords{font-size:12px;margin:6px 0 10px;background:#243b2f;padding:8px 10px}
+.point-sheet .sheet-header{gap:10px}
+.sheet-controls{display:flex;align-items:center;gap:6px}
+.sheet-controls button{flex:0 0 44px;min-width:44px;width:44px;height:44px;margin:0;padding:0;background:#31463a;color:var(--ink);border:1px solid #5e7765;border-radius:50%;font-size:22px}
+.sheet-controls #toggle-sheet-btn{flex:0 0 auto;min-width:82px;width:auto;border-radius:22px;padding:0 12px;font-size:13px;font-weight:700}
+.sheet-coords summary,.note-details summary{cursor:pointer;color:var(--muted);font-size:13px;min-height:36px;padding:9px 0}
+.note-details{margin:6px 0}.note-details label{margin-top:4px}
+.point-sheet.is-collapsed{height:auto;max-height:none;overflow:hidden;padding-bottom:calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 25px #0008}
+.point-sheet.is-collapsed .sheet-header h2{font-size:16px}
+.point-sheet.is-collapsed .sheet-body{display:none!important}
+.sheet-body{padding-top:6px}
+#kind-picker>p{margin:3px 0 10px}
+#change-location-btn{min-height:44px;font-size:13px;margin-top:8px}
+.point-sheet .sheet-header h2{min-width:0;flex:1}
+@media(max-height:650px){.point-sheet{max-height:78dvh}}
+@media(max-width:779px) and (orientation:portrait){.point-sheet{max-height:min(76dvh,calc(var(--nt-visible-height,100dvh) - var(--nt-map-clearance,220px)))}}
+
+.kind-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}
+.kind-option{margin:0;min-height:70px;padding:8px 5px;background:#30483b;border:1px solid #65836c;color:var(--ink);font-size:13px;line-height:1.2}
+.kind-option .kind-icon{display:block;font-size:23px;margin-bottom:5px}
+.sheet-kind-header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:10px}
+.sheet-kind-header button{width:auto;margin:0;min-height:44px;font-size:13px}
+#change-location-btn{margin-top:10px}
+@media(prefers-reduced-motion:reduce){.point-sheet{animation:none}}
+#points{font-size:13px;color:var(--muted);padding:0;margin:12px 0 0;list-style:none}
+#points li{padding:9px;border-bottom:1px solid var(--line)}
+#admin-queue-list{list-style:none;padding:0;margin:12px 0 0;font-size:13px}
+#admin-queue-list li{padding:10px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.note{border-left:3px solid var(--accent);padding-left:12px;color:var(--muted)}
+[hidden]{display:none!important}
+
+/* Approved minimal map design: transparent UI, accessible controls, no data changes. */
+:root{--nt-glass:rgba(20,42,30,.80);--nt-glass-icon:rgba(18,42,29,.28)}
+.map-top-actions{display:flex;align-items:center;gap:9px}
+.map-top-actions button{background:rgba(18,42,29,.44);border-color:rgba(233,245,224,.85);color:#fffef4;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.map-top-actions #open-layers-btn{display:grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;padding:0;background:var(--nt-glass-icon);border:1.5px solid rgba(241,249,228,.90);backdrop-filter:none;-webkit-backdrop-filter:none}
+#open-layers-btn svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px #06140de6)}
+#open-layers-btn[aria-expanded="true"]{background:rgba(33,62,42,.44)}
+.map-toolbar>button{background:rgba(18,42,29,.50);border-color:rgba(233,245,224,.85);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.map-toolbar #add-point-btn{background:rgba(150,180,124,.88);color:#102015}
+#map-action-status{background:rgba(20,42,30,.76);border-color:rgba(226,244,211,.78);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.point-sheet{background:var(--nt-glass);border-color:rgba(203,232,197,.77);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.sheet-close,.sheet-controls button{background:rgba(42,73,49,.56);color:#fffef4;border-color:rgba(225,241,215,.72)}
+.point-sheet #selected-coords{background:rgba(32,62,42,.64)}
+.kind-option{background:rgba(39,74,51,.65);border-color:rgba(188,222,182,.75)}
+.point-sheet .status{background:rgba(42,75,52,.70)}
+.leaflet-control-zoom.leaflet-bar{border:1px solid rgba(221,237,214,.75);border-radius:12px;overflow:hidden}
+.leaflet-control-zoom a,.leaflet-control-zoom a:focus{display:block;width:46px;height:46px;line-height:46px;color:#f5f8ee;background:rgba(18,42,29,.42);font-size:25px;font-weight:700;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.leaflet-control-zoom a:hover{color:#fff;background:rgba(32,61,40,.76)}
+.leaflet-control-zoom a.leaflet-disabled{color:#bcc5b6;background:rgba(26,43,33,.55)}
+.leaflet-control-attribution{font-size:10px!important;background:rgba(246,249,240,.74)!important;color:#14251c!important}
+.leaflet-control-attribution a{color:#143e61!important}
+#map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16)}
+.nt-layers-sheet{--nt-offset:0px;position:fixed;left:50%;bottom:0;z-index:1180;transform:translate(-50%,var(--nt-offset));width:min(100%,550px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
+.nt-layers-sheet[data-dragging="true"]{transition:none}
+.nt-layers-sheet.is-collapsed{max-height:min(135px,28dvh);overflow:hidden}
+.nt-layers-sheet.is-collapsed .nt-layer-body{display:none}
+.nt-layer-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;min-height:38px;margin:-18px 0 8px;padding:0;background:transparent;border:0;border-radius:8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.nt-layer-handle::before{content:"";width:54px;height:6px;border-radius:9px;background:#b6cbb3}
+.nt-layer-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nt-layer-header h2{margin:0;font-size:22px}
+.nt-layer-close{width:48px;min-width:48px;min-height:48px;margin:0;padding:0;background:rgba(46,75,52,.62);border:1px solid rgba(218,237,209,.65);border-radius:12px;color:#fffef4;font-size:23px}
+.nt-layer-body{font-size:16px}
+.nt-layer-intro{font-size:14px;color:var(--muted);line-height:1.5;margin:10px 0}
+.nt-layer-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;min-height:70px;border-bottom:1px solid rgba(188,215,182,.34);font-weight:600;font-size:17px}
+.nt-layer-option small{display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:3px}
+.nt-layer-option input{width:26px;min-width:26px;height:26px;min-height:26px;margin:0;accent-color:#afc987}
+.nt-layer-note{font-size:13px;line-height:1.45;background:rgba(50,59,39,.70);border-left:3px solid #f3d98a;border-radius:7px;padding:11px;margin:14px 0 0}
+@media(prefers-reduced-motion:reduce){.nt-layers-sheet{transition:none}}
+@media(forced-colors:active){.nt-layers-sheet,.point-sheet,.map-top-actions button,.map-toolbar button,.leaflet-control-zoom a{backdrop-filter:none;-webkit-backdrop-filter:none}}
+
+/* Unified translucent design. The map tile layer and underlying page remain intact.
+   Same 28% foreground surface opacity as the approved Layers icon.
+   Contrast is preserved through borders, text, and soft background blur. */
+:root{
+ --nt-glass-icon:rgba(18,42,29,.28);
+ --nt-glass:rgba(18,42,29,.28);
+ --nt-glass-edge:rgba(231,245,219,.82);
+}
+.map-top-actions button:not(#open-layers-btn),
+.map-toolbar>button,
+.map-toolbar #add-point-btn,
+#map-action-status,
+.point-sheet,
+.nt-layers-sheet,
+.nt-layer-close,
+.sheet-close,
+.sheet-controls button,
+.kind-option,
+.point-sheet #selected-coords,
+.point-sheet .status,
+.nt-layer-note{
+ background:var(--nt-glass-icon);
+ border-color:var(--nt-glass-edge);
+ color:#f5f8ee;
+ backdrop-filter:blur(5px);
+ -webkit-backdrop-filter:blur(5px);
+ text-shadow:0 1px 2px rgba(5,18,11,.85);
+}
+.map-top-actions button:not(#open-layers-btn),
+.map-toolbar>button,
+.map-toolbar #add-point-btn,
+.nt-layer-close,
+.sheet-close,
+.sheet-controls button,
+.kind-option{
+ box-shadow:0 2px 10px rgba(5,18,11,.48);
+}
+#open-layers-btn{
+ background:var(--nt-glass-icon);
+ border-color:var(--nt-glass-edge);
+}
+#open-layers-btn[aria-expanded="true"]{background:rgba(18,42,29,.36)}
+.point-sheet,.nt-layers-sheet{
+ background:var(--nt-glass-icon);
+ border-color:var(--nt-glass-edge);
+ backdrop-filter:blur(7px) saturate(1.1);
+ -webkit-backdrop-filter:blur(7px) saturate(1.1);
+ box-shadow:0 -12px 36px rgba(4,16,10,.58);
+}
+.nt-layer-note{border-left:3px solid #f3d98a}
+/* Workspace surfaces do not sit over the map; retain a dark page backing,
+   while cards and controls follow the shared semi-transparent design. */
+.workspace-nav,
+.workspace .card,
+#my-points li,
+#admin-queue-list li,
+.workspace input:not([type="checkbox"]),
+.workspace select,
+.workspace button,
+.workspace .status,
+.workspace button.secondary{
+ background:var(--nt-glass-icon);
+ border:1px solid rgba(194,220,185,.70);
+ color:#f1f4ec;
+ box-shadow:0 1px 8px rgba(3,15,9,.28);
+}
+.workspace-nav{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.workspace .card{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.workspace button:focus-visible,.workspace input:focus-visible,
+.map-top-actions button:focus-visible,.nt-layer-close:focus-visible{
+ outline:3px solid #f4f7db;outline-offset:3px;
+}
+.workspace .status.error,.point-sheet .status.error,#map-action-status.error{
+ background:rgba(105,32,28,.65);border-color:#f4b4a8;color:#fff0e7;
+}
+/* Strong visual differentiation for the principal action, without a solid tile. */
+.map-toolbar #add-point-btn{
+ border:2px solid #d3e6b9;
+ font-weight:800;
+}
+@media(forced-colors:active){
+ .point-sheet,.nt-layers-sheet,.workspace-nav,.workspace .card{
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+ }
+}
+
+
+/* Preview-only safety and affordance styles, live app styles remain unmodified. */
+.preview-banner{position:absolute;z-index:975;left:12px;top:calc(73px + env(safe-area-inset-top));max-width:310px;padding:7px 10px;border:1px solid #f3d98a;background:rgba(18,42,29,.42);border-radius:9px;color:#fff4d2;font-size:12px;text-shadow:0 1px 3px #051209}
+.preview-workspace-intro{margin:8px 0 18px}
+.preview-controls{display:flex;flex-wrap:wrap;gap:8px}
+.preview-controls button{width:auto;min-width:150px}
+.preview-note{font-size:13px;color:#d9e5d4}
+.preview-note strong{color:#fff}
+.preview-demo-badge{display:inline-block;font-size:11px;letter-spacing:.05em;color:#fff2cb;border:1px solid #dfd19e;border-radius:30px;padding:3px 8px}
+#point-sheet .sheet-header h2{overflow-wrap:anywhere}
+.preview-marker{display:grid;place-items:center;height:30px;width:30px;border:2px solid white;border-radius:50%;background:rgba(26,60,44,.55);color:white;font-size:15px;font-weight:800;text-shadow:0 1px 2px #051209}
+@media(max-width:500px){.preview-banner{top:calc(82px + env(safe-area-inset-top));font-size:11px;max-width:230px}.preview-controls button{flex:1 1 100%}}
+</style></head><body>
+<header><strong>NORDIC TRAIL</strong><small>MAKIETA PR #17</small></header>
+<main>
+<section id="map-section" aria-label="Pełnoekranowa mapa NORDIC TRAIL">
+<div id="map" aria-label="Mapa interaktywna; dotknij wolnego miejsca, aby dodać punkt"></div>
+<div class="map-top-actions"><button type="button" id="open-layers-btn" aria-label="Warstwy mapy" aria-expanded="false" aria-controls="map-layers-sheet" title="Warstwy mapy">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></button>
+<button type="button" id="open-workspace-btn" aria-label="Otwórz panel użytkownika, logowania i moderacji">☰ Panel</button></div>
+<p class="status" id="map-action-status" role="status" aria-live="polite" hidden></p>
+<div class="map-toolbar">
+<button type="button" id="add-point-btn" aria-label="Dodaj punkt do mapy">＋ Punkt</button>
+</div>
+</section>
+
+<div class="preview-banner">PODGLĄD STYLU · bez logowania i zapisu</div>
+<div id="map-layers-backdrop" hidden></div>
+<section id="map-layers-sheet" class="nt-layers-sheet" role="dialog" aria-modal="true" aria-labelledby="nt-layer-title" hidden>
+<button type="button" id="nt-layer-handle" class="nt-layer-handle" aria-label="Zwiń lub rozwiń warstwy" title="Przeciągnij w górę lub w dół" aria-controls="nt-layer-body" aria-expanded="true"></button>
+<div class="nt-layer-header"><h2 id="nt-layer-title">Warstwy</h2><button type="button" id="nt-layer-close" class="nt-layer-close" aria-label="Zamknij warstwy">×</button></div>
+<div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wyświetlaj tylko potrzebne informacje.</p>
+<label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne<small>Zatwierdzone punkty NORDIC TRAIL</small></span>
+<input type="checkbox" id="nt-public-points-layer" checked></label>
+<p class="nt-layer-note">Dostępność dróg pozostaje niezweryfikowana. Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł. Routing nie oznacza prawa przejazdu.</p>
+</div></section>
+
+
+<div class="workspace" id="workspace" aria-label="Przykładowe karty użytkownika">
+ <nav class="workspace-nav" aria-label="Przejście do mapy"><button type="button" id="back-to-map-btn" class="secondary">← Mapa</button></nav>
+ <div class="preview-workspace-intro"><span class="preview-demo-badge">BEZ DANYCH UŻYTKOWNIKA</span>
+ <h2>Podgląd pozostałych pól</h2>
+ <p class="preview-note">To przykładowe karty z rzeczywistymi stylami z PR #17. Pod tym obszarem jest ciemne tło strony, nie mapa — dlatego przezroczystość wygląda tu inaczej niż na panelach wysuwanych na mapie.</p>
+ </div>
+ <section class="card"><h2>Punkty publiczne</h2><p class="status" role="status">Przykładowa wiadomość informacyjna. Nic nie jest pobierane z bazy.</p>
+  <div class="preview-controls"><button type="button" class="secondary" id="show-road-preview">Zobacz kartę drogi (koncepcja)</button><button type="button" class="secondary" id="show-point-preview">Zobacz edytor punktu</button></div>
+ </section>
+ <section class="card"><h2>Moje punkty — wygląd listy</h2>
+  <ul id="my-points"><li><strong>🚧 Przykładowy szlaban</strong><span>Status: nieznany · szkic demonstracyjny</span></li><li><strong>📍 Przykładowe miejsce</strong><span>Status: dostępność niezweryfikowana</span></li></ul>
+ </section>
+ <section class="card"><h2>Formularz — wygląd pól</h2>
+ <p class="preview-note">Te pola służą tylko ocenie wyglądu. Nie wpisuj danych osobowych.</p>
+ <label for="preview-name">Przykładowa nazwa punktu</label><input type="text" id="preview-name" value="Punkt demonstracyjny" readonly>
+ <label for="preview-type">Rodzaj</label><select id="preview-type"><option>Miejsce</option><option>Szlaban</option><option>Droga zamknięta</option></select>
+ <button type="button" class="secondary" id="show-error">Pokaż przykładowy komunikat błędu</button>
+ <p class="status error" id="preview-error" hidden>To wyłącznie przykład wyróżnionego komunikatu — bez rzeczywistego błędu.</p>
+ </section>
+ <section class="card"><h2>Karta informacji — przykład</h2>
+ <div class="status">Dostępność drogi: niezweryfikowana.</div>
+ <p class="note">Dane NVDB i STFS nie są podłączone do tego podglądu.</p>
+ </section>
+</div>
+<section class="point-sheet" id="point-sheet" role="dialog" aria-modal="false" aria-labelledby="point-sheet-title" hidden>
+<div class="sheet-header">
+<h2 id="point-sheet-title">Dodaj punkt</h2>
+<div class="sheet-controls">
+<button type="button" id="toggle-sheet-btn" aria-expanded="true" aria-controls="sheet-body" aria-label="Zwiń panel">Zwiń</button>
+<button type="button" id="close-sheet-btn" class="sheet-close" aria-label="Anuluj dodawanie punktu">✕</button>
+</div>
+</div>
+<div class="sheet-body" id="sheet-body">
+<details class="sheet-coords" id="point-coords-details">
+<summary>Położenie punktu · szczegóły</summary>
+<p class="status" id="selected-coords" role="status">Nie wybrano współrzędnych.</p>
+</details>
+<div id="kind-picker">
+<p class="hint">Jaki punkt chcesz dodać?</p>
+<div class="kind-options" role="group" aria-label="Wybierz rodzaj punktu">
+<button type="button" class="kind-option" data-kind="gate"><span class="kind-icon" aria-hidden="true">🚧</span>Szlaban</button>
+<button type="button" class="kind-option" data-kind="closed"><span class="kind-icon" aria-hidden="true">⛔</span>Droga zamknięta</button>
+<button type="button" class="kind-option" data-kind="place"><span class="kind-icon" aria-hidden="true">📍</span>Miejsce</button>
+</div></div>
+<div id="sheet-fields" hidden>
+<div class="sheet-kind-header">
+<strong id="chosen-kind-label"></strong>
+<button type="button" class="secondary" id="change-kind-btn">Zmień rodzaj</button>
+</div>
+<form id="draft-form">
+<input type="hidden" id="point-kind" value="">
+<label for="point-status">Status punktu</label>
+<select id="point-status" required></select>
+<details class="note-details" id="note-details">
+<summary>＋ Dodaj opis (opcjonalnie)</summary>
+<label for="point-note">Opis (maks. 120 znaków)</label>
+<input id="point-note" maxlength="120" autocomplete="off" placeholder="np. TEST STAGING — szlaban">
+</details>
+<button id="save-draft-btn" type="submit" disabled>Zapisz prywatny szkic</button>
+</form>
+<p class="hint">Szkic będzie prywatny do czasu zatwierdzenia przez administratora.</p>
+</div>
+<p class="status" id="point-sheet-status" role="status" aria-live="polite" hidden></p>
+<button type="button" class="secondary" id="change-location-btn">⌖ Zmień lokalizację</button>
+</div>
+</section>
+
+
+<section id="preview-road-sheet" class="point-sheet" role="dialog" aria-modal="false" aria-labelledby="preview-road-title" hidden>
+ <div class="sheet-header"><h2 id="preview-road-title">Informacja o drodze — koncepcja</h2>
+ <div class="sheet-controls"><button type="button" id="preview-road-close" aria-label="Zamknij informacje o drodze" class="sheet-close">✕</button></div></div>
+ <div class="sheet-body">
+  <p class="status">Dostępność niezweryfikowana</p>
+  <details class="note-details" open><summary>Źródła danych</summary><p class="note">OSM: geometria pokazowa. NVDB: brak połączenia. STFS: brak połączenia.</p></details>
+  <p class="hint">Mapa nie potwierdza prawa przejazdu.</p>
+ </div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+(()=>{
+ const el=id=>document.getElementById(id);
+ const map=L.map('map',{zoomControl:false}).setView([59.19,17.85],12);
+ L.control.zoom({position:'bottomleft'}).addTo(map);
+ map.attributionControl.setPrefix('');
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19,attribution:'© OpenStreetMap contributors'
+ }).addTo(map);
+ const publicMarkers=L.layerGroup().addTo(map);
+ const markerIcon=n=>L.divIcon({className:'',html:'<div class="preview-marker">'+n+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
+ [[59.194,17.852],[59.16,17.866]].forEach((xy,i)=>{
+  L.marker(xy,{icon:markerIcon(String(i+1))}).addTo(publicMarkers).on('click',openPoint);
+ });
+ const sheet=el('map-layers-sheet'),backdrop=el('map-layers-backdrop'),layersButton=el('open-layers-btn');
+ const point=el('point-sheet'),road=el('preview-road-sheet');
+ function closePoint(){point.hidden=true;el('preview-road-sheet').hidden=true;}
+ function closeLayers(){
+  if(sheet.hidden)return;
+  sheet.hidden=true;backdrop.hidden=true;sheet.classList.remove('is-collapsed');
+  sheet.style.removeProperty('--nt-offset');delete sheet.dataset.dragging;
+  layersButton.setAttribute('aria-expanded','false');
+  layersButton.focus();
+ }
+ function openLayers(){
+  if(!sheet.hidden){closeLayers();return}
+  closePoint();
+  sheet.hidden=false;backdrop.hidden=false;sheet.classList.remove('is-collapsed');
+  el('nt-layer-handle').setAttribute('aria-expanded','true');
+  layersButton.setAttribute('aria-expanded','true');el('nt-layer-close').focus();
+ }
+ function openPoint(){
+  closeLayers();closePoint();
+  point.hidden=false;el('kind-picker').hidden=false;el('sheet-fields').hidden=true;
+  point.classList.remove('is-collapsed');
+  el('point-sheet-title').textContent='Dodaj punkt — podgląd';
+  window.scrollTo({top:0,behavior:'smooth'});
+ }
+ function openRoad(){
+  closeLayers();closePoint();road.hidden=false;
+  window.scrollTo({top:0,behavior:'smooth'});
+ }
+ el('open-layers-btn').addEventListener('click',openLayers);
+ el('nt-layer-close').addEventListener('click',closeLayers);
+ backdrop.addEventListener('click',closeLayers);
+ el('open-workspace-btn').addEventListener('click',()=>{
+  closeLayers();closePoint();el('workspace').scrollIntoView({behavior:'smooth'});
+ });
+ el('back-to-map-btn').addEventListener('click',()=>{el('map-section').scrollIntoView({behavior:'smooth'});setTimeout(()=>map.invalidateSize({pan:false}),350)});
+ el('add-point-btn').addEventListener('click',openPoint);
+ el('show-point-preview').addEventListener('click',openPoint);
+ el('show-road-preview').addEventListener('click',openRoad);
+ el('preview-road-close').addEventListener('click',closePoint);
+ el('close-sheet-btn').addEventListener('click',closePoint);
+ el('show-error').addEventListener('click',()=>{el('preview-error').hidden=!el('preview-error').hidden;});
+ el('nt-public-points-layer').addEventListener('change',event=>{
+  if(event.target.checked)map.addLayer(publicMarkers);else map.removeLayer(publicMarkers);
+ });
+ for(const button of document.querySelectorAll('#kind-picker button[data-kind]')){
+  button.addEventListener('click',()=>{
+   el('kind-picker').hidden=true;el('sheet-fields').hidden=false;
+   el('chosen-kind-label').textContent=button.textContent.trim();
+   const choices={'gate':['Otwarty','Zamknięty','Nieznany'],'closed':['Przejezdna','Nieprzejezdna','Do sprawdzenia'],'place':['Dostępne','Niedostępne']};
+   const kind=button.getAttribute('data-kind');
+   el('point-kind').value=kind;el('point-status').replaceChildren();
+   for(const item of choices[kind]||[]){const o=document.createElement('option');o.textContent=item;o.value=item;el('point-status').appendChild(o)}
+  });
+ }
+ el('change-kind-btn').addEventListener('click',()=>{el('kind-picker').hidden=false;el('sheet-fields').hidden=true});
+ el('toggle-sheet-btn').addEventListener('click',()=>{
+  const collapsed=point.classList.toggle('is-collapsed');
+  el('toggle-sheet-btn').textContent=collapsed?'Rozwiń':'Zwiń';
+ });
+ el('change-location-btn').addEventListener('click',closePoint);
+ el('draft-form').addEventListener('submit',event=>event.preventDefault());
+ let dragging=false,startY=0,lastY=0,moved=false,suppress=false;
+ const handle=el('nt-layer-handle');
+ handle.addEventListener('pointerdown',event=>{
+  if(sheet.hidden||event.button!==0||!['touch','pen'].includes(event.pointerType))return;
+  dragging=true;moved=false;startY=lastY=event.clientY;sheet.dataset.dragging='true';handle.setPointerCapture(event.pointerId);
+ });
+ handle.addEventListener('pointermove',event=>{
+  if(!dragging)return;
+  lastY=event.clientY;const d=lastY-startY;if(Math.abs(d)>8)moved=true;
+  sheet.style.setProperty('--nt-offset',Math.max(-90,Math.min(d,200))+'px');
+ });
+ function end(event){
+  if(!dragging)return;dragging=false;delete sheet.dataset.dragging;sheet.style.removeProperty('--nt-offset');
+  const d=lastY-startY;
+  if(moved){suppress=true;
+   if(d>125&&sheet.classList.contains('is-collapsed'))closeLayers();
+   else if(d>55)sheet.classList.add('is-collapsed');
+   else if(d< -55)sheet.classList.remove('is-collapsed');
+  }
+  handle.setAttribute('aria-expanded',sheet.classList.contains('is-collapsed')?'false':'true');
+  if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+ }
+ handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',end);
+ handle.addEventListener('click',()=>{
+  if(suppress){suppress=false;return}
+  sheet.classList.toggle('is-collapsed');
+  handle.setAttribute('aria-expanded',sheet.classList.contains('is-collapsed')?'false':'true');
+ });
+ document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){closeLayers();closePoint();}
+  if(event.key!=='Tab'||sheet.hidden)return;
+  const els=[...sheet.querySelectorAll('button:not(:disabled),input:not(:disabled)')];
+  if(!els.length)return;
+  if(event.shiftKey&&document.activeElement===els[0]){els[els.length-1].focus();event.preventDefault();}
+  else if(!event.shiftKey&&document.activeElement===els[els.length-1]){els[0].focus();event.preventDefault();}
+ });
+ window.addEventListener('resize',()=>map.invalidateSize({pan:false}));
+})();</script>
+</body></html>
