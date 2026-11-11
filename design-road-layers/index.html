@@ -83,7 +83,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offse
  function open(name){
   if(opened===name){close();return;}
   if(!modal[name])return;
-  if(!opened)returnFocus=document.activeElement;
+  if(!opened) returnFocus=document.activeElement;
   for(const key in modal)modal[key].hidden=key!==name;
   scrim.hidden=false;opened=name;
   el('open-layers').setAttribute('aria-expanded',name==='layers'?'true':'false');
