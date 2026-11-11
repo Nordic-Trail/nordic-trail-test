@@ -34,4 +34,14 @@ const layerChecks=[
  ['No path draw as automotive restriction',html.includes('class="pin path"')&&html.includes('paths.clearLayers()')]
 ];
 for(const [name,passed] of layerChecks){console.log((passed?'PASS':'FAIL')+': '+name);assert.ok(passed,name)}
-console.log('Static OSM browser preview: '+(cases.length+layerChecks.length)+' PASS');
+
+const infoCases=[
+ ['Three source-aware detail views',html.includes("info('node',e.id,e.tags,'barrier')")&&html.includes("info('way',e.id,e.tags,'road')")&&html.includes("info('way',e.id,e.tags,'path')")],
+ ['Way centers are labeled approximate not legal extent',html.includes('nie zasięg ograniczenia.')&&html.includes('nie ograniczenie na drodze dla samochodów.')],
+ ['Recorded OSM snapshot and pack acquisition times separated',html.includes('id="info-source-asof"')&&html.includes('id="info-source-checked"')&&html.includes('sourceMeta={asOf:parsed.asOf,checkedAt:parsed.checkedAt}')],
+ ['Native original OSM record link stays validated',html.includes("Number.isSafeInteger(safeId)")&&html.includes("!['node','way'].includes(type)")],
+ ['Labels and source tags rendered via textContent only',html.includes("label.textContent=key;value.textContent=tags[key]")&&html.includes("el('info-heading').textContent=title")],
+ ['Legal caution and field verification remain explicit',html.includes('Dostępność prawna: niezweryfikowana.')&&html.includes('Weryfikacja w terenie')]
+];
+for(const [label,ok] of infoCases){console.log((ok?'PASS':'FAIL')+': '+label);assert.ok(ok,label);}
+console.log('Static OSM browser preview: '+(cases.length+layerChecks.length+infoCases.length)+' PASS');

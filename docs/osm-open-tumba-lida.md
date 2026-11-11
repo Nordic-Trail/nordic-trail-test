@@ -73,3 +73,9 @@ node scripts/osm_open_preview_check.cjs
 Review the actual data, timing, attribution and licensing before publishing.
 Do not check in temporary raw source or synthetic examples. Static map data
 and the approved STAGING interface are separate until explicitly approved.
+
+## Object details and controlled external source refresh
+
+The map's detail sheet now displays the object category (barrier / motor-road / path), exact saved OSM tags, OSM ID with a link to the original object, source snapshot time, pack acquisition time, and explicit **unverified** status. Way markers are approximate centers, not outlines of affected road sections. All content is rendered using textContent, with no user data or Supabase calls.
+
+One-off GitHub Actions workflows for downloading source data or rechecking nine records **no longer call external APIs automatically on every pull-request update**. PR checks use offline mocked tests; an explicit manual workflow dispatch is required for later retrieval after the workflow is available on the default branch. This reduces load on public OSM services. No GitHub Pages deployment is implied by these draft changes.
