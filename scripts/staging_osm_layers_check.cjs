@@ -35,7 +35,7 @@ const cases=[
  ['All OSM warnings explicit and unverified',html.includes('Dostępność prawna: niezweryfikowana.')&&html.includes("p.legal_access!=='unverified'")],
  ['OSM tag content rendered via textContent not innerHTML',html.includes('text.textContent=String(value)')&&html.includes('name.textContent=label')],
  ['Source ID link constrained to validated types and numeric IDs',html.includes("p.osm_type+'/'+p.osm_id")&&html.includes('Number.isSafeInteger(p.osm_id)')],
- ['Read-only OSM does not create point-edit records',html.includes('L.marker([p.lat,p.lon],{icon,bubblingMouseEvents:false,keyboard:true')],
+ ['Read-only OSM does not create point-edit records',html.includes("L.marker([p.lat,p.lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true")],
  ['Data pack size limit in app',html.includes('contents.length>120000')],
  ['Static JSON metadata includes source and acquisition timestamps',typeof pack.source_as_of==='string'&&typeof pack.source_checked_at==='string'],
  ['OSM labels do not classify footway as road',html.includes("['path','footway','cycleway'].includes(p.tags.highway)")],

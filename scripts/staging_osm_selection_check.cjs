@@ -11,7 +11,7 @@ const cases=[
  ['OSM markers all explicitly use lower pane',page.includes("L.marker([p.lat,p.lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true")],
  ['Public approved points still render in original circleMarker overlayPane',page.includes("L.circleMarker([lat,lon],{radius:8,color:colours[p.kind]")],
  ['OSM marker click does not bubble to draft-creation map handler',page.includes("L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind)")],
- ['Map click dismisses OSM card before any draft selection',js[0].indexOf("if(!el('nt-osm-detail-sheet').hidden){")<js[0].indexOf('    if(writingDraft)return;')],
+ ['Map click dismisses OSM card before any draft selection',js[0].slice(js[0].indexOf("  if(map)map.on('click',event=>{"),js[0].indexOf("    if(writingDraft)return;",js[0].indexOf("  if(map)map.on('click',event=>{"))).includes("if(!el('nt-osm-detail-sheet').hidden){")],
  ['Native popup opening dismisses OSM evidence card',page.includes("if(map)map.on('popupopen',closeOsmDetail)")],
  ['Layer-switch dialog and OSM detail never stack',page.includes('// Never stack the layers dialog above a selected OSM detail card.')],
  ['Disabling selected OSM layer closes stale detail card',page.includes("if(activeOsmKind&&!osmChecks[activeOsmKind].checked)")],
