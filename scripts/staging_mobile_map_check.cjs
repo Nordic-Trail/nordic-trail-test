@@ -116,4 +116,13 @@ const polishCases=[
 ];
 for(const [label,passed] of polishCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
 
-console.log('Mobile map checks: '+(cases.length+4+layerCases.length+glassCases.length+polishCases.length)+' PASS');
+const backdropCases=[
+ ['Existing map persists under cards',html.includes('#map-section{position:sticky;top:0;z-index:0}')],
+ ['Transparent workspace exposes actual map',html.includes('background:rgba(9,24,17,.43)')&&html.includes('backdrop-filter:blur(2.5px) saturate(.90)')],
+ ['Card and list backgrounds remain translucent',html.includes('.workspace .card,#my-points li{background:rgba(18,42,29,.30)')],
+ ['Return to map stays on right',html.includes('.workspace-nav #back-to-map-btn{margin-left:auto}')],
+ ['No duplicate Leaflet map', (html.match(/L.map\('map'/g)||[]).length===1]
+];
+for(const [label,passed] of backdropCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
+
+console.log('Mobile map checks: '+(cases.length+4+layerCases.length+glassCases.length+polishCases.length+backdropCases.length)+' PASS');

@@ -226,6 +226,19 @@ button:disabled{opacity:.5;cursor:wait}
 }
 .nt-layer-note{font-size:14px;line-height:1.5}
 .workspace .card h2,.nt-layer-header h2{color:#fffef5}
+
+/* True glass: keep the existing OSM map visible behind the workspace. */
+#map-section{position:sticky;top:0;z-index:0}
+.workspace{
+ position:relative;z-index:1;background:rgba(9,24,17,.43);
+ backdrop-filter:blur(2.5px) saturate(.90);
+ -webkit-backdrop-filter:blur(2.5px) saturate(.90);
+ border-left:1px solid rgba(193,224,183,.48);
+ border-right:1px solid rgba(193,224,183,.48);
+}
+.workspace .card,#my-points li{background:rgba(18,42,29,.30);border-color:rgba(225,241,215,.82)}
+.workspace-nav{background:rgba(18,42,29,.32);border-color:rgba(213,235,206,.78)}
+.workspace-nav #back-to-map-btn{margin-left:auto}
 </style>
 </head>
 <body>

@@ -223,6 +223,19 @@ button:disabled{opacity:.5;cursor:wait}
 .nt-layer-note{font-size:14px;line-height:1.5}
 .workspace .card h2,.nt-layer-header h2{color:#fffef5}
 
+/* True glass: keep the existing OSM map visible behind the workspace. */
+#map-section{position:sticky;top:0;z-index:0}
+.workspace{
+ position:relative;z-index:1;background:rgba(9,24,17,.43);
+ backdrop-filter:blur(2.5px) saturate(.90);
+ -webkit-backdrop-filter:blur(2.5px) saturate(.90);
+ border-left:1px solid rgba(193,224,183,.48);
+ border-right:1px solid rgba(193,224,183,.48);
+}
+.workspace .card,#my-points li{background:rgba(18,42,29,.30);border-color:rgba(225,241,215,.82)}
+.workspace-nav{background:rgba(18,42,29,.32);border-color:rgba(213,235,206,.78)}
+.workspace-nav #back-to-map-btn{margin-left:auto}
+
 
 /* Preview-only safety and affordance styles, live app styles remain unmodified. */
 .preview-banner{position:absolute;z-index:975;left:12px;top:calc(73px + env(safe-area-inset-top));max-width:310px;padding:7px 10px;border:1px solid #f3d98a;background:rgba(18,42,29,.42);border-radius:9px;color:#fff4d2;font-size:12px;text-shadow:0 1px 3px #051209}
@@ -265,7 +278,7 @@ button:disabled{opacity:.5;cursor:wait}
  <nav class="workspace-nav" aria-label="Przejście do mapy"><button type="button" id="back-to-map-btn" class="secondary">← Mapa</button></nav>
  <div class="preview-workspace-intro"><span class="preview-demo-badge">BEZ DANYCH UŻYTKOWNIKA</span>
  <h2>Podgląd pozostałych pól</h2>
- <p class="preview-note">To przykładowe karty z rzeczywistymi stylami z PR #17. Pod tym obszarem jest ciemne tło strony, nie mapa — dlatego przezroczystość wygląda tu inaczej niż na panelach wysuwanych na mapie.</p>
+ <p class="preview-note">To przykładowe karty z rzeczywistymi stylami z PR #17. Mapa pozostaje teraz delikatnie widoczna pod kartami panelu dzięki przezroczystemu tłu. To podgląd wyglądu bez danych użytkownika i bez zapisu.</p>
  </div>
  <section class="card"><h2>Punkty publiczne</h2><p class="status" role="status">Przykładowa wiadomość informacyjna. Nic nie jest pobierane z bazy.</p>
   <div class="preview-controls"><button type="button" class="secondary" id="show-road-preview">Zobacz kartę drogi (koncepcja)</button><button type="button" class="secondary" id="show-point-preview">Zobacz edytor punktu</button></div>
