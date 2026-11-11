@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "pilot_id": "tumba-lida-botkyrka",
+  "label": "Tumba–Lida, Botkyrka (approximate study envelope)",
+  "bbox_wgs84": [
+    17.775,
+    59.145,
+    17.92,
+    59.225
+  ],
+  "coordinate_order": "longitude, latitude",
+  "official_sources": [
+    "NVDB",
+    "STFS"
+  ],
+  "initial_products": [
+    "Väghållare",
+    "Vägbredd",
+    "Väghinder",
+    "Förbud mot trafik",
+    "STFS regulation records"
+  ],
+  "imported_source_records": 0,
+  "legal_access_default": "unverified",
+  "acquisition_status": "pending-official-export"
+}

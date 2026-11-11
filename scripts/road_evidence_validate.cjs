@@ -6,7 +6,7 @@ const CATEGORIES={
  STFS:new Set(['regulation_record'])
 };
 const HOSTS={
- NVDB:new Set(['nvdb.se','www.nvdb.se','nvdbpakarta.trafikverket.se','www.trafikverket.se','trafikverket.se','bransch.trafikverket.se']),
+ NVDB:new Set(['nvdb.se','www.nvdb.se','nvdbpakarta.trafikverket.se','www.trafikverket.se','trafikverket.se','bransch.trafikverket.se','data.trafikverket.se','lastkajen.trafikverket.se']),
  STFS:new Set(['www.transportstyrelsen.se','transportstyrelsen.se','rdt.transportstyrelsen.se','stfs.se','www.stfs.se'])
 };
 function dateOK(d,today){

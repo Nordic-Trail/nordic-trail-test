@@ -4,12 +4,14 @@ on:
     paths:
       - 'road-data/**'
       - 'scripts/road_evidence_*.cjs'
+      - 'scripts/road_pilot_*.cjs'
       - '.github/workflows/road-evidence-check.yml'
   push:
     branches: [main]
     paths:
       - 'road-data/**'
       - 'scripts/road_evidence_*.cjs'
+      - 'scripts/road_pilot_*.cjs'
       - '.github/workflows/road-evidence-check.yml'
 permissions:
   contents: read
@@ -24,3 +26,5 @@ jobs:
         run: node scripts/road_evidence_check.cjs
       - name: Validate curated evidence (initially empty)
         run: node scripts/road_evidence_validate.cjs road-data/reviewed-evidence.geojson
+      - name: Check Tumba-Lida study envelope
+        run: node scripts/road_pilot_check.cjs
