@@ -12,7 +12,7 @@ const cases=[
  ['Explicit non-collected state',html.includes("pack.coverage==='not_collected'")&&html.includes('Nie przygotowano jeszcze paczki')],
  ['Rejects false legal-access claims',html.includes("e.legal_access!=='unverified'")],
  ['Rejects duplicate OSM objects',html.includes("if(seen.has(id))throw Error")],
- ['Bounded and capped data',html.includes('pack.objects.length>300')&&html.includes('points.length>150||lines.length>150')],
+ ['Bounded and capped data',html.includes('pack.objects.length>300')&&html.includes('points.length>150||lines.length+paths.length>150')],
  ['Uses fixed BBOX and static pack area',html.includes('const QUERY_BOX=[59.155,17.81,59.203,17.875]')],
  ['Checks ODbL source',html.includes("pack.licence!=='ODbL'")&&html.includes('© OpenStreetMap contributors')],
  ['Displays legal caution for approximate way centers',html.includes('nie jako pełny zasięg zakazu')],
