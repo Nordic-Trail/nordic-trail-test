@@ -22,7 +22,7 @@ const cases=[
  ['No live Overpass access even on retry',!html.includes('overpass-api.de/api/interpreter')&&!html.includes('ovp.dresel.systems/api/interpreter')],
  ['Bounded static payload size',html.includes('raw.length>250000')],
  ['No false zero if no data collected',html.includes('Stan: niepobrane. Nie oznacza to braku szlabanów.')],
- ['Empty collected pack is distinct from not collected',html.includes("return {coverage:'collected',points,lines,asOf:")],
+ ['Empty collected pack is distinct from not collected',html.includes("return {coverage:'collected',points,lines,paths,asOf:")],
  ['Safe text rendering for OSM tags',html.includes('value.textContent=tags[key]')],
  ['Static preview does not send passwords',html.includes("credentials:'omit'")&&!html.includes('Authorization')]
 ];
