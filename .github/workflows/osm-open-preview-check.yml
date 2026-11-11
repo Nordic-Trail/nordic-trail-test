@@ -4,12 +4,14 @@ on:
     paths:
       - 'preview/osm-road-observations/**'
       - 'scripts/osm_open_preview_check.cjs'
+      - 'scripts/osm_static_pack*.cjs'
       - '.github/workflows/osm-open-preview-check.yml'
   push:
     branches: [main]
     paths:
       - 'preview/osm-road-observations/**'
       - 'scripts/osm_open_preview_check.cjs'
+      - 'scripts/osm_static_pack*.cjs'
       - '.github/workflows/osm-open-preview-check.yml'
 permissions:
   contents: read
@@ -20,5 +22,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Offline UX and security regression checks
+      - name: Offline UI checks
         run: node scripts/osm_open_preview_check.cjs
+      - name: Offline static OSM pack contract
+        run: node scripts/osm_static_pack_check.cjs

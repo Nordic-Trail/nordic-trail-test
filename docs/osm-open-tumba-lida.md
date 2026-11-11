@@ -50,3 +50,26 @@ limited requested memory, and now use `out center` instead of `out geom`.
 Ways are displayed **as approximate central points**, not the precise legal
 extent of restrictions. We also reject `remark` runtime error responses
 returned with HTTP 200. No cached official data has been imported yet.
+
+## Static pack architecture (2026-11-11)
+
+The Android attempts timed out when fetching live Overpass data. The new
+preview **never calls Overpass from the browser**. Its data comes from
+`preview/osm-road-observations/data/tumba-lida.json` on the same host.
+The shipped pack is **coverage = not_collected, 0 objects** and is not
+misrepresented as a genuinely empty OSM search. No real observations have
+yet been acquired, and no fictional results are shown.
+
+The offline converter `scripts/osm_static_pack.cjs` accepts a manually
+obtained real Overpass JSON file and emits a validated, small observation pack.
+Run (after acquiring a legitimate source file):
+
+```sh
+node scripts/osm_static_pack.cjs INPUT_OVERPASS.json preview/osm-road-observations/data/tumba-lida.json
+node scripts/osm_static_pack_check.cjs
+node scripts/osm_open_preview_check.cjs
+```
+
+Review the actual data, timing, attribution and licensing before publishing.
+Do not check in temporary raw source or synthetic examples. Static map data
+and the approved STAGING interface are separate until explicitly approved.

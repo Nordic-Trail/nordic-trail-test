@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src https://overpass-api.de https://ovp.dresel.systems https://tile.openstreetmap.org; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://tile.openstreetmap.org; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>NORDIC TRAIL — OSM Tumba–Lida (podgląd danych)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -60,29 +60,24 @@ a{color:#e9f6d7;text-decoration:underline}
 </head><body>
 <div id="map" aria-label="Mapa OSM — pilotaż Tumba–Lida"></div>
 <header class="brand"><strong>NORDIC TRAIL</strong><small>PODGLĄD OSM · TUMBA–LIDA</small></header>
-<div class="preview-notice">Dane OSM są społecznościowe i mogą być nieaktualne. Nie potwierdzają prawa przejazdu.</div>
+<div class="preview-notice">Podgląd statycznych danych OSM. Nie pobiera danych z Overpass na telefonie. Informacje nie potwierdzają prawa przejazdu.</div>
 <nav class="map-tools" aria-label="Narzędzia mapy">
 <button id="layers-button" type="button" aria-controls="layer-sheet" aria-expanded="false" aria-label="Warstwy mapy" title="Warstwy mapy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></button>
 </nav>
-<div id="status" class="status" role="status" aria-live="polite">Otwórz Warstwy, aby ręcznie pobrać publiczne dane OSM. Nie pobrano jeszcze żadnych obiektów.</div>
+<div id="status" class="status" role="status" aria-live="polite">Otwórz Warstwy, aby sprawdzić stan statycznej paczki OSM. Brak pobierania z Overpass.</div>
 <div id="scrim" class="scrim" hidden></div>
 <section id="layer-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="layer-heading" hidden>
 <button id="layer-handle" type="button" class="handle" aria-label="Zwiń lub rozwiń panel warstw" aria-expanded="true" aria-controls="layer-body"></button>
 <div class="sheet-head"><h2 id="layer-heading">Warstwy OSM</h2><button id="layer-close" type="button" class="close" aria-label="Zamknij panel">×</button></div>
 <div id="layer-body" class="sheet-body">
-<p class="micro">Bezpłatne dane bez logowania. Pobieramy lżejszą próbkę w centrum Tumba–Lida, wyłącznie po naciśnięciu przycisku.</p>
+<p class="micro">Bezpłatna paczka OSM przechowywana razem ze stroną. Wczytujemy plik lokalny z GitHub Pages, bez logowania i bez odpytywania Overpass.</p>
 <label class="switch" for="show-barriers"><span>Szlabany i przeszkody<small>Obiekty oznaczone w OpenStreetMap</small></span><input id="show-barriers" type="checkbox" checked></label>
 <label class="switch" for="show-restrictions"><span>Ograniczenia oznaczone w OSM<small>Punkty reprezentujące drogi z tagami access / motor_vehicle = no lub private</small></span><input id="show-restrictions" type="checkbox" checked></label>
-<label class="server-label" for="overpass-server">Serwer danych (bez logowania)</label>
-<select id="overpass-server" aria-describedby="server-help">
-<option value="europe">Overpass Europa — dzienna aktualizacja</option>
-<option value="main">Overpass główny — aktualne dane, bywa przeciążony</option>
-</select>
-<p id="server-help" class="micro">Jeśli pierwszy serwer nie odpowie, możesz ręcznie wybrać drugi. Nie tworzymy konta i nie wysyłamy haseł.</p>
-<button id="load-osm" class="load" type="button">Pobierz publiczne dane OSM</button>
-<p id="load-result" class="micro" role="status" aria-live="polite">Pobrane obiekty: 0. Stan niezweryfikowany.</p>
+<p class="micro">Źródło: statyczny plik <strong>Tumba–Lida</strong>. Stan i datę pozyskania pokażemy po odczytaniu metadanych.</p>
+<button id="load-osm" class="load" type="button">Sprawdź paczkę danych OSM</button>
+<p id="load-result" class="micro" role="status" aria-live="polite">Nie sprawdzono jeszcze paczki. Nie wyciągamy wniosków o ograniczeniach.</p>
 <div class="caution">Uwaga: wpis w OSM jest wskazówką do weryfikacji, nie urzędowym potwierdzeniem ograniczenia. Oznaczenia dróg są pokazane w punkcie przybliżonego środka, <strong>nie jako pełny zasięg zakazu</strong>. Brak wpisu <strong>nie oznacza</strong>, że drogą wolno przejechać.</div>
-<p class="source"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors — ODbL</a> · Źródło zapytań: <a href="https://wiki.openstreetmap.org/wiki/Overpass_API" target="_blank" rel="noopener noreferrer">Overpass API</a></p>
+<p class="source"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors — ODbL</a> · Paczka statyczna projektu, przygotowywana oddzielnie z OSM.</p>
 </div></section>
 <section id="info-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="info-heading" hidden>
 <button id="info-handle" type="button" class="handle" aria-label="Zwiń lub rozwiń informacje o obiekcie" aria-expanded="true" aria-controls="info-body"></button>
@@ -97,12 +92,9 @@ a{color:#e9f6d7;text-decoration:underline}
 'use strict';
 (()=>{
  const el=id=>document.getElementById(id);
- const BBOX=[59.145,17.775,59.225,17.920]; // southwest-northeast, broader pilot study envelope
- const QUERY_BOX=[59.155,17.81,59.203,17.875]; // smaller sample around Tumba-Lida
- const OVERPASS_ENDPOINTS=Object.freeze({
-  europe:'https://ovp.dresel.systems/api/interpreter',
-  main:'https://overpass-api.de/api/interpreter'
- });
+ const BBOX=[59.145,17.775,59.225,17.920]; // broader pilot study envelope
+ const QUERY_BOX=[59.155,17.81,59.203,17.875]; // static file area
+ const STATIC_DATA='data/tumba-lida.json';
  const map=L.map('map',{zoomControl:false}).setView([59.187,17.845],12);
  L.control.zoom({position:'bottomleft'}).addTo(map);
  map.attributionControl.setPrefix('');
@@ -110,7 +102,7 @@ a{color:#e9f6d7;text-decoration:underline}
  const barriers=L.layerGroup().addTo(map),restrictions=L.layerGroup().addTo(map);
  const button=el('layers-button'),scrim=el('scrim');
  const sheets={layers:el('layer-sheet'),info:el('info-sheet')};
- let current=null,requested=false,lastAttemptAt=0,records=0;
+ let current=null,requested=false,records=0;
  function notice(message){el('status').textContent=message;}
  function close(){
   if(!current)return;
@@ -180,24 +172,37 @@ a{color:#e9f6d7;text-decoration:underline}
   el('osm-object-link').href='https://www.openstreetmap.org/'+type+'/'+safeId;
   open('info');
  }
- function parseOsm(data){
-  if(!data||!Array.isArray(data.elements))throw Error('Brak poprawnej odpowiedzi OSM.');
-  if(data.elements.length>3000)throw Error('Zbyt wiele danych. Nie wyświetlono częściowego wyniku.');
-  const points=[],lines=[],seen=new Set();
-  for(const e of data.elements){
-   if(!e||!Number.isSafeInteger(e.id)||e.id<=0||!e.tags||typeof e.tags!=='object')continue;
-   const key=e.type+'/'+e.id;
-   if(seen.has(key))continue;seen.add(key);
-   if(e.type==='node'&&['gate','lift_gate','swing_gate','bollard'].includes(e.tags.barrier)){
-    if(bounded(e.lat,e.lon))points.push(e);
-   }
-   if(e.type==='way'&&e.tags.highway&&['no','private'].some(v=>e.tags.motor_vehicle===v||e.tags.access===v)){
-    // out center returns a representative point, not the legal/physical road extent.
-    if(!e.center||!bounded(e.center.lat,e.center.lon))continue;
-    lines.push(e);
-   }
+ function parsePack(pack){
+  if(!pack||pack.schema_version!==1||pack.area!=='tumba-lida'||
+   pack.source!=='OpenStreetMap'||pack.licence!=='ODbL'||
+   JSON.stringify(pack.bbox)!==JSON.stringify(QUERY_BOX)||
+   !['not_collected','collected'].includes(pack.coverage)||
+   !Array.isArray(pack.objects)||pack.objects.length>300)throw Error('Nieprawidłowy plik paczki OSM.');
+  if(pack.coverage==='not_collected'){
+   if(pack.objects.length!==0||pack.source_checked_at!==null||pack.source_as_of!==null)throw Error('Nieprawidłowy status paczki.');
+   return {coverage:'not_collected',points:[],lines:[],asOf:null};
   }
-  return {points:points.slice(0,150),lines:lines.slice(0,150)};
+  if(typeof pack.source_checked_at!=='string'||!Number.isFinite(Date.parse(pack.source_checked_at))||
+   !(pack.source_as_of===null||(typeof pack.source_as_of==='string'&&!Number.isNaN(Date.parse(pack.source_as_of)))))
+   throw Error('Brak poprawnej daty paczki.');
+  const points=[],lines=[],seen=new Set();
+  for(const e of pack.objects){
+   if(!e||!['node','way'].includes(e.osm_type)||!Number.isSafeInteger(e.osm_id)||e.osm_id<=0||
+    !bounded(e.lat,e.lon)||e.legal_access!=='unverified'||!e.tags||
+    typeof e.tags!=='object'||Array.isArray(e.tags))throw Error('Nieprawidłowe dane obiektów.');
+   const id=e.osm_type+'/'+e.osm_id;
+   if(seen.has(id))throw Error('Powtórzony obiekt.');
+   seen.add(id);
+   if(e.kind==='barrier'&&e.osm_type==='node'&&e.location_precision==='mapped_point'&&
+    ['gate','lift_gate','swing_gate','bollard'].includes(e.tags.barrier))
+    points.push({id:e.osm_id,lat:e.lat,lon:e.lon,tags:e.tags});
+   else if(e.kind==='restriction'&&e.osm_type==='way'&&e.location_precision==='approximate_way_center'&&
+    e.tags.highway&&['no','private'].some(v=>e.tags.motor_vehicle===v||e.tags.access===v))
+    lines.push({id:e.osm_id,center:{lat:e.lat,lon:e.lon},tags:e.tags});
+   else throw Error('Nieznana kategoria danych.');
+  }
+  if(points.length>150||lines.length>150)throw Error('Zbyt wiele obiektów.');
+  return {coverage:'collected',points,lines,asOf:pack.source_as_of||pack.source_checked_at};
  }
  function render(parsed){
   barriers.clearLayers();restrictions.clearLayers();
@@ -212,7 +217,7 @@ a{color:#e9f6d7;text-decoration:underline}
   records=parsed.points.length+parsed.lines.length;
   toggleMap();
   el('load-result').textContent='OSM: '+parsed.points.length+' przeszkód i '+parsed.lines.length+' dróg z tagami ograniczeń (przybliżone punkty). Niezweryfikowane.';
-  notice(records?'Wyświetlono '+records+' obiektów OSM. Nie potwierdzono ich aktualności ani prawa przejazdu.':'Nie znaleziono wybranych tagów OSM; nie oznacza to braku ograniczeń.');
+  notice(records?'Wyświetlono '+records+' obserwacji OSM z paczki. Nie potwierdzono ich aktualności ani prawa przejazdu.':'W zweryfikowanej strukturze paczki nie znaleziono oznaczeń OSM. Nie oznacza to braku ograniczeń.');
  }
  function toggleMap(){
   const config=[['show-barriers',barriers],['show-restrictions',restrictions]];
@@ -220,63 +225,30 @@ a{color:#e9f6d7;text-decoration:underline}
  }
  el('show-barriers').addEventListener('change',toggleMap);
  el('show-restrictions').addEventListener('change',toggleMap);
- const query='[out:json][timeout:18][maxsize:53687091];(node["barrier"~"^(gate|lift_gate|swing_gate|bollard)$"]('+QUERY_BOX.join(',')+');way["highway"]["motor_vehicle"~"^(no|private)$"]('+QUERY_BOX.join(',')+');way["highway"]["access"~"^(no|private)$"]('+QUERY_BOX.join(',')+'););out center;';
- // User must explicitly choose a public endpoint. No automatic fallback/retry:
- // public Overpass servers have usage limits shared by many applications.
- function humanError(err){
-  if(err?.name==='AbortError')return 'Limit czasu (25 s). Serwer nie odpowiedział na czas.';
-  if(err?.name==='TypeError')return 'Brak odpowiedzi dostępnej dla przeglądarki: problem sieci, CORS lub blokada serwera.';
-  const msg=typeof err?.message==='string'?err.message:'Nieznany błąd';
-  const match=/HTTP (406|429|502|503|504)/.exec(msg);
-  if(match)return 'Serwer przeciążony lub ogranicza zapytania (HTTP '+match[1]+'). Nie ponawiaj od razu.';
-  if(msg.startsWith('HTTP '))return 'Serwer zwrócił błąd '+msg+'.';
-  if(msg.includes('Odpowiedź zbyt duża'))return msg;
-  if(msg.startsWith('Overpass: '))return 'Serwer Overpass zgłosił: '+msg.slice(10,120)+'.';
-  if(msg.includes('JSON'))return 'Serwer nie zwrócił prawidłowych danych JSON.';
-  return 'Nie udało się przetworzyć odpowiedzi serwera.';
- }
  el('load-osm').addEventListener('click',async()=>{
-  const now=Date.now();
   if(requested)return;
-  if(lastAttemptAt&&now-lastAttemptAt<60000){
-   const wait=Math.ceil((60000-(now-lastAttemptAt))/1000);
-   notice('Aby nie przeciążać publicznych serwerów, kolejne zapytanie za '+wait+' s.');
-   return;
-  }
-  const selected=el('overpass-server').value;
-  const url=OVERPASS_ENDPOINTS[selected];
-  if(!url){notice('Nieprawidłowe źródło danych. Nie wysłano żądania.');return;}
-  const sourceLabel=selected==='europe'?'Overpass Europa':'Overpass główny';
-  requested=true;lastAttemptAt=now;
-  const loadButton=el('load-osm');loadButton.disabled=true;
-  el('overpass-server').disabled=true;
-  const abort=new AbortController(),timeout=setTimeout(()=>abort.abort(),25000);
-  notice('Pobieranie oznaczeń OSM z '+sourceLabel+' dla Tumba–Lida…');
-  el('load-result').textContent='Trwa pobieranie z '+sourceLabel+'. Brak logowania.';
+  requested=true;
+  const button=el('load-osm');button.disabled=true;
+  notice('Odczytywanie statycznej paczki OSM…');
+  el('load-result').textContent='Sprawdzanie pliku…';
   try{
-   const reply=await fetch(url,{
-    method:'POST',
-    body:new URLSearchParams({data:query}),
-    mode:'cors',
-    credentials:'omit',
-    signal:abort.signal
-   });
+   const reply=await fetch(STATIC_DATA,{method:'GET',credentials:'omit',cache:'no-store'});
    if(!reply.ok)throw Error('HTTP '+reply.status);
    const raw=await reply.text();
-   if(raw.length>2000000)throw Error('Odpowiedź zbyt duża (ponad 2 MB).');
-   const decoded=JSON.parse(raw);
-   if(typeof decoded.remark==='string'&&decoded.remark.trim())throw Error('Overpass: '+decoded.remark.slice(0,180));
-   const parsed=parseOsm(decoded);
-   render(parsed);
-   el('load-result').textContent+=' Źródło: '+sourceLabel+'.';
-  }catch(err){
-   const detail=humanError(err);
-   notice('Błąd pobierania z '+sourceLabel+': '+detail+' Dane mapy pozostają bez zmian.');
-   el('load-result').textContent=detail+' Możesz ręcznie wybrać inny serwer po 60 s. Logowanie nie jest potrzebne.';
-  }finally{
-   clearTimeout(timeout);requested=false;loadButton.disabled=false;
-   el('overpass-server').disabled=false;
-  }
+   if(raw.length>250000)throw Error('Paczka przekracza limit rozmiaru.');
+   const result=parsePack(JSON.parse(raw));
+   if(result.coverage==='not_collected'){
+    barriers.clearLayers();restrictions.clearLayers();records=0;
+    el('load-result').textContent='Nie przygotowano jeszcze paczki z rzeczywistymi danymi OSM. Stan: niepobrane. Nie oznacza to braku szlabanów.';
+    notice('Paczka danych OSM nie została jeszcze przygotowana. Nie wyciągamy wniosków o dostępności dróg.');
+   }else{
+    render(result);
+    el('load-result').textContent+=' Stan danych: '+String(result.asOf).slice(0,10)+'.';
+   }
+  }catch(error){
+   notice('Błąd odczytu paczki OSM. Nie zmieniono istniejących danych mapy.');
+   el('load-result').textContent='Nie udało się odczytać pliku paczki. Sprawdź ponownie później.';
+  }finally{requested=false;button.disabled=false;}
  });
 })();
 </script>
