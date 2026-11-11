@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>NORDIC TRAIL — koncepcja minimalistycznej mapy</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--ink:#f2f2e8;--muted:#bdcdbc;--card:#182b20;--stroke:#49614b;--accent:#c8dba4;--road:#e0ad5c;--foot:#67c39b}
+*{box-sizing:border-box}body{font:15px/1.45 system-ui,-apple-system,Arial,sans-serif;margin:0;background:#13231a;color:var(--ink)}
+[hidden]{display:none!important}button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:3px solid #fcf8d5;outline-offset:3px}
+#map{position:fixed;inset:0;background:#c0d1c0}
+.map-veil{position:fixed;inset:0;pointer-events:none;background:linear-gradient(#12241955,transparent 24%)}
+.brand{position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:550;text-shadow:0 1px 4px #102016;pointer-events:none}
+.brand strong{font-size:15px;letter-spacing:.08em}.brand span{display:block;font-size:10px;letter-spacing:.06em;color:#eff0dc}
+.layers-button{position:fixed;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:750;display:flex;align-items:center;gap:7px;border:1px solid #748e72;background:#1b3227f5;color:var(--ink);padding:11px 14px;border-radius:12px;box-shadow:0 3px 15px #091a1466;font-weight:700}
+.footer{position:fixed;bottom:calc(21px + env(safe-area-inset-bottom));left:12px;z-index:550;background:#1b3227ee;border:1px solid #8ca08b80;border-radius:12px;padding:8px 10px;max-width:min(370px,calc(100vw - 125px));font-size:12px;box-shadow:0 3px 12px #10201666}
+.footer span{display:block;color:#d3e0cf}
+.pill{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.legend{display:flex;gap:12px;margin-top:3px}
+.line{display:inline-block;width:18px;height:4px;border-radius:9px;vertical-align:middle;margin-right:4px}.line.drive{background:var(--road)}.line.walk{background:var(--foot)}
+.mode-ribbon{position:fixed;top:calc(68px + env(safe-area-inset-top));left:12px;z-index:550;background:#182c21e8;color:#f8e1aa;border:1px solid #ae995f80;border-radius:7px;padding:5px 9px;font-size:11px;font-weight:700}
+.scrim{position:fixed;inset:0;background:#06140d70;z-index:850}
+.sheet{position:fixed;right:12px;top:calc(65px + env(safe-area-inset-top));z-index:900;background:var(--card);border:1px solid var(--stroke);border-radius:18px;width:min(362px,calc(100vw - 24px));max-height:calc(100dvh - 85px);overflow:auto;box-shadow:0 18px 35px #07170d90;padding:16px}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+.sheet h2{font-size:18px;margin:0}.sheet h3{font-size:12px;text-transform:uppercase;letter-spacing:.075em;color:var(--muted);margin:18px 0 8px}
+.close{min-width:44px;min-height:44px;border-radius:11px;background:#2d4635;border:1px solid var(--stroke);color:var(--ink);font-size:22px}
+.hint{color:var(--muted);font-size:12px;margin:8px 0 14px}
+.switch-row{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid #455c4966;cursor:pointer;min-height:56px}
+.switch-row:last-of-type{border-bottom:0}.switch-row strong{font-weight:650}.switch-row small{display:block;color:var(--muted);font-size:11px}
+.switch-row input{height:23px;width:23px;accent-color:#afc987;flex:none}
+.status{display:flex;gap:9px;align-items:center;border-radius:11px;background:#293a2f;border:1px solid #647a65;padding:11px;margin:10px 0}
+.status .dot{height:12px;width:12px;background:#d5be80;border-radius:50%;flex:none}
+.row{display:flex;justify-content:space-between;gap:15px;padding:9px 0;border-bottom:1px solid #455c4966}
+.row span{color:var(--muted)}.row strong{text-align:right;max-width:58%}
+.caution{background:#313927;border-left:3px solid #d3bb76;border-radius:8px;padding:10px;margin-top:14px;font-size:12px}
+.note{color:var(--muted);font-size:11px}
+.fake-pin{display:grid;place-items:center;height:31px;width:31px;border:2px solid white;background:#27503d;color:white;border-radius:50%;font-weight:800;box-shadow:0 2px 7px #09180c88}
+.fake-pin.question{background:#685739;border-color:#ffe0a6}
+.fake-pin.barrier{background:#9b5d3d}
+.fake-pin.place{background:#49647a}
+.leaflet-control-attribution{font-size:10px!important}
+@media(max-width:700px){.sheet{right:0;top:auto;bottom:0;width:100%;max-height:min(76dvh,620px);border-radius:18px 18px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom))}.mode-ribbon{top:calc(67px + env(safe-area-inset-top));left:12px}.footer{bottom:calc(16px + env(safe-area-inset-bottom))}}
+@media(max-width:390px){.brand strong{font-size:13px}.brand span{font-size:9px}.layers-button{padding:9px 11px;font-size:14px}}
+</style></head><body>
+<div id="map" aria-label="Mapa OpenStreetMap — wersja koncepcyjna"></div><div class="map-veil"></div>
+<header class="brand"><strong>NORDIC TRAIL</strong><span>PROJEKT INTERFEJSU</span></header>
+<div class="mode-ribbon">MAKIETA · nie pokazuje rzeczywistych ograniczeń</div>
+<button id="open-layers" class="layers-button" type="button" aria-controls="layers-sheet" aria-expanded="false">▤ Warstwy</button>
+<div class="footer"><div class="pill"><strong>Przykładowa wyprawa</strong> · dotknij linii samochodowej</div>
+<div class="legend"><span><i class="line drive"></i> Samochód</span><span><i class="line walk"></i> Pieszo</span></div></div>
+<div id="scrim" class="scrim" hidden></div>
+<section id="layers-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="layers-heading" hidden>
+<div class="sheet-head"><h2 id="layers-heading">Warstwy</h2><button id="close-layers" type="button" class="close" aria-label="Zamknij panel warstw">×</button></div>
+<p class="hint">Widoczne są tylko najważniejsze informacje. Pozostałe włączasz na żądanie.</p>
+<h3>Moja wyprawa</h3>
+<label class="switch-row"><span><strong>🚙 Samochód</strong><small>Przebieg odcinka samochodowego</small></span><input id="layer-drive" type="checkbox" checked></label>
+<label class="switch-row"><span><strong>🥾 Pieszo</strong><small>Przebieg odcinka pieszego</small></span><input id="layer-walk" type="checkbox" checked></label>
+<h3>Informacje drogowe</h3>
+<label class="switch-row"><span><strong>Status dostępności</strong><small>Domyślnie: niezweryfikowany</small></span><input id="layer-access" type="checkbox" checked></label>
+<label class="switch-row"><span><strong>Szlabany i przeszkody</strong><small>Pokazywane dopiero po włączeniu</small></span><input id="layer-gates" type="checkbox"></label>
+<label class="switch-row"><span><strong>Nawierzchnia</strong><small>Warstwa planowana — brak danych demo</small></span><input id="layer-surface" type="checkbox"></label>
+<label class="switch-row"><span><strong>Punkty publiczne</strong><small>Ukryte w domyślnym widoku</small></span><input id="layer-places" type="checkbox"></label>
+<p id="layers-feedback" class="hint" role="status" aria-live="polite">Przy trasie dostępność prawna pozostaje niezweryfikowana, niezależnie od warstw.</p>
+</section>
+<section id="road-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="road-heading" hidden>
+<div class="sheet-head"><h2 id="road-heading">Informacja o odcinku</h2><button id="close-road" class="close" type="button" aria-label="Zamknij informacje o drodze">×</button></div>
+<p class="hint">Karta otwierana wyłącznie po dotknięciu odcinka na mapie.</p>
+<div class="status"><span class="dot"></span><strong>Dostępność niezweryfikowana</strong></div>
+<div class="row"><span>Trasa</span><strong>Przykład samochodowy</strong></div>
+<div class="row"><span>OSM</span><strong>Podgląd geometrii</strong></div>
+<div class="row"><span>NVDB</span><strong>Niepodłączone w makiecie</strong></div>
+<div class="row"><span>STFS</span><strong>Niepodłączone w makiecie</strong></div>
+<div class="row"><span>Ostatnia weryfikacja</span><strong>Brak</strong></div>
+<p class="caution">Nie oznaczamy drogi jako legalnie dostępnej tylko dlatego, że znajduje się w OSM lub silnik wyznaczył po niej trasę. Znaki i aktualne ograniczenia mają pierwszeństwo.</p>
+<p class="note">To karta demonstracyjna UX. Nie odnosi się do faktycznego statusu żadnej konkretnej drogi.</p>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+(()=>{
+ const el=id=>document.getElementById(id);
+ const modal={layers:el('layers-sheet'),road:el('road-sheet')},scrim=el('scrim');
+ let opened=null,returnFocus=null;
+ function open(name){
+  if(opened===name){close();return;}
+  if(!modal[name])return;
+  if(!opened)returnFocus=document.activeElement;
+  for(const key in modal)modal[key].hidden=key!==name;
+  scrim.hidden=false;opened=name;
+  el('open-layers').setAttribute('aria-expanded',name==='layers'?'true':'false');
+  el(name==='layers'?'close-layers':'close-road').focus();
+ }
+ function close(){
+  if(!opened)return;
+  modal.layers.hidden=true;modal.road.hidden=true;scrim.hidden=true;opened=null;
+  el('open-layers').setAttribute('aria-expanded','false');
+  if(returnFocus&&typeof returnFocus.focus==='function')returnFocus.focus();
+  returnFocus=null;
+ }
+ el('open-layers').addEventListener('click',()=>open('layers'));
+ el('close-layers').addEventListener('click',close);
+ el('close-road').addEventListener('click',close);
+ scrim.addEventListener('click',close);
+ document.addEventListener('keydown',event=>{
+  if(event.key==='Escape')close();
+  if(event.key==='Tab'&&opened){
+   const sheet=modal[opened],focusable=[...sheet.querySelectorAll('button:not(:disabled), input:not(:disabled)')];
+   if(!focusable.length)return;
+   const first=focusable[0],last=focusable[focusable.length-1];
+   if(event.shiftKey&&document.activeElement===first){last.focus();event.preventDefault();}
+   else if(!event.shiftKey&&document.activeElement===last){first.focus();event.preventDefault();}
+  }
+ });
+ if(!window.L){el('map').textContent='Mapa wymaga połączenia z internetem.';return;}
+ const map=L.map('map',{zoomControl:false}).setView([59.181,17.856],12);
+ L.control.zoom({position:'bottomright'}).addTo(map);
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19,attribution:'© OpenStreetMap contributors'
+ }).addTo(map);
+ const drive=L.polyline([
+  [59.19965,17.83708],[59.1931,17.845],[59.1832,17.858],
+  [59.1722,17.870],[59.1625,17.88028]
+ ],{color:'#e0ad5c',weight:6,opacity:.94}).addTo(map);
+ const walk=L.polyline([
+  [59.1625,17.88028],[59.164,17.875],[59.1636,17.8622]
+ ],{color:'#67c39b',weight:5,dashArray:'7 7',opacity:.94}).addTo(map);
+ drive.on('click',()=>open('road'));
+ const icon=(label,style='')=>L.divIcon({
+  className:'',iconSize:[31,31],iconAnchor:[15,15],
+  html:'<div class="fake-pin '+style+'">'+label+'</div>'
+ });
+ const a=L.marker([59.19965,17.83708],{icon:icon('1')}).addTo(map);
+ const b=L.marker([59.1625,17.88028],{icon:icon('2')}).addTo(map);
+ const c=L.marker([59.1636,17.8622],{icon:icon('3')}).addTo(map);
+ for(const m of [a,b,c])m.on('click',()=>open('road'));
+ const access=L.marker([59.1785,17.865],{icon:icon('?','question')});
+ access.on('click',()=>open('road'));access.addTo(map);
+ const gate=L.marker([59.186,17.850],{icon:icon('!','barrier')});
+ gate.on('click',()=>open('road'));
+ const place=L.marker([59.169,17.877],{icon:icon('P','place')});
+ place.on('click',()=>open('road'));
+ const layers={
+  'layer-drive':drive,'layer-walk':walk,'layer-access':access,'layer-gates':gate,'layer-places':place
+ };
+ for(const [id,layer] of Object.entries(layers)){
+  el(id).addEventListener('change',()=>{
+   if(el(id).checked)map.addLayer(layer);else map.removeLayer(layer);
+   el('layers-feedback').textContent='Zmieniono widoczność. Warstwy nie zmieniają współrzędnych ani statusu prawnego drogi.';
+  });
+ }
+ el('layer-surface').addEventListener('change',()=>{
+  el('layers-feedback').textContent='Warstwa nawierzchni jest planowana. W makiecie nie ma jeszcze danych NVDB ani OSM o nawierzchni.';
+ });
+ map.fitBounds(L.latLngBounds([[59.19965,17.83708],[59.1625,17.88028]]),{padding:[65,50],maxZoom:13});
+})();
+</script></body></html>
