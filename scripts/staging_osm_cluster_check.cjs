@@ -20,7 +20,7 @@ const checks=[
  ['Clusters do not allow underlying draft clicks',html.includes("if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);")&&html.includes('if(map.getZoom()>=16)showOsmSpiderfy(entries,clusterMarker,lat,lon)')],
  ['Cluster click zooms in but does not create points',html.includes('map.setView([lat,lon],Math.min(map.getZoom()+2,16),{animate:false})')],
  ['Markers retain original OSM lat/lon',html.includes('const marker=L.marker([p.lat,p.lon]')],
- ['Approximate road centers remain warned',html.includes('dla dróg i ścieżek to jedynie przybliżony środek odcinka')],
+ ['Approximate road centers remain warned',html.includes('Dla dróg i ścieżek są to jedynie przybliżone środki odcinków.')],
  ['Unchanged read-only pack',html.includes("fetch('data/tumba-lida.json',{method:'GET',credentials:'omit'")],
  ['No dependency for clustering',!html.includes('leaflet.markercluster')&&!html.includes('MarkerClusterGroup')]
 ];
