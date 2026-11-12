@@ -332,7 +332,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin road"><span>?</span></span></span><span class="nt-legend-copy"><strong>Oznaczenie na drodze</strong><small>Tag OSM; pinezka w środku odcinka</small></span></li>
 <li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin walk"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11.5" cy="3.7" r="1.9" fill="white" stroke="none"/><path d="M10.5 7L8.8 12l3.3 2.4L10 20.5M9.2 12l-3 7.8M11.2 8l3.2 2.4 2.6 1M7.8 8.4l-2.3-.7-1.2 4.1 2.4 1.1M17 10.7l2.7 10.2"/></svg></span></span></span><span class="nt-legend-copy"><strong>Ścieżka piesza</strong><small>OSM footway; symbol wędrowca</small></span></li>
 <li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin bike"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M5.5 17.5l4.2-9h4.5l4.3 9h-6.8L9.7 8.5M8.7 6h3M15.5 6.5H18"/></svg></span></span></span><span class="nt-legend-copy"><strong>Trasa rowerowa</strong><small>OSM cycleway; symbol roweru</small></span></li>
-<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin trail"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20c0-5 12-4 12-9s-8-3-8-7"/><circle cx="16" cy="5" r="1.7" fill="white" stroke="none"/></svg></span></span></span><span class="nt-legend-copy"><strong>Ścieżka innego rodzaju</strong><small>OSM path; rodzaj nie jest rozstrzygnięty</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin trail"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3C14 4 19 6 18 9S6 12 6 16s5 3 8 5" stroke-width="3.7"/></svg></span></span></span><span class="nt-legend-copy"><strong>Kręta ścieżka</strong><small>OSM path — rodzaj nieustalony, niekoniecznie oznakowany szlak</small></span></li>
 </ul>
 <h3>NORDIC TRAIL — punkty zatwierdzone</h3>
 <ul class="nt-legend-list">
@@ -1156,7 +1156,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   // OSM highway=footway is NOT proof of a hiking trail or legal access.
   const osmIconHiker="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"11.5\" cy=\"3.7\" r=\"1.9\" fill=\"white\" stroke=\"none\"/><path d=\"M10.5 7L8.8 12l3.3 2.4L10 20.5M9.2 12l-3 7.8M11.2 8l3.2 2.4 2.6 1M7.8 8.4l-2.3-.7-1.2 4.1 2.4 1.1M17 10.7l2.7 10.2\"/></svg>";
   const osmIconBike="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"5.5\" cy=\"17.5\" r=\"3.2\"/><circle cx=\"18.5\" cy=\"17.5\" r=\"3.2\"/><path d=\"M5.5 17.5l4.2-9h4.5l4.3 9h-6.8L9.7 8.5M8.7 6h3M15.5 6.5H18\"/></svg>";
-  const osmIconTrail="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 20c0-5 12-4 12-9s-8-3-8-7\"/><circle cx=\"16\" cy=\"5\" r=\"1.7\" fill=\"white\" stroke=\"none\"/></svg>";
+  const osmIconTrail="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M9 3C14 4 19 6 18 9S6 12 6 16s5 3 8 5\" stroke-width=\"3.7\"/></svg>";
   function osmIconForEntry(entry){
     const highway=entry.p.tags.highway;
     const style=entry.kind==='path'?highway==='footway'?'walk':
