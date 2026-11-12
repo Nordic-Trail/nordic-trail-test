@@ -354,6 +354,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <div id="nt-osm-detail-surface" class="nt-osm-meta" hidden></div>
 <h3>Oznaczenia zapisane w OSM</h3><div id="nt-osm-detail-tags" class="nt-osm-tags"></div>
 <p><a id="nt-osm-original" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Otwórz oryginalny wpis OSM</a></p>
+<p id="nt-osm-private-access" class="nt-osm-warning" hidden><strong>Uwaga — ograniczony dostęp według OSM (access=private).</strong> Ten tag nie przesądza sam o prawie przejścia pieszego w Szwecji (allemansrätten). Sprawdź oznakowanie, lokalne warunki i obowiązujące przepisy.</p>
 <p class="nt-osm-warning"><strong>Dostępność prawna: niezweryfikowana.</strong> Tagi OSM nie zastępują oznakowania ani obowiązujących przepisów. Środki odcinków nie określają prawnego zasięgu ograniczenia.</p>
 </section>
 <div class="workspace" id="workspace">
@@ -1336,10 +1337,14 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     return known?{name:known[0],group:known[1]}:
       {name:'Nieopisany w słowniku — sprawdź tag surface',group:'Nieustalona'};
   }
+  function isOsmPrivateAccess(tags){
+    return tags.access==='private';
+  }
   function showOsmDetail(p,kind){
     if(!el('point-sheet').hidden){message('map-action-status','Najpierw zamknij edytor punktu.');return;}
     if(!osmPack)return;
     const sheet=el('nt-osm-detail-sheet'),meta=el('nt-osm-detail-meta'),tags=el('nt-osm-detail-tags');
+    el('nt-osm-private-access').hidden=!isOsmPrivateAccess(p.tags);
     const surfaceBox=el('nt-osm-detail-surface'),surfaceTitle=el('nt-osm-detail-surface-title');
     meta.replaceChildren();tags.replaceChildren();surfaceBox.replaceChildren();
     const showSurface=kind!=='barrier'||Object.hasOwn(p.tags,'surface');
