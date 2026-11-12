@@ -350,6 +350,8 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <div class="nt-osm-detail-heading"><h2 id="nt-osm-detail-title">Obserwacja OSM</h2><button type="button" id="nt-osm-detail-close" aria-label="Zamknij kartę OSM">×</button></div>
 <p id="nt-osm-detail-kind" class="nt-osm-micro">Dane niezweryfikowane</p>
 <div id="nt-osm-detail-meta" class="nt-osm-meta"></div>
+<h3 id="nt-osm-detail-surface-title" hidden>Nawierzchnia według OSM</h3>
+<div id="nt-osm-detail-surface" class="nt-osm-meta" hidden></div>
 <h3>Oznaczenia zapisane w OSM</h3><div id="nt-osm-detail-tags" class="nt-osm-tags"></div>
 <p><a id="nt-osm-original" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Otwórz oryginalny wpis OSM</a></p>
 <p class="nt-osm-warning"><strong>Dostępność prawna: niezweryfikowana.</strong> Tagi OSM nie zastępują oznakowania ani obowiązujących przepisów. Środki odcinków nie określają prawnego zasięgu ograniczenia.</p>
@@ -1307,11 +1309,46 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     const row=document.createElement('div'),name=document.createElement('span'),text=document.createElement('strong');
     name.textContent=label;text.textContent=String(value);row.append(name,text);container.appendChild(row);
   }
+  // Present the source tag in plain language; never infer surface from highway type.
+  // OSM groups compacted, gravel, earth and clay as unpaved; surface says nothing about access.
+  const osmSurfaceLabels={
+    paved:['Utwardzona (ogólnie)','Utwardzona'],
+    asphalt:['Asfaltowa','Utwardzona'],
+    concrete:['Betonowa','Utwardzona'],
+    paving_stones:['Z kostki brukowej','Utwardzona'],
+    sett:['Kamienna (kostka)','Utwardzona'],
+    cobblestone:['Brukowana','Utwardzona'],
+    unpaved:['Nieutwardzona (ogólnie)','Nieutwardzona'],
+    gravel:['Żwirowa','Nieutwardzona'],
+    fine_gravel:['Drobnożwirowa','Nieutwardzona'],
+    compacted:['Zagęszczona (stabilizowana)','Nieutwardzona'],
+    ground:['Gruntowa','Nieutwardzona'],
+    dirt:['Gruntowa','Nieutwardzona'],
+    earth:['Gruntowa','Nieutwardzona'],
+    clay:['Gliniasta','Nieutwardzona'],
+    sand:['Piaszczysta','Nieutwardzona'],
+    mud:['Błotnista','Nieutwardzona'],
+    grass:['Trawiasta','Nieutwardzona']
+  };
+  function describeOsmSurface(value){
+    if(!value)return {name:'Brak danych w OSM',group:'Nieznana'};
+    const known=Object.hasOwn(osmSurfaceLabels,value)?osmSurfaceLabels[value]:null;
+    return known?{name:known[0],group:known[1]}:
+      {name:'Nieopisany w słowniku — sprawdź tag surface',group:'Nieustalona'};
+  }
   function showOsmDetail(p,kind){
     if(!el('point-sheet').hidden){message('map-action-status','Najpierw zamknij edytor punktu.');return;}
     if(!osmPack)return;
     const sheet=el('nt-osm-detail-sheet'),meta=el('nt-osm-detail-meta'),tags=el('nt-osm-detail-tags');
-    meta.replaceChildren();tags.replaceChildren();
+    const surfaceBox=el('nt-osm-detail-surface'),surfaceTitle=el('nt-osm-detail-surface-title');
+    meta.replaceChildren();tags.replaceChildren();surfaceBox.replaceChildren();
+    const showSurface=kind!=='barrier'||Object.hasOwn(p.tags,'surface');
+    surfaceBox.hidden=!showSurface;surfaceTitle.hidden=!showSurface;
+    if(showSurface){
+      const surface=describeOsmSurface(p.tags.surface);
+      addOsmDetailRow(surfaceBox,'Nawierzchnia',surface.name);
+      addOsmDetailRow(surfaceBox,'Klasyfikacja',surface.group);
+    }
     el('nt-osm-detail-title').textContent=osmKinds[kind];
     el('nt-osm-detail-kind').textContent=kind==='barrier'
       ?'Punkt oznaczony w OSM — brak weryfikacji w terenie.'
