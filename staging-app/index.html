@@ -104,7 +104,8 @@ button:disabled{opacity:.5;cursor:wait}
 .leaflet-control-zoom a.leaflet-disabled{color:#bcc5b6;background:rgba(26,43,33,.55)}
 .leaflet-control-attribution{font-size:10px!important;background:rgba(246,249,240,.74)!important;color:#14251c!important}
 .leaflet-control-attribution a{color:#143e61!important}
-#map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16)}
+html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}
+#map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16);touch-action:none}
 .nt-layers-sheet{--nt-offset:0px;position:fixed;left:50%;bottom:0;z-index:1180;transform:translate(-50%,var(--nt-offset));width:min(100%,550px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
 .nt-layers-sheet[data-dragging="true"]{transition:none}
 .nt-layers-sheet.is-collapsed{max-height:min(135px,28dvh);overflow:hidden}
@@ -623,6 +624,13 @@ button:disabled{opacity:.5;cursor:wait}
     if(event.key==='Escape'&&!el('point-sheet').hidden&&!writingDraft)clearSelection();
   });
   if(map)map.on('click',event=>{
+    // Dismissing OSM evidence must never create an authenticated draft.
+    if(!el('nt-osm-detail-sheet').hidden){
+      el('nt-osm-detail-sheet').hidden=true;
+      activeOsmKind=null;
+      syncOverlayPageScroll();
+      return;
+    }
     if(writingDraft)return;
     if(!el('point-sheet').hidden){
       // An incidental map tap must never close a form with unsaved changes.
@@ -1001,6 +1009,27 @@ button:disabled{opacity:.5;cursor:wait}
   }
   const layersSheet=el('map-layers-sheet'),layersBackdrop=el('map-layers-backdrop');
   const layersButton=el('open-layers-btn'),layerHandle=el('nt-layer-handle');
+  let pageScrollLocked=false,lockedScrollX=0,lockedScrollY=0;
+  function syncOverlayPageScroll(){
+    const shouldLock=!layersSheet.hidden||!el('nt-osm-detail-sheet').hidden;
+    if(shouldLock&&!pageScrollLocked){
+      lockedScrollX=window.scrollX||0;
+      lockedScrollY=window.scrollY||document.scrollingElement?.scrollTop||0;
+      pageScrollLocked=true;
+      document.documentElement.classList.add('nt-page-scroll-locked');
+      document.body.classList.add('nt-page-scroll-locked');
+    }else if(!shouldLock&&pageScrollLocked){
+      document.documentElement.classList.remove('nt-page-scroll-locked');
+      document.body.classList.remove('nt-page-scroll-locked');
+      pageScrollLocked=false;
+      window.scrollTo(lockedScrollX,lockedScrollY);
+    }
+  }
+  window.addEventListener('scroll',()=>{
+    if(pageScrollLocked&&Math.abs((window.scrollY||0)-lockedScrollY)>1){
+      window.scrollTo(lockedScrollX,lockedScrollY);
+    }
+  },{passive:true});
   function setLayersCollapsed(value){
     layersSheet.classList.toggle('is-collapsed',value);
     layerHandle.setAttribute('aria-expanded',value?'false':'true');
@@ -1009,6 +1038,7 @@ button:disabled{opacity:.5;cursor:wait}
   function closeLayers(){
     if(layersSheet.hidden)return;
     layersSheet.hidden=true;layersBackdrop.hidden=true;
+    syncOverlayPageScroll();
     layersSheet.style.removeProperty('--nt-offset');
     delete layersSheet.dataset.dragging;
     setLayersCollapsed(false);
@@ -1020,8 +1050,16 @@ button:disabled{opacity:.5;cursor:wait}
     if(!el('point-sheet').hidden){
       message('map-action-status','Najpierw zamknij edytor punktu.');return;
     }
+    // Never stack the layers dialog above a selected OSM detail card.
+    if(!el('nt-osm-detail-sheet').hidden){
+      el('nt-osm-detail-sheet').hidden=true;
+      activeOsmKind=null;
+      syncOverlayPageScroll();
+    }
+    revealMapViewport();
     setLayersCollapsed(false);
     layersSheet.hidden=false;layersBackdrop.hidden=false;
+    syncOverlayPageScroll();
     layersButton.setAttribute('aria-expanded','true');
     el('nt-layer-close').focus();
   }
@@ -1038,12 +1076,17 @@ button:disabled{opacity:.5;cursor:wait}
     road:el('nt-osm-roads-layer'),
     path:el('nt-osm-paths-layer')
   };
+  // Native STAGING points are Leaflet circleMarkers in overlayPane (z=400).
+  // OSM evidence uses a lower pane (z=350), so overlapping approved
+  // STAGING markers remain the first clickable target.
+  const osmPane=map&&window.L?map.createPane('ntOsmEvidencePane'):null;
+  if(osmPane)osmPane.style.zIndex='350';
   const osmLayers=map&&window.L?{
     barrier:L.layerGroup().addTo(map),
     road:L.layerGroup().addTo(map),
     path:L.layerGroup().addTo(map)
   }:null;
-  let osmPack=null,osmLoadPromise=null;
+  let osmPack=null,osmLoadPromise=null,activeOsmKind=null;
   const osmStatus=text=>{el('nt-osm-status').textContent=text;};
   const osmValidPoint=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)
     &&p.lat>=osmBBox[0]&&p.lat<=osmBBox[2]&&p.lon>=osmBBox[1]&&p.lon<=osmBBox[3];
@@ -1083,10 +1126,16 @@ button:disabled{opacity:.5;cursor:wait}
       else if(!osmChecks[kind].checked&&map.hasLayer(group))map.removeLayer(group);
     }
     const active=Object.entries(osmChecks).filter(([,input])=>input.checked).map(([kind])=>kind);
+    if(activeOsmKind&&!osmChecks[activeOsmKind].checked){
+      el('nt-osm-detail-sheet').hidden=true;
+      activeOsmKind=null;
+    }
     if(!active.length){
       el('nt-osm-detail-sheet').hidden=true;
+      activeOsmKind=null;
       osmStatus('Warstwy OSM są wyłączone.');
     }else if(osmPack)osmStatus('OSM: '+active.map(kind=>kind==='barrier'?'29 szlabanów':kind==='road'?'26 dróg':'11 ścieżek').join(', ')+'. Niezweryfikowane.');
+    syncOverlayPageScroll();
   }
   function addOsmDetailRow(container,label,value){
     const row=document.createElement('div'),name=document.createElement('span'),text=document.createElement('strong');
@@ -1111,14 +1160,24 @@ button:disabled{opacity:.5;cursor:wait}
       if(Object.hasOwn(p.tags,key))addOsmDetailRow(tags,key,p.tags[key]);
     }
     el('nt-osm-original').href='https://www.openstreetmap.org/'+p.osm_type+'/'+p.osm_id;
-    sheet.hidden=false;el('nt-osm-detail-close').focus();
+    activeOsmKind=kind;
+    sheet.hidden=false;
+    syncOverlayPageScroll();
+    el('nt-osm-detail-close').focus();
   }
-  el('nt-osm-detail-close').addEventListener('click',()=>{el('nt-osm-detail-sheet').hidden=true;layersButton.focus();});
+  function closeOsmDetail(){
+    el('nt-osm-detail-sheet').hidden=true;
+    activeOsmKind=null;
+    syncOverlayPageScroll();
+  }
+  el('nt-osm-detail-close').addEventListener('click',()=>{closeOsmDetail();layersButton.focus();});
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'&&!el('nt-osm-detail-sheet').hidden){
-      event.preventDefault();el('nt-osm-detail-sheet').hidden=true;layersButton.focus();
+      event.preventDefault();closeOsmDetail();layersButton.focus();
     }
   });
+  // Opening an approved point's Leaflet popup takes precedence over OSM.
+  if(map)map.on('popupopen',closeOsmDetail);
   function addOsmMarkers(pack){
     if(!map||!osmLayers)return;
     for(const group of Object.values(osmLayers))group.clearLayers();
@@ -1131,7 +1190,7 @@ button:disabled{opacity:.5;cursor:wait}
         html:'<div class="nt-osm-pin '+kind+'">'+symbol+'</div>',
         iconSize:[28,28],iconAnchor:[14,14]
       });
-      L.marker([p.lat,p.lon],{icon,bubblingMouseEvents:false,keyboard:true,
+      L.marker([p.lat,p.lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
         title:osmKinds[kind]+' · OSM (niezweryfikowane)'})
       .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind);})
       .addTo(osmLayers[kind]);

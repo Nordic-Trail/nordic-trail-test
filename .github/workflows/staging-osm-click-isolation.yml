@@ -1,0 +1,24 @@
+name: NORDIC TRAIL - OSM and STAGING Point Click Isolation
+on:
+  pull_request:
+    paths:
+      - 'staging-app/**'
+      - 'scripts/staging_osm_selection_check.cjs'
+      - '.github/workflows/staging-osm-click-isolation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'staging-app/**'
+      - 'scripts/staging_osm_selection_check.cjs'
+      - '.github/workflows/staging-osm-click-isolation.yml'
+permissions:
+  contents: read
+jobs:
+  click-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Audit OSM overlap with STAGING point interactions
+        run: node scripts/staging_osm_selection_check.cjs
