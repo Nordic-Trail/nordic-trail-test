@@ -17,7 +17,7 @@ const checks=[
  ['Spiderfy is cleared on map pan and on layer changes',html.includes("map.on('dragstart',closeOsmSpiderfy)")&&html.includes('    closeOsmSpiderfy();\n    for(const layer of Object.values(osmLayers))')],
  ['Map tap dismisses spider without creating draft',html.includes('if(activeSpiderMarker){\n      closeOsmSpiderfy();\n      return;')],
  ['Clustering updates on zoom and layer toggle',html.includes("map.on('zoomend',renderOsmClusters)")&&html.includes('    renderOsmClusters();')],
- ['Clusters do not allow underlying draft clicks',html.includes('L.DomEvent.stopPropagation(event.originalEvent);\n          closeOsmDetail();')],
+ ['Clusters do not allow underlying draft clicks',html.includes("if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);")&&html.includes('if(map.getZoom()>=16)showOsmSpiderfy(entries,clusterMarker,lat,lon)')],
  ['Cluster click zooms in but does not create points',html.includes('map.setView([lat,lon],Math.min(map.getZoom()+2,16),{animate:false})')],
  ['Markers retain original OSM lat/lon',html.includes('const marker=L.marker([p.lat,p.lon]')],
  ['Approximate road centers remain warned',html.includes('dla dróg i ścieżek to jedynie przybliżony środek odcinka')],
