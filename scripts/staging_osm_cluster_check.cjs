@@ -7,6 +7,7 @@ const js=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>
 assert.equal(js.length,1);
 new vm.Script(js[0]);
 const checks=[
+ ['Clusters keep approved translucent glass style',html.includes('background:rgba(18,42,29,.42)')&&html.includes('border:2px solid rgba(241,249,228,.94)')&&html.includes('backdrop-filter:blur(3px)')],
  ['Pins are tapered and tip anchored',html.includes('.nt-osm-pin::before')&&html.includes('iconSize:[42,44],iconAnchor:[21,37]')],
  ['Original visual classes remain separate',...['barrier','road','path'].map(k=>html.includes('.nt-osm-pin.'+k))],
  ['Clusters are isolated below STAGING markers',html.includes("pane:'ntOsmEvidencePane'")&&html.includes("osmPane.style.zIndex='350'")],
