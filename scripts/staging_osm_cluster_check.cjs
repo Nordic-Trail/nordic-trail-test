@@ -11,7 +11,11 @@ const checks=[
  ['Pins are tapered and tip anchored',html.includes('.nt-osm-pin::before')&&html.includes('iconSize:[42,44],iconAnchor:[21,37]')],
  ['Original visual classes remain separate',...['barrier','road','path'].map(k=>html.includes('.nt-osm-pin.'+k))],
  ['Clusters are isolated below STAGING markers',html.includes("pane:'ntOsmEvidencePane'")&&html.includes("osmPane.style.zIndex='350'")],
- ['Clustering is based on zoom and enabled OSM layers',html.includes("if(zoom>=16)return entries.map(entry=>[entry])")&&html.includes('osmChecks[entry.kind].checked')],
+ ['Clustering is based on zoom and enabled OSM layers',html.includes('if(zoom>=16){')&&html.includes('osmChecks[entry.kind].checked')],
+ ['Overlapping high zoom pins become selectable via spiderfy',html.includes('function showOsmSpiderfy(entries,clusterMarker,lat,lon)')&&html.includes('if(map.getZoom()>=16)showOsmSpiderfy(entries,clusterMarker,lat,lon)')],
+ ['Spiderfy shows true location connector lines',html.includes('L.polyline([[entry.p.lat,entry.p.lon],location]')&&html.includes('L.circleMarker([entry.p.lat,entry.p.lon]')],
+ ['Spiderfy is cleared on map pan and on layer changes',html.includes("map.on('dragstart',closeOsmSpiderfy)")&&html.includes('    closeOsmSpiderfy();\n    for(const layer of Object.values(osmLayers))')],
+ ['Map tap dismisses spider without creating draft',html.includes('if(activeSpiderMarker){\n      closeOsmSpiderfy();\n      return;')],
  ['Clustering updates on zoom and layer toggle',html.includes("map.on('zoomend',renderOsmClusters)")&&html.includes('    renderOsmClusters();')],
  ['Clusters do not allow underlying draft clicks',html.includes('L.DomEvent.stopPropagation(event.originalEvent);\n          closeOsmDetail();')],
  ['Cluster click zooms in but does not create points',html.includes('map.setView([lat,lon],Math.min(map.getZoom()+2,16),{animate:false})')],
@@ -34,7 +38,18 @@ const sandbox={map:{project}};
 const tests=vm.runInNewContext(fragment+';[clusterOsmEntries(entries,10),clusterOsmEntries(entries,16)]',{...sandbox,entries});
 assert.equal(tests[0].length,1,'Near observations share group at low zoom');
 assert.equal(tests[0][0].length,3);
-assert.equal(tests[1].length,3,'All observations separate at zoom 16');
-for(const group of tests[1])assert.equal(group.length,1);
-console.log('PASS: grouped at zoom 10, separate at zoom 16');
+assert.equal(tests[1].length,2,'Close observations remain grouped at zoom 16');
+assert.equal(tests[1].filter(group=>group.length===2).length,1,'Close pair remains selectable as cluster');
+const isolated=[{p:{lat:59.17,lon:17.82},kind:'barrier'},{p:{lat:59.20,lon:17.87},kind:'road'}];
+const far=vm.runInNewContext(fragment+';clusterOsmEntries(isolated,16)',{...sandbox,isolated});
+assert.equal(far.length,2,'Far-apart observations stay separate');
+assert.ok(far.every(group=>group.length===1));
+const overlapSource=fs.readFileSync('staging-app/data/tumba-lida.json','utf8');
+const pack=JSON.parse(overlapSource);
+const near=pack.objects.filter(p=>[972124384,83485812].includes(p.osm_id)).map(p=>({p,kind:p.kind==='barrier'?'barrier':'road'}));
+assert.equal(near.length,2,'Known overlapping source pair');
+const clustered=vm.runInNewContext(fragment+';clusterOsmEntries(near,16)',{map:{project:([lat,lon],zoom)=>{const scale=256*Math.pow(2,zoom);const sine=Math.sin(lat*Math.PI/180);return {x:(lon+180)/360*scale,y:(.5-Math.log((1+sine)/(1-sine))/(4*Math.PI))*scale};}},near});
+assert.equal(clustered.length,1,'Known OSM pair is grouped at 16');
+assert.equal(clustered[0].length,2);
+console.log('PASS: dense markers remain grouped at zoom 16, distant markers stay separate');
 console.log('OSM pin and clustering audit: '+(checks.length+1)+' PASS');
