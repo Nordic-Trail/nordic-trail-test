@@ -28,6 +28,24 @@ for(const [tag,expectedName,expectedGroup] of [
 }
 assert.ok(html.includes('id="nt-osm-detail-surface"')&&html.includes("surfaceBox.hidden=!showSurface"),'Surface displayed only on relevant cards');
 
+const accessStart=js[0].indexOf('  function isOsmPrivateAccess(tags){');
+const accessEnd=js[0].indexOf('  function showOsmDetail(p,kind){',accessStart);
+assert.ok(accessStart>=0&&accessEnd>accessStart,'OSM private access helper exists');
+const isOsmPrivateAccess=vm.runInNewContext(js[0].slice(accessStart,accessEnd)+';isOsmPrivateAccess');
+for(const [tags,expected] of [
+ [{access:'private',highway:'path'},true],
+ [{access:'yes'},false],
+ [{access:'no'},false],
+ [{motor_vehicle:'no'},false],
+ [{surface:'clay'},false],
+ [{},false]
+])assert.equal(isOsmPrivateAccess(tags),expected,'Private warning matches access=private only');
+assert.ok(html.includes('id="nt-osm-private-access"')&&
+ html.includes("el('nt-osm-private-access').hidden=!isOsmPrivateAccess(p.tags);"),
+ 'Private warning visibility resets for every OSM card');
+assert.ok(html.includes('Dostępność prawna: niezweryfikowana.'),'General legal warning retained');
+
+
 const actual={barrier:0,road:0,path:0},seen=new Set();
 assert.equal(pack.coverage,'collected');assert.equal(pack.source,'OpenStreetMap');assert.equal(pack.licence,'ODbL');
 assert.deepEqual(pack.bbox,[59.155,17.81,59.203,17.875]);
