@@ -258,8 +258,8 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-pin.bike{--nt-pin-color:#15557d;opacity:.93}
 .nt-osm-pin.trail{--nt-pin-color:#295c7d}
 .nt-osm-cluster{display:grid;place-items:center;min-width:42px;height:42px;padding:0 6px;box-sizing:border-box;background:rgba(18,42,29,.42);color:#fffef4;border:2px solid rgba(241,249,228,.94);border-radius:50%;font-size:15px;font-weight:800;text-shadow:0 1px 3px #06130e;box-shadow:0 2px 8px #06130e80;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-/* Higher opacity keeps OSM metadata readable over bright OSM map tiles on mobile. */
-.nt-osm-detail-sheet{position:fixed;z-index:1230;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,550px);max-height:min(76dvh,680px);overflow-y:auto;overscroll-behavior:contain;background:rgba(18,42,29,.91);border:1.5px solid rgba(231,245,219,.82);border-radius:20px 20px 0 0;padding:20px 18px calc(23px + env(safe-area-inset-bottom));color:#f5f8ee;backdrop-filter:blur(9px) saturate(1.08);-webkit-backdrop-filter:blur(9px) saturate(1.08);box-shadow:0 -12px 38px #06130e99}
+/* Glass panel at user-selected 40% opacity; maintain readable metadata overlays. */
+.nt-osm-detail-sheet{position:fixed;z-index:1230;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,550px);max-height:min(76dvh,680px);overflow-y:auto;overscroll-behavior:contain;background:rgba(18,42,29,.40);border:1.5px solid rgba(231,245,219,.82);border-radius:20px 20px 0 0;padding:20px 18px calc(23px + env(safe-area-inset-bottom));color:#f5f8ee;backdrop-filter:blur(9px) saturate(1.08);-webkit-backdrop-filter:blur(9px) saturate(1.08);box-shadow:0 -12px 38px #06130e99}
 .nt-osm-detail-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .nt-osm-detail-heading h2{font-size:21px;margin:0}
 #nt-osm-detail-close{width:48px;min-width:48px;min-height:48px;margin:0;padding:0;font-size:24px;background:rgba(9,29,19,.73);color:#fff;border:1px solid rgba(231,245,219,.82);border-radius:12px}
