@@ -36,15 +36,17 @@ const first=js[0].indexOf("  if(map)map.on('click',event=>{");
 const last=js[0].indexOf('    if(writingDraft)return;',first);
 assert.ok(first>=0&&last>first);
 const prefix=js[0].slice(first,last);
-const modal={hidden:false},state={selectedKind:'road',created:0},events={};
+const modal={hidden:false},state={selectedKind:'road',created:0,scrollSyncCalls:0},events={};
 vm.runInNewContext("let activeOsmKind='road'; const selectedPoint=null; "+prefix+" state.created++;});",{
  map:{on(name,fn){events[name]=fn;}},el(id){assert.equal(id,'nt-osm-detail-sheet');return modal;},
- state,activeOsmKind:'road'
+ state,activeOsmKind:'road',
+ syncOverlayPageScroll(){state.scrollSyncCalls++;}
 });
 // If card is open, guard returns before executing draft creation code.
 events.click({latlng:{lat:59.18,lng:17.84}});
 assert.equal(modal.hidden,true);
 assert.equal(state.created,0);
+assert.equal(state.scrollSyncCalls,1,'Dismissing the OSM card synchronizes the background scroll lock');
 console.log('PASS: map tap closes OSM card without entering draft creation');
 
 const freezeCases=[
