@@ -295,7 +295,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <label class="nt-layer-option" for="nt-osm-paths-layer"><span>Ścieżki piesze i rowerowe<small>11 odcinków, oddzielonych od dróg</small></span><input type="checkbox" id="nt-osm-paths-layer"></label>
 <button type="button" id="nt-osm-area-btn" class="nt-osm-area-btn">Pokaż Tumba–Lida na mapie</button>
 <p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite">Warstwy OSM są wyłączone. Dane wczytamy po włączeniu jednej z nich; nie wymagają logowania.</p>
-<p class="nt-layer-intro">Z daleka pobliskie oznaczenia OSM są grupowane. Po przybliżeniu czubki pinezek wskazują współrzędne wpisów; dla dróg i ścieżek to jedynie przybliżony środek odcinka.</p>
+<p class="nt-layer-intro">Z daleka oznaczenia OSM są grupowane. Przy dużym zbliżeniu dotknij grupy nakładających się pinezek, aby je rozsunąć; cienkie linie wskazują ich zapisane położenie. Dla dróg i ścieżek są to jedynie przybliżone środki odcinków.</p>
 </div>
 <p class="nt-layer-note">Dostępność dróg pozostaje niezweryfikowana. Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł. Routing nie oznacza prawa przejazdu.</p>
 </div></section>
@@ -634,6 +634,11 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       el('nt-osm-detail-sheet').hidden=true;
       activeOsmKind=null;
       syncOverlayPageScroll();
+      return;
+    }
+    // Dismissing spread-out OSM pins must never start drawing a draft.
+    if(activeSpiderMarker){
+      closeOsmSpiderfy();
       return;
     }
     if(writingDraft)return;
@@ -1055,6 +1060,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     if(!el('point-sheet').hidden){
       message('map-action-status','Najpierw zamknij edytor punktu.');return;
     }
+    closeOsmSpiderfy();
     // Never stack the layers dialog above a selected OSM detail card.
     if(!el('nt-osm-detail-sheet').hidden){
       el('nt-osm-detail-sheet').hidden=true;
@@ -1093,7 +1099,8 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   }:null;
   let osmPack=null,osmLoadPromise=null,activeOsmKind=null;
   const osmClusterLayer=map&&window.L?L.layerGroup().addTo(map):null;
-  let osmMarkers=[];
+  const osmSpiderLayer=map&&window.L?L.layerGroup().addTo(map):null;
+  let osmMarkers=[],activeSpiderMarker=null;
   const osmStatus=text=>{el('nt-osm-status').textContent=text;};
   const osmValidPoint=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)
     &&p.lat>=osmBBox[0]&&p.lat<=osmBBox[2]&&p.lon>=osmBBox[1]&&p.lon<=osmBBox[3];
@@ -1127,9 +1134,27 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     return pack.objects.length===66&&counts.barrier===29&&counts.road===26&&counts.path===11;
   }
   // Group only visible OSM observations; never mix with approved NORDIC TRAIL points.
-  // World-pixel grid makes group membership stable while panning at the same zoom.
+  // Below zoom 16 the world-pixel grid prevents unnecessary crowding.
+  // At zoom 16+ group only icons whose footprints really overlap, even across grid cells.
   function clusterOsmEntries(entries,zoom){
-    if(zoom>=16)return entries.map(entry=>[entry]);
+    if(zoom>=16){
+      const pixels=entries.map(entry=>map.project([entry.p.lat,entry.p.lon],zoom));
+      const parents=entries.map((_,i)=>i);
+      function root(i){while(parents[i]!==i){parents[i]=parents[parents[i]];i=parents[i];}return i;}
+      for(let i=0;i<entries.length;i++)for(let j=i+1;j<entries.length;j++){
+        if(Math.abs(pixels[i].x-pixels[j].x)<42&&Math.abs(pixels[i].y-pixels[j].y)<44){
+          const a=root(i),b=root(j);
+          if(a!==b)parents[b]=a;
+        }
+      }
+      const groups=new Map();
+      entries.forEach((entry,i)=>{
+        const key=root(i);
+        if(!groups.has(key))groups.set(key,[]);
+        groups.get(key).push(entry);
+      });
+      return [...groups.values()];
+    }
     const cells=new Map(),size=64;
     for(const entry of entries){
       const px=map.project([entry.p.lat,entry.p.lon],zoom);
@@ -1139,8 +1164,41 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     }
     return [...cells.values()];
   }
+  // The displaced pin is a SELECTOR ONLY. Its line/dot leads back to the
+  // exact OSM coordinate (or the approximate way centre in the source).
+  function closeOsmSpiderfy(){
+    if(osmSpiderLayer)osmSpiderLayer.clearLayers();
+    if(activeSpiderMarker&&osmClusterLayer)osmClusterLayer.addLayer(activeSpiderMarker);
+    activeSpiderMarker=null;
+  }
+  function showOsmSpiderfy(entries,clusterMarker,lat,lon){
+    if(!map||!osmSpiderLayer)return;
+    closeOsmSpiderfy();
+    activeSpiderMarker=clusterMarker;
+    osmClusterLayer.removeLayer(clusterMarker);
+    const zoom=map.getZoom(),center=map.project([lat,lon],zoom);
+    const radius=Math.max(68,Math.ceil(entries.length*53/(2*Math.PI)));
+    entries.forEach((entry,i)=>{
+      const angle=-Math.PI/2+i*2*Math.PI/entries.length;
+      const location=map.unproject([center.x+radius*Math.cos(angle),center.y+radius*Math.sin(angle)],zoom);
+      L.polyline([[entry.p.lat,entry.p.lon],location],{pane:'ntOsmEvidencePane',color:'#f4f5e9',
+        weight:1.7,opacity:.78,interactive:false}).addTo(osmSpiderLayer);
+      L.circleMarker([entry.p.lat,entry.p.lon],{pane:'ntOsmEvidencePane',radius:3,
+        color:'#f4f5e9',weight:1,fillColor:'#294635',fillOpacity:1,interactive:false}).addTo(osmSpiderLayer);
+      const symbol=entry.kind==='barrier'?'!':entry.kind==='road'?'?':'P';
+      const icon=L.divIcon({className:'',html:'<div class="nt-osm-pin '+entry.kind+'"><span>'+symbol+'</span></div>',
+        iconSize:[42,44],iconAnchor:[21,37]});
+      L.marker(location,{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
+        title:osmKinds[entry.kind]+' — odsunięta pinezka, linia wskazuje położenie OSM'})
+        .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
+          showOsmDetail(entry.p,entry.kind);})
+        .addTo(osmSpiderLayer);
+    });
+    osmStatus('Rozdzielono '+entries.length+' bliskich wpisów OSM. Linie pokazują ich zapisane położenia; nie oznaczają przejezdności.');
+  }
   function renderOsmClusters(){
     if(!map||!osmLayers||!osmClusterLayer||!osmPack)return;
+    closeOsmSpiderfy();
     for(const layer of Object.values(osmLayers))layer.clearLayers();
     osmClusterLayer.clearLayers();
     const visible=osmMarkers.filter(entry=>osmChecks[entry.kind].checked);
@@ -1152,17 +1210,21 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       const lat=entries.reduce((total,entry)=>total+entry.p.lat,0)/entries.length;
       const lon=entries.reduce((total,entry)=>total+entry.p.lon,0)/entries.length;
       const icon=L.divIcon({className:'',html:'<div class="nt-osm-cluster" aria-hidden="true">'+entries.length+'</div>',iconSize:[42,42],iconAnchor:[21,21]});
-      L.marker([lat,lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
-        title:'Grupa '+entries.length+' oznaczeń OSM — dotknij, aby przybliżyć'})
-        .on('click',event=>{
-          if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
-          closeOsmDetail();
-          map.setView([lat,lon],Math.min(map.getZoom()+2,16),{animate:false});
-        })
-        .addTo(osmClusterLayer);
+      const clusterMarker=L.marker([lat,lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
+        title:map.getZoom()>=16?'Grupa '+entries.length+' nakładających się oznaczeń — dotknij, aby rozdzielić':
+          'Grupa '+entries.length+' oznaczeń OSM — dotknij, aby przybliżyć'});
+      clusterMarker.on('click',event=>{
+        if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
+        closeOsmDetail();
+        if(map.getZoom()>=16)showOsmSpiderfy(entries,clusterMarker,lat,lon);
+        else map.setView([lat,lon],Math.min(map.getZoom()+2,16),{animate:false});
+      }).addTo(osmClusterLayer);
     }
   }
-  if(map)map.on('zoomend',renderOsmClusters);
+  if(map){
+    map.on('zoomend',renderOsmClusters);
+    map.on('dragstart',closeOsmSpiderfy);
+  }
   function setOsmVisible(){
     if(!map||!osmLayers)return;
     for(const [kind,group] of Object.entries(osmLayers)){
@@ -1222,7 +1284,10 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     }
   });
   // Opening an approved point's Leaflet popup takes precedence over OSM.
-  if(map)map.on('popupopen',closeOsmDetail);
+  if(map)map.on('popupopen',()=>{
+    closeOsmDetail();
+    closeOsmSpiderfy();
+  });
   function addOsmMarkers(pack){
     if(!map||!osmLayers)return;
     for(const group of Object.values(osmLayers))group.clearLayers();
