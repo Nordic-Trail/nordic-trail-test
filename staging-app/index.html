@@ -245,6 +245,26 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-group{margin-top:14px;border-top:1px solid rgba(231,245,219,.56)}
 .nt-osm-area-btn{margin:12px 0 0;min-height:48px;background:rgba(18,42,29,.28);color:#fffef4;border:1px solid rgba(231,245,219,.82);border-radius:14px;font-weight:750;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 .nt-osm-status{font-size:14px;line-height:1.55;color:#f1f6e9;margin:10px 0 0;text-shadow:0 1px 2px rgba(4,18,10,.86)}
+
+/* Read-only legend: native NT circles and the actual static OSM SVG glyphs. */
+.nt-map-legend{margin:12px 0 14px;border:1px solid rgba(203,232,197,.72);border-radius:13px;background:rgba(18,42,29,.25)}
+.nt-map-legend>summary{min-height:48px;padding:12px 12px;cursor:pointer;font-size:16px;font-weight:700;color:#fffef4}
+.nt-map-legend>summary:focus-visible{outline:3px solid #efd78c;outline-offset:2px;border-radius:10px}
+.nt-legend-body{padding:0 12px 12px}
+.nt-legend-body h3{font-size:14px;letter-spacing:.02em;color:#f5f8e8;margin:10px 0 6px}
+.nt-legend-body p{font-size:12px;line-height:1.5;color:#f0f5eb;margin:6px 0 9px}
+.nt-legend-list{list-style:none;padding:0;margin:0}
+.nt-legend-entry{display:flex;align-items:center;gap:11px;min-height:46px;padding:5px 0;border-bottom:1px solid rgba(213,237,207,.24)}
+.nt-legend-entry:last-child{border-bottom:0}
+.nt-legend-copy{flex:1;min-width:0}
+.nt-legend-copy strong{font-size:13px;display:block;line-height:1.3;font-weight:700}
+.nt-legend-copy small{font-size:11px;display:block;color:#e1ecd9;line-height:1.35;margin-top:2px}
+.nt-legend-pin{display:block;width:34px;height:34px;flex:0 0 34px;position:relative;overflow:visible}
+.nt-legend-pin .nt-osm-pin{transform:scale(.77);transform-origin:top left}
+.nt-legend-dot{width:18px;height:18px;flex:0 0 18px;margin:0 8px;background:var(--nt-legend-color);border:3px solid var(--nt-legend-color);border-radius:50%;opacity:.85;box-shadow:0 1px 2px rgba(5,18,10,.55)}
+.nt-legend-dot.gate{--nt-legend-color:#e5b65c}
+.nt-legend-dot.closed{--nt-legend-color:#ef7168}
+.nt-legend-dot.place{--nt-legend-color:#a8c68a}
 /* Tip of every single-location pin coincides with its recorded coordinate. */
 .nt-osm-pin{position:relative;width:42px;height:44px;filter:drop-shadow(0 2px 3px #06130ebb);pointer-events:none}
 .nt-osm-pin::before{content:"";position:absolute;left:7px;top:3px;width:28px;height:28px;box-sizing:border-box;background:var(--nt-pin-color);border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
@@ -303,6 +323,27 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite">Warstwy OSM są wyłączone. Dane wczytamy po włączeniu jednej z nich; nie wymagają logowania.</p>
 <p class="nt-layer-intro">Z daleka oznaczenia OSM są grupowane. Przy dużym zbliżeniu dotknij grupy nakładających się pinezek, aby je rozsunąć; cienkie linie wskazują ich zapisane położenie. Dla dróg i ścieżek są to jedynie przybliżone środki odcinków.</p>
 </div>
+<details class="nt-map-legend" id="nt-map-legend">
+<summary>Legenda oznaczeń mapy</summary>
+<div class="nt-legend-body">
+<h3>OpenStreetMap — dane źródłowe</h3>
+<ul class="nt-legend-list">
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin barrier"><span>!</span></span></span><span class="nt-legend-copy"><strong>Szlaban lub przeszkoda</strong><small>Wpis OSM; stan niezweryfikowany</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin road"><span>?</span></span></span><span class="nt-legend-copy"><strong>Oznaczenie na drodze</strong><small>Tag OSM; pinezka w środku odcinka</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin walk"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11.5" cy="3.7" r="1.9" fill="white" stroke="none"/><path d="M10.5 7L8.8 12l3.3 2.4L10 20.5M9.2 12l-3 7.8M11.2 8l3.2 2.4 2.6 1M7.8 8.4l-2.3-.7-1.2 4.1 2.4 1.1M17 10.7l2.7 10.2"/></svg></span></span></span><span class="nt-legend-copy"><strong>Ścieżka piesza</strong><small>OSM footway; symbol wędrowca</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin bike"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M5.5 17.5l4.2-9h4.5l4.3 9h-6.8L9.7 8.5M8.7 6h3M15.5 6.5H18"/></svg></span></span></span><span class="nt-legend-copy"><strong>Trasa rowerowa</strong><small>OSM cycleway; symbol roweru</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin trail"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20c0-5 12-4 12-9s-8-3-8-7"/><circle cx="16" cy="5" r="1.7" fill="white" stroke="none"/></svg></span></span></span><span class="nt-legend-copy"><strong>Ścieżka innego rodzaju</strong><small>OSM path; rodzaj nie jest rozstrzygnięty</small></span></li>
+</ul>
+<h3>NORDIC TRAIL — punkty zatwierdzone</h3>
+<ul class="nt-legend-list">
+<li class="nt-legend-entry"><span class="nt-legend-dot gate" aria-hidden="true"></span><span class="nt-legend-copy"><strong>Szlaban</strong><small>Status w karcie punktu NT</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-dot closed" aria-hidden="true"></span><span class="nt-legend-copy"><strong>Droga / ograniczenie</strong><small>Status w karcie punktu NT</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-dot place" aria-hidden="true"></span><span class="nt-legend-copy"><strong>Miejsce</strong><small>Status w karcie punktu NT</small></span></li>
+</ul>
+<p>Kolor kółka NT oznacza rodzaj punktu, nie jego aktualny status. Zatwierdzenie przez moderatora nie oznacza kontroli terenowej.</p>
+<p>Symbole OSM nie potwierdzają prawa wstępu, przejazdu ani tego, że ścieżka jest oznakowanym szlakiem hikingowym.</p>
+</div>
+</details>
 <p class="nt-layer-note">Dostępność dróg pozostaje niezweryfikowana. Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł. Routing nie oznacza prawa przejazdu.</p>
 </div></section>
 <section id="nt-osm-detail-sheet" class="nt-osm-detail-sheet" role="dialog" aria-modal="false" aria-labelledby="nt-osm-detail-title" hidden>
