@@ -245,10 +245,14 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-group{margin-top:14px;border-top:1px solid rgba(231,245,219,.56)}
 .nt-osm-area-btn{margin:12px 0 0;min-height:48px;background:rgba(18,42,29,.28);color:#fffef4;border:1px solid rgba(231,245,219,.82);border-radius:14px;font-weight:750;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 .nt-osm-status{font-size:14px;line-height:1.55;color:#f1f6e9;margin:10px 0 0;text-shadow:0 1px 2px rgba(4,18,10,.86)}
-.nt-osm-pin{display:grid;place-items:center;width:28px;height:28px;border:2px solid #fff;border-radius:50%;color:#fff;font-size:17px;font-weight:800;text-shadow:0 1px 3px #06130e;box-shadow:0 2px 8px #06130e88}
-.nt-osm-pin.barrier{background:#95612dc9}
-.nt-osm-pin.road{background:#793d24c9;border-style:dashed}
-.nt-osm-pin.path{background:#295c7dc9;border-style:dotted}
+/* Tip of every single-location pin coincides with its recorded coordinate. */
+.nt-osm-pin{position:relative;width:42px;height:44px;filter:drop-shadow(0 2px 3px #06130ebb);pointer-events:none}
+.nt-osm-pin::before{content:"";position:absolute;left:7px;top:3px;width:28px;height:28px;box-sizing:border-box;background:var(--nt-pin-color);border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+.nt-osm-pin span{position:absolute;left:7px;top:2px;width:28px;height:28px;display:grid;place-items:center;color:#fff;font-size:18px;font-weight:800;text-shadow:0 1px 3px #06130e}
+.nt-osm-pin.barrier{--nt-pin-color:#95612d}
+.nt-osm-pin.road{--nt-pin-color:#793d24}
+.nt-osm-pin.path{--nt-pin-color:#295c7d}
+.nt-osm-cluster{display:grid;place-items:center;min-width:42px;height:42px;padding:0 6px;box-sizing:border-box;background:rgba(18,42,29,.42);color:#fffef4;border:2px solid rgba(241,249,228,.94);border-radius:50%;font-size:15px;font-weight:800;text-shadow:0 1px 3px #06130e;box-shadow:0 2px 8px #06130e80;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .nt-osm-detail-sheet{position:fixed;z-index:1230;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,550px);max-height:min(76dvh,680px);overflow-y:auto;overscroll-behavior:contain;background:rgba(18,42,29,.28);border:1.5px solid rgba(231,245,219,.82);border-radius:20px 20px 0 0;padding:20px 18px calc(23px + env(safe-area-inset-bottom));color:#f5f8ee;backdrop-filter:blur(7px) saturate(1.1);-webkit-backdrop-filter:blur(7px) saturate(1.1);box-shadow:0 -12px 38px #06130e99}
 .nt-osm-detail-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .nt-osm-detail-heading h2{font-size:21px;margin:0}
@@ -291,6 +295,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <label class="nt-layer-option" for="nt-osm-paths-layer"><span>Ścieżki piesze i rowerowe<small>11 odcinków, oddzielonych od dróg</small></span><input type="checkbox" id="nt-osm-paths-layer"></label>
 <button type="button" id="nt-osm-area-btn" class="nt-osm-area-btn">Pokaż Tumba–Lida na mapie</button>
 <p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite">Warstwy OSM są wyłączone. Dane wczytamy po włączeniu jednej z nich; nie wymagają logowania.</p>
+<p class="nt-layer-intro">Z daleka pobliskie oznaczenia OSM są grupowane. Po przybliżeniu czubki pinezek wskazują współrzędne wpisów; dla dróg i ścieżek to jedynie przybliżony środek odcinka.</p>
 </div>
 <p class="nt-layer-note">Dostępność dróg pozostaje niezweryfikowana. Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł. Routing nie oznacza prawa przejazdu.</p>
 </div></section>
@@ -1087,6 +1092,8 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     path:L.layerGroup().addTo(map)
   }:null;
   let osmPack=null,osmLoadPromise=null,activeOsmKind=null;
+  const osmClusterLayer=map&&window.L?L.layerGroup().addTo(map):null;
+  let osmMarkers=[];
   const osmStatus=text=>{el('nt-osm-status').textContent=text;};
   const osmValidPoint=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)
     &&p.lat>=osmBBox[0]&&p.lat<=osmBBox[2]&&p.lon>=osmBBox[1]&&p.lon<=osmBBox[3];
@@ -1119,6 +1126,43 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     }
     return pack.objects.length===66&&counts.barrier===29&&counts.road===26&&counts.path===11;
   }
+  // Group only visible OSM observations; never mix with approved NORDIC TRAIL points.
+  // World-pixel grid makes group membership stable while panning at the same zoom.
+  function clusterOsmEntries(entries,zoom){
+    if(zoom>=16)return entries.map(entry=>[entry]);
+    const cells=new Map(),size=64;
+    for(const entry of entries){
+      const px=map.project([entry.p.lat,entry.p.lon],zoom);
+      const key=Math.floor(px.x/size)+':'+Math.floor(px.y/size);
+      if(!cells.has(key))cells.set(key,[]);
+      cells.get(key).push(entry);
+    }
+    return [...cells.values()];
+  }
+  function renderOsmClusters(){
+    if(!map||!osmLayers||!osmClusterLayer||!osmPack)return;
+    for(const layer of Object.values(osmLayers))layer.clearLayers();
+    osmClusterLayer.clearLayers();
+    const visible=osmMarkers.filter(entry=>osmChecks[entry.kind].checked);
+    for(const entries of clusterOsmEntries(visible,map.getZoom())){
+      if(entries.length===1){
+        entries[0].marker.addTo(osmLayers[entries[0].kind]);
+        continue;
+      }
+      const lat=entries.reduce((total,entry)=>total+entry.p.lat,0)/entries.length;
+      const lon=entries.reduce((total,entry)=>total+entry.p.lon,0)/entries.length;
+      const icon=L.divIcon({className:'',html:'<div class="nt-osm-cluster" aria-hidden="true">'+entries.length+'</div>',iconSize:[42,42],iconAnchor:[21,21]});
+      L.marker([lat,lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
+        title:'Grupa '+entries.length+' oznaczeń OSM — dotknij, aby przybliżyć'})
+        .on('click',event=>{
+          if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
+          closeOsmDetail();
+          map.setView([lat,lon],Math.min(map.getZoom()+2,16),{animate:false});
+        })
+        .addTo(osmClusterLayer);
+    }
+  }
+  if(map)map.on('zoomend',renderOsmClusters);
   function setOsmVisible(){
     if(!map||!osmLayers)return;
     for(const [kind,group] of Object.entries(osmLayers)){
@@ -1135,6 +1179,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       activeOsmKind=null;
       osmStatus('Warstwy OSM są wyłączone.');
     }else if(osmPack)osmStatus('OSM: '+active.map(kind=>kind==='barrier'?'29 szlabanów':kind==='road'?'26 dróg':'11 ścieżek').join(', ')+'. Niezweryfikowane.');
+    renderOsmClusters();
     syncOverlayPageScroll();
   }
   function addOsmDetailRow(container,label,value){
@@ -1181,19 +1226,20 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   function addOsmMarkers(pack){
     if(!map||!osmLayers)return;
     for(const group of Object.values(osmLayers))group.clearLayers();
+    osmMarkers=[];
     for(const p of pack.objects){
       const kind=p.kind==='barrier'?'barrier':
         ['path','footway','cycleway'].includes(p.tags.highway)?'path':'road';
       const symbol=kind==='barrier'?'!':kind==='road'?'?':'P';
       const icon=L.divIcon({
         className:'',
-        html:'<div class="nt-osm-pin '+kind+'">'+symbol+'</div>',
-        iconSize:[28,28],iconAnchor:[14,14]
+        html:'<div class="nt-osm-pin '+kind+'"><span>'+symbol+'</span></div>',
+        iconSize:[42,44],iconAnchor:[21,37]
       });
-      L.marker([p.lat,p.lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
+      const marker=L.marker([p.lat,p.lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
         title:osmKinds[kind]+' · OSM (niezweryfikowane)'})
-      .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind);})
-      .addTo(osmLayers[kind]);
+        .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind);});
+      osmMarkers.push({p,kind,marker});
     }
   }
   async function ensureOsmPack(){
