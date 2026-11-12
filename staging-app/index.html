@@ -249,9 +249,14 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-pin{position:relative;width:42px;height:44px;filter:drop-shadow(0 2px 3px #06130ebb);pointer-events:none}
 .nt-osm-pin::before{content:"";position:absolute;left:7px;top:3px;width:28px;height:28px;box-sizing:border-box;background:var(--nt-pin-color);border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
 .nt-osm-pin span{position:absolute;left:7px;top:2px;width:28px;height:28px;display:grid;place-items:center;color:#fff;font-size:18px;font-weight:800;text-shadow:0 1px 3px #06130e}
+.nt-osm-symbol{width:20px;height:20px;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none;filter:drop-shadow(0 1px 1px #071d28)}
+.nt-osm-pin.bike .nt-osm-symbol{width:19px;height:19px;stroke-width:2.65}
 .nt-osm-pin.barrier{--nt-pin-color:#95612d}
 .nt-osm-pin.road{--nt-pin-color:#793d24}
 .nt-osm-pin.path{--nt-pin-color:#295c7d}
+.nt-osm-pin.walk{--nt-pin-color:#245777}
+.nt-osm-pin.bike{--nt-pin-color:#15557d;opacity:.93}
+.nt-osm-pin.trail{--nt-pin-color:#295c7d}
 .nt-osm-cluster{display:grid;place-items:center;min-width:42px;height:42px;padding:0 6px;box-sizing:border-box;background:rgba(18,42,29,.42);color:#fffef4;border:2px solid rgba(241,249,228,.94);border-radius:50%;font-size:15px;font-weight:800;text-shadow:0 1px 3px #06130e;box-shadow:0 2px 8px #06130e80;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .nt-osm-detail-sheet{position:fixed;z-index:1230;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,550px);max-height:min(76dvh,680px);overflow-y:auto;overscroll-behavior:contain;background:rgba(18,42,29,.28);border:1.5px solid rgba(231,245,219,.82);border-radius:20px 20px 0 0;padding:20px 18px calc(23px + env(safe-area-inset-bottom));color:#f5f8ee;backdrop-filter:blur(7px) saturate(1.1);-webkit-backdrop-filter:blur(7px) saturate(1.1);box-shadow:0 -12px 38px #06130e99}
 .nt-osm-detail-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -1105,6 +1110,20 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   const osmValidPoint=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)
     &&p.lat>=osmBBox[0]&&p.lat<=osmBBox[2]&&p.lon>=osmBBox[1]&&p.lon<=osmBBox[3];
   const osmKinds={barrier:'Szlaban lub przeszkoda',road:'Oznaczenie na drodze',path:'Ścieżka piesza lub rowerowa'};
+  // All symbols are static SVG, never interpolated from untrusted OSM tags.
+  // OSM highway=footway is NOT proof of a hiking trail or legal access.
+  const osmIconHiker="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"11.5\" cy=\"3.7\" r=\"1.9\" fill=\"white\" stroke=\"none\"/><path d=\"M10.5 7L8.8 12l3.3 2.4L10 20.5M9.2 12l-3 7.8M11.2 8l3.2 2.4 2.6 1M7.8 8.4l-2.3-.7-1.2 4.1 2.4 1.1M17 10.7l2.7 10.2\"/></svg>";
+  const osmIconBike="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"5.5\" cy=\"17.5\" r=\"3.2\"/><circle cx=\"18.5\" cy=\"17.5\" r=\"3.2\"/><path d=\"M5.5 17.5l4.2-9h4.5l4.3 9h-6.8L9.7 8.5M8.7 6h3M15.5 6.5H18\"/></svg>";
+  const osmIconTrail="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 20c0-5 12-4 12-9s-8-3-8-7\"/><circle cx=\"16\" cy=\"5\" r=\"1.7\" fill=\"white\" stroke=\"none\"/></svg>";
+  function osmIconForEntry(entry){
+    const highway=entry.p.tags.highway;
+    const style=entry.kind==='path'?highway==='footway'?'walk':
+      highway==='cycleway'?'bike':'trail':entry.kind;
+    const symbol=entry.kind==='barrier'?'!':entry.kind==='road'?'?':
+      style==='walk'?osmIconHiker:style==='bike'?osmIconBike:osmIconTrail;
+    return L.divIcon({className:'',html:'<div class="nt-osm-pin '+style+'"><span>'+symbol+'</span></div>',
+      iconSize:[42,44],iconAnchor:[21,37]});
+  }
   const osmSafeTags=['barrier','highway','motor_vehicle','motorcar','access','locked','name','surface'];
   function checkOsmPack(pack){
     if(!pack||pack.schema_version!==1||pack.area!=='tumba-lida'||pack.coverage!=='collected'
@@ -1185,9 +1204,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
         weight:1.7,opacity:.78,interactive:false}).addTo(osmSpiderLayer);
       L.circleMarker([entry.p.lat,entry.p.lon],{pane:'ntOsmEvidencePane',radius:3,
         color:'#f4f5e9',weight:1,fillColor:'#294635',fillOpacity:1,interactive:false}).addTo(osmSpiderLayer);
-      const symbol=entry.kind==='barrier'?'!':entry.kind==='road'?'?':'P';
-      const icon=L.divIcon({className:'',html:'<div class="nt-osm-pin '+entry.kind+'"><span>'+symbol+'</span></div>',
-        iconSize:[42,44],iconAnchor:[21,37]});
+      const icon=osmIconForEntry(entry);
       L.marker(location,{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
         title:osmKinds[entry.kind]+' — odsunięta pinezka, linia wskazuje położenie OSM'})
         .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
@@ -1295,16 +1312,12 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     for(const p of pack.objects){
       const kind=p.kind==='barrier'?'barrier':
         ['path','footway','cycleway'].includes(p.tags.highway)?'path':'road';
-      const symbol=kind==='barrier'?'!':kind==='road'?'?':'P';
-      const icon=L.divIcon({
-        className:'',
-        html:'<div class="nt-osm-pin '+kind+'"><span>'+symbol+'</span></div>',
-        iconSize:[42,44],iconAnchor:[21,37]
-      });
+      const entry={p,kind};
+      const icon=osmIconForEntry(entry);
       const marker=L.marker([p.lat,p.lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
         title:osmKinds[kind]+' · OSM (niezweryfikowane)'})
         .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind);});
-      osmMarkers.push({p,kind,marker});
+      osmMarkers.push({...entry,marker});
     }
   }
   async function ensureOsmPack(){
