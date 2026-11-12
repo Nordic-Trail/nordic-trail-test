@@ -12,7 +12,7 @@ const cases=[
  ['Public approved points still render in original circleMarker overlayPane',page.includes("L.circleMarker([lat,lon],{radius:8,color:colours[p.kind]")],
  ['OSM marker click does not bubble to draft-creation map handler',page.includes("L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind)")],
  ['Map click dismisses OSM card before any draft selection',js[0].slice(js[0].indexOf("  if(map)map.on('click',event=>{"),js[0].indexOf("    if(writingDraft)return;",js[0].indexOf("  if(map)map.on('click',event=>{"))).includes("if(!el('nt-osm-detail-sheet').hidden){")],
- ['Native popup opening dismisses OSM evidence card',page.includes("if(map)map.on('popupopen',closeOsmDetail)")],
+ ['Native popup opening dismisses OSM evidence card',page.includes("if(map)map.on('popupopen',()=>{")&&page.includes('    closeOsmDetail();\n    closeOsmSpiderfy();')],
  ['Layer-switch dialog and OSM detail never stack',page.includes('// Never stack the layers dialog above a selected OSM detail card.')],
  ['Disabling selected OSM layer closes stale detail card',page.includes("if(activeOsmKind&&!osmChecks[activeOsmKind].checked)")],
  ['Existing public point toggle and moderation preserved',page.includes('id="nt-public-points-layer" checked')&&page.includes("db.rpc('moderate_map_point'")],
