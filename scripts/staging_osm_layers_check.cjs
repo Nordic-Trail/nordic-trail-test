@@ -7,6 +7,27 @@ const pack=JSON.parse(fs.readFileSync('staging-app/data/tumba-lida.json','utf8')
 const js=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
 assert.equal(js.length,1,'One inline app JavaScript');
 assert.doesNotThrow(()=>new vm.Script(js[0]),'Staging app JS syntax');
+
+const surfaceStart=js[0].indexOf('  const osmSurfaceLabels={');
+const surfaceEnd=js[0].indexOf('  function showOsmDetail(p,kind){',surfaceStart);
+assert.ok(surfaceStart>=0&&surfaceEnd>surfaceStart,'Surface translator exists');
+const describeOsmSurface=vm.runInNewContext(js[0].slice(surfaceStart,surfaceEnd)+';describeOsmSurface');
+for(const [tag,expectedName,expectedGroup] of [
+ ['clay','Gliniasta','Nieutwardzona'],
+ ['gravel','Żwirowa','Nieutwardzona'],
+ ['fine_gravel','Drobnożwirowa','Nieutwardzona'],
+ ['ground','Gruntowa','Nieutwardzona'],
+ ['compacted','Zagęszczona (stabilizowana)','Nieutwardzona'],
+ ['asphalt','Asfaltowa','Utwardzona'],
+ [undefined,'Brak danych w OSM','Nieznana'],
+ ['not_documented_tag','Nieopisany w słowniku — sprawdź tag surface','Nieustalona']
+]){
+ const translated=describeOsmSurface(tag);
+ assert.equal(translated.name,expectedName,'OSM surface label for '+tag);
+ assert.equal(translated.group,expectedGroup,'OSM surface category for '+tag);
+}
+assert.ok(html.includes('id="nt-osm-detail-surface"')&&html.includes("surfaceBox.hidden=!showSurface"),'Surface displayed only on relevant cards');
+
 const actual={barrier:0,road:0,path:0},seen=new Set();
 assert.equal(pack.coverage,'collected');assert.equal(pack.source,'OpenStreetMap');assert.equal(pack.licence,'ODbL');
 assert.deepEqual(pack.bbox,[59.155,17.81,59.203,17.875]);
