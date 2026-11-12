@@ -4,12 +4,14 @@ on:
     paths:
       - 'staging-app/**'
       - 'scripts/staging_osm_selection_check.cjs'
+      - 'scripts/staging_osm_cluster_check.cjs'
       - '.github/workflows/staging-osm-click-isolation.yml'
   push:
     branches: [main]
     paths:
       - 'staging-app/**'
       - 'scripts/staging_osm_selection_check.cjs'
+      - 'scripts/staging_osm_cluster_check.cjs'
       - '.github/workflows/staging-osm-click-isolation.yml'
 permissions:
   contents: read
@@ -22,3 +24,5 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Audit OSM overlap with STAGING point interactions
         run: node scripts/staging_osm_selection_check.cjs
+      - name: Audit coordinate-anchored OSM pins and zoom clustering
+        run: node scripts/staging_osm_cluster_check.cjs
