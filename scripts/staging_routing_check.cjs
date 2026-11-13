@@ -42,15 +42,20 @@ test('Public sample uses a car and pedestrian section',()=>{
  assert.deepEqual(R.displaySegments(t,{}).map(s=>s.mode),['drive','walk']);
 });
 
-test('High contrast car and hiking route styles use three aligned strokes',()=>{
- assert.ok(script.includes("const routeColors={drive:'#FF2E7E',walk:'#BFFF2F'}"));
- assert.ok(script.includes("const routeOutline='#182738'"));
- assert.ok(script.includes("[routeOutline,14],['#FFFFFF',10],[routeColors[s.mode],7]"));
+test('Single unoutlined 6 px strokes with navy car and dashed dark green hiking',()=>{
+ assert.ok(script.includes("const routeColors={drive:'#174A8B',walk:'#17683E'}"));
+ assert.ok(!script.includes('routeOutline'),'Removed old dark border stroke');
+ assert.ok(!script.includes("['#FFFFFF',10]"),'Removed white border stroke');
+ assert.ok(script.includes("color:routeColors[s.mode],"));
+ assert.ok(script.includes('weight:6,opacity:routed?1:0.78,dashArray'));
  assert.ok(script.includes("s.mode==='walk'?'20 15':null"));
- assert.ok(script.includes(":'5 23'"));
+ assert.ok(script.includes(":'5 23'"),'Draft remains dotted');
  assert.ok(script.includes("interactive:false"));
  assert.ok(html.includes('Kolory tras'));
- assert.ok(html.includes('Hiking — limonkowa'));
+ assert.ok(html.includes('Hiking — ciemnozielona, przerywana'));
+ assert.ok(html.includes('Samochód — ciemnoniebieska'));
+ assert.ok(html.includes('stroke="#17683E" stroke-width="6" stroke-dasharray="20 15"'));
+ assert.ok(html.includes('stroke="#174A8B" stroke-width="6" stroke-linecap="round"'));
 });
 test('Unrouted geometry is visibly labelled as draft',()=>{
  assert.ok(script.includes("s.status==='routed'"));

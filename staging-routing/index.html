@@ -32,10 +32,10 @@ a{color:var(--accent)}.tag{color:var(--accent);font-size:.9rem}
 <div id="map" aria-label="Mapa OSM z planem wyprawy"></div>
 <div class="actions"><button id="fit-map" type="button" class="secondary">◎ Pokaż całą trasę</button></div>
 <div class="legend" aria-label="Kolory tras">
-  <div class="legend-item"><svg class="legend-swatch" viewBox="0 0 80 20" aria-hidden="true"><path d="M7 10H73" stroke="#182738" stroke-width="14" stroke-linecap="round"/><path d="M7 10H73" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/><path d="M7 10H73" stroke="#FF2E7E" stroke-width="7" stroke-linecap="round"/></svg><span>Samochód — różowo-czerwona</span></div>
-  <div class="legend-item"><svg class="legend-swatch" viewBox="0 0 80 20" aria-hidden="true"><path d="M7 10H73" stroke="#182738" stroke-width="14" stroke-dasharray="20 15" stroke-linecap="round"/><path d="M7 10H73" stroke="#FFFFFF" stroke-width="10" stroke-dasharray="20 15" stroke-linecap="round"/><path d="M7 10H73" stroke="#BFFF2F" stroke-width="7" stroke-dasharray="20 15" stroke-linecap="round"/></svg><span>Hiking — limonkowa, przerywana</span></div>
+  <div class="legend-item"><svg class="legend-swatch" viewBox="0 0 80 20" aria-hidden="true"><path d="M7 10H73" stroke="#174A8B" stroke-width="6" stroke-linecap="round"/></svg><span>Samochód — ciemnoniebieska</span></div>
+  <div class="legend-item"><svg class="legend-swatch" viewBox="0 0 80 20" aria-hidden="true"><path d="M7 10H73" stroke="#17683E" stroke-width="6" stroke-dasharray="20 15" stroke-linecap="round"/></svg><span>Hiking — ciemnozielona, przerywana</span></div>
 </div>
-<p class="footnote">Linia kropkowana oznacza jedynie szkic po prostej między punktami. Ciągła różowa i regularnie przerywana limonkowa oznaczają przebieg obliczony przez serwer. Same kolory nie oznaczają prawa przejazdu ani przejścia.</p>
+<p class="footnote">Linia kropkowana oznacza tylko szkic po prostej między punktami. Ciemnoniebieska ciągła i ciemnozielona regularnie przerywana oznaczają przebieg obliczony przez serwer. Kolory nie oznaczają prawa przejazdu ani przejścia.</p>
 </section>
 <section class="card">
 <h2 id="trip-title">Przykład Tumba → Lida</h2>
@@ -69,8 +69,7 @@ a{color:var(--accent)}.tag{color:var(--accent);font-size:.9rem}
  const KEY='nt-staging-trip-planner-v1';
  const ROUTER='https://valhalla1.openstreetmap.de/route';
  const MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
- const routeColors={drive:'#FF2E7E',walk:'#BFFF2F'};
- const routeOutline='#182738';
+ const routeColors={drive:'#174A8B',walk:'#17683E'};
  const cache=Object.create(null);
  let trip=null,map=null,routeLayer=null,pinLayer=null,busy=false,calls=0,lastRequestTime=0,ready=false;
  function message(text,error=false){el('message').textContent=text;el('message').classList.toggle('error',error);}
@@ -124,19 +123,15 @@ a{color:var(--accent)}.tag{color:var(--accent);font-size:.9rem}
   segments.forEach(s=>{
    const routed=s.status==='routed';
    const points=s.points.map(p=>[p.lat,p.lon]);
-   // Route styles are independent from underlying OSM road-surface layers.
-   // Three aligned strokes keep the route visible on roads, forests and water.
-   // Drafts remain distinctly dotted so they cannot be mistaken for computed routes.
+   // Two route modes are independent of OSM surface and legal access information.
+   // Unoutlined 6px lines: car solid navy, pedestrian forest green dashed.
+   // Draft routes are dotted to distinguish straight-line sketches from computed paths.
    const dashArray=routed?(s.mode==='walk'?'20 15':null):'5 23';
-   const opacity=routed?1:0.88;
-   for(const [color,weight] of [
-    [routeOutline,14],['#FFFFFF',10],[routeColors[s.mode],7]
-   ]){
-    L.polyline(points,{
-     color,weight,opacity,dashArray,lineCap:'round',lineJoin:'round',
-     interactive:false
-    }).addTo(routeLayer);
-   }
+   L.polyline(points,{
+    color:routeColors[s.mode],
+    weight:6,opacity:routed?1:0.78,dashArray,
+    lineCap:'round',lineJoin:'round',interactive:false
+   }).addTo(routeLayer);
   });
   trip.waypoints.forEach((p,i)=>{
    const icon=L.divIcon({className:'',iconSize:[31,31],iconAnchor:[15,15],
