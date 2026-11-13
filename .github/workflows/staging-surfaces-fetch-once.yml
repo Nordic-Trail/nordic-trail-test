@@ -1,0 +1,57 @@
+name: NORDIC TRAIL - one-time OSM geometry acquisition
+on:
+  push:
+    branches:
+      - feat/staging-road-surfaces-tumba-lida-2026-11-13
+    paths:
+      - '.github/workflows/staging-surfaces-fetch-once.yml'
+permissions:
+  contents: write
+jobs:
+  acquire-osm:
+    if: github.repository == 'Nordic-Trail/nordic-trail-test' && github.ref == 'refs/heads/feat/staging-road-surfaces-tumba-lida-2026-11-13'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: true
+      - name: Download genuine OSM road geometry in a restricted Tumba-Lida area
+        env:
+          OVERPASS_URL: https://overpass.private.coffee/api/interpreter
+        run: node scripts/build_tumba_lida_surfaces.cjs
+      - name: Verify parser, type classifications, and offline-only UI
+        run: node scripts/staging_surface_layer_check.cjs
+      - name: Validate extracted area and data volume before committing
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const p='staging-surfaces/data/tumba-lida-surface.geojson';
+          const d=JSON.parse(fs.readFileSync(p,'utf8'));
+          if(d.type!=='FeatureCollection'||d.metadata?.source!=='OpenStreetMap'||
+            d.metadata?.licence!=='ODbL'||d.metadata?.legal_access!=='unverified'||
+            !Array.isArray(d.features)||d.features.length<10||d.features.length>4500){
+            throw Error('OSM data verification failed');
+          }
+          const count={};const ids=new Set();
+          for(const f of d.features){
+            if(ids.has(f.properties.osm_id))throw Error('Duplicate way');
+            ids.add(f.properties.osm_id);
+            const category=f.properties.category;
+            count[category]=(count[category]||0)+1;
+            if(!['gravel','ground','paved','other'].includes(category))throw Error('Unexpected category');
+            if(f.geometry?.type!=='LineString'||f.geometry.coordinates.length<2)throw Error('Unexpected geometry');
+          }
+          const bytes=fs.statSync(p).size;
+          if(bytes>3500000)throw Error('Exceeded mobile preview file-size limit');
+          console.log('OSM ways:',d.features.length,'categories:',JSON.stringify(count),'bytes:',bytes);
+          console.log('Extract timestamp:',d.metadata.source_checked_at);
+          NODE
+      - name: Commit only inspected-format GeoJSON to the feature branch (never main)
+        run: |
+          git config user.name 'nordic-trail-automation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- staging-surfaces/data/tumba-lida-surface.geojson
+          git diff --cached --quiet && { echo "No new data"; exit 0; }
+          git commit -m "data(staging): bounded OSM surface road geometries for Tumba-Lida"
+          git push origin HEAD:refs/heads/feat/staging-road-surfaces-tumba-lida-2026-11-13
