@@ -42,7 +42,7 @@ function convert(source,asOf=new Date().toISOString()){
 async function run(){
  const south=BBOX[0],west=BBOX[1],north=BBOX[2],east=BBOX[3];
  const query='[out:json][timeout:40];way["highway"~"^('+TYPES.join('|')+')$"]["surface"]('+[south,west,north,east].join(',')+');out geom;';
- const endpoint=process.env.OVERPASS_URL||'https://overpass.kumi.systems/api/interpreter';
+ const endpoint=process.env.OVERPASS_URL||'https://overpass.private.coffee/api/interpreter';
  const url=new URL(endpoint);
  if(url.protocol!=='https:')throw Error('HTTPS Overpass endpoint required');
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),55000);
