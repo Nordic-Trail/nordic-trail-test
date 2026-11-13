@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'">
+<title>NORDIC TRAIL — prototyp nawierzchni Tumba–Lida</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;font-family:system-ui,Arial,sans-serif;--bg:#12241b;--ink:#f6f9f2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5}
+header{padding:13px 17px;display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid #69866b}
+header a{color:#e4f3cb}main{padding:14px;max-width:1000px;margin:auto}
+h1{font-size:20px;margin:0 0 10px}h2{font-size:17px;margin:12px 0 6px}
+#map{height:60dvh;min-height:330px;border-radius:15px;background:#b4cfb3}
+.panel{background:#233b2c;border:1px solid #728972;padding:15px;border-radius:14px;margin:10px 0}
+.controls{display:flex;gap:12px;flex-wrap:wrap}
+.controls label{display:flex;align-items:center;gap:8px;min-height:44px}
+.controls input{height:22px;width:22px;accent-color:#c2d7a7}
+.sample{display:inline-block;width:37px;height:0;border-top:3px solid;vertical-align:middle}
+.status{padding:12px;border-left:4px solid #e4c37c;background:#3d4231;border-radius:8px}
+.muted{color:#cedbd0;font-size:14px}a{color:#e4f3cb}
+#detail{white-space:pre-wrap;font-size:14px}
+@media(max-width:700px){#map{height:55dvh;min-height:290px}main{padding:9px}}
+</style></head><body>
+<header><div><strong>NORDIC TRAIL</strong><div class="muted">STAGING — nawierzchnie OSM, prototyp izolowany</div></div><a href="../staging-routing/">Trasy</a></header>
+<main><h1>Drogi według nawierzchni — Tumba–Lida</h1>
+<div id="map" aria-label="Mapa rzeczywistej geometrii dróg OSM"></div>
+<section class="panel"><h2>Filtry nawierzchni</h2><div class="controls">
+<label><input id="gravel" type="checkbox" checked><span class="sample" style="border-color:#B89B70"></span> Żwir / zagęszczona</label>
+<label><input id="ground" type="checkbox" checked><span class="sample" style="border-color:#A67651"></span> Grunt / glina / piasek</label>
+<label><input id="paved" type="checkbox"><span class="sample" style="border-color:#818F99"></span> Utwardzona</label>
+<label><input id="other" type="checkbox"><span class="sample" style="border-color:#9A91A9"></span> Inna oznaczona</label>
+</div><p class="muted">Linie nawierzchni mają 3 px, by nie konkurować z zatwierdzonymi trasami 6 px. Pokazujemy tylko drogi posiadające tag surface w OSM.</p></section>
+<p id="status" class="status" role="status" aria-live="polite">Sprawdzanie lokalnej paczki OSM…</p>
+<section class="panel"><h2>Wybrany odcinek</h2><p id="detail">Dotknij linii, aby zobaczyć tagi OSM.</p></section>
+<p class="muted">Źródło: © OpenStreetMap contributors, ODbL. Typ nawierzchni NIE oznacza prawa przejazdu ani przejezdności. Brak danych NIE oznacza braku drogi. Ten widok nie wysyła współrzędnych ani danych użytkownika do serwerów routingu.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+(()=>{
+ const el=id=>document.getElementById(id),bbox=[59.155,17.81,59.203,17.885];
+ const colors={gravel:'#B89B70',ground:'#A67651',paved:'#818F99',other:'#9A91A9'};
+ const map=L.map('map',{zoomControl:true}).fitBounds([[bbox[0],bbox[1]],[bbox[2],bbox[3]]],{padding:[10,10]});
+ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ const layers={};for(const name of Object.keys(colors))layers[name]=L.layerGroup().addTo(map);
+ function valid(data){
+  if(!data||data.type!=='FeatureCollection'||!data.metadata||data.metadata.schema_version!==1
+   ||data.metadata.source!=='OpenStreetMap'||data.metadata.licence!=='ODbL'
+   ||data.metadata.legal_access!=='unverified'
+   ||JSON.stringify(data.metadata.bbox)!==JSON.stringify(bbox)
+   ||!Array.isArray(data.features)||data.features.length>4500)return false;
+  return data.features.every(f=>f&&f.type==='Feature'&&f.geometry&&f.geometry.type==='LineString'
+   &&Array.isArray(f.geometry.coordinates)&&f.geometry.coordinates.length>=2&&f.geometry.coordinates.length<=15000
+   &&f.geometry.coordinates.every(pt=>Array.isArray(pt)&&pt.length===2&&pt.every(Number.isFinite)
+     &&pt[0]>=-180&&pt[0]<=180&&pt[1]>=-90&&pt[1]<=90)
+   &&f.properties&&Number.isSafeInteger(f.properties.osm_id)&&f.properties.osm_id>0
+   &&Object.hasOwn(colors,f.properties.category)&&typeof f.properties.surface==='string'
+   &&typeof f.properties.highway==='string');
+ }
+ function draw(data){
+  for(const name of Object.keys(layers))layers[name].clearLayers();
+  for(const f of data.features){
+   const p=f.properties,points=f.geometry.coordinates.map(c=>[c[1],c[0]]);
+   const line=L.polyline(points,{color:colors[p.category],weight:3,opacity:0.9,interactive:true});
+   line.on('click',()=>{
+    el('detail').textContent='Odcinek OSM #'+p.osm_id+'\nDroga: '+p.highway+'\nNawierzchnia: '+p.surface+
+     '\ntracktype: '+(p.tracktype||'brak danych')+'\naccess: '+(p.access||'brak danych')+
+     '\nmotor_vehicle: '+(p.motor_vehicle||'brak danych')+'\nDostępność prawna: niezweryfikowana';
+   });line.addTo(layers[p.category]);
+  }
+  el('status').textContent='Wczytano '+data.features.length+' odcinków ze znaną nawierzchnią. Stan danych: '+data.metadata.source_checked_at+
+   '. Nie obejmuje wszystkich dróg w okolicy.';
+  for(const name of Object.keys(layers)){const box=el(name);box.addEventListener('change',()=>{
+   if(box.checked&&!map.hasLayer(layers[name]))layers[name].addTo(map);
+   else if(!box.checked&&map.hasLayer(layers[name]))map.removeLayer(layers[name]);
+  });if(!box.checked)map.removeLayer(layers[name]);}
+ }
+ fetch('data/tumba-lida-surface.geojson',{cache:'no-store',credentials:'omit'}).then(async response=>{
+  if(!response.ok)throw Error('Brak przetworzonej paczki — trzeba pobrać rzeczywistą geometrię z OSM');
+  const content=await response.text();if(content.length>3500000)throw Error('Paczka zbyt duża');
+  const data=JSON.parse(content);if(!valid(data))throw Error('Niepoprawna paczka GeoJSON');
+  draw(data);
+ }).catch(error=>{el('status').textContent='Prototyp przygotowany, ale warstwa nie jest jeszcze dostępna: '+error.message+'. Nie wyświetlam danych zastępczych.';});
+})();
+</script>
+</body></html>
