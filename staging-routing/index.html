@@ -22,7 +22,7 @@ input[type=checkbox]{width:22px;height:22px;flex:none;accent-color:var(--accent)
 #message{padding:12px;margin:12px 0 0;border-radius:10px;background:#35523e}#message.error{background:#643f37}
 .footnote{color:var(--muted);font-size:.9rem}.warning{border-left:4px solid #ecc179;background:#3b372b;border-radius:8px;padding:12px}
 ul{padding-left:20px}li{padding:6px 0;border-bottom:1px solid #66836b44}
-.segment{font-size:.95rem}.distance{font-weight:700}.legend{margin-top:10px}
+.segment{font-size:.95rem}.distance{font-weight:700}.legend{margin:12px 0;display:flex;gap:12px 22px;flex-wrap:wrap;align-items:center}.legend-item{display:flex;align-items:center;gap:8px;font-weight:700}.legend-swatch{display:block;width:80px;height:20px;flex:none}
 a{color:var(--accent)}.tag{color:var(--accent);font-size:.9rem}
 @media(max-width:760px){main{display:block;padding:13px}.card{margin-bottom:14px}#map{height:50dvh;min-height:270px}header{font-size:.93rem}}
 </style></head><body>
@@ -31,8 +31,11 @@ a{color:var(--accent)}.tag{color:var(--accent);font-size:.9rem}
 <h1>Trasa po drogach i ścieżkach</h1>
 <div id="map" aria-label="Mapa OSM z planem wyprawy"></div>
 <div class="actions"><button id="fit-map" type="button" class="secondary">◎ Pokaż całą trasę</button></div>
-<p class="legend">🚙 Samochód: <span style="color:#f3bb62">pomarańczowa linia</span> · 🥾 Pieszo: <span style="color:#73d4a5">zielona linia</span></p>
-<p class="footnote">Linia słaba i przerywana = nieobliczony szkic. Pełna linia = geometria zwrócona przez serwer. Wynik nie jest nawigacją.</p>
+<div class="legend" aria-label="Kolory tras">
+  <div class="legend-item"><svg class="legend-swatch" viewBox="0 0 80 20" aria-hidden="true"><path d="M7 10H73" stroke="#182738" stroke-width="14" stroke-linecap="round"/><path d="M7 10H73" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/><path d="M7 10H73" stroke="#FF2E7E" stroke-width="7" stroke-linecap="round"/></svg><span>Samochód — różowo-czerwona</span></div>
+  <div class="legend-item"><svg class="legend-swatch" viewBox="0 0 80 20" aria-hidden="true"><path d="M7 10H73" stroke="#182738" stroke-width="14" stroke-dasharray="20 15" stroke-linecap="round"/><path d="M7 10H73" stroke="#FFFFFF" stroke-width="10" stroke-dasharray="20 15" stroke-linecap="round"/><path d="M7 10H73" stroke="#BFFF2F" stroke-width="7" stroke-dasharray="20 15" stroke-linecap="round"/></svg><span>Hiking — limonkowa, przerywana</span></div>
+</div>
+<p class="footnote">Linia kropkowana oznacza jedynie szkic po prostej między punktami. Ciągła różowa i regularnie przerywana limonkowa oznaczają przebieg obliczony przez serwer. Same kolory nie oznaczają prawa przejazdu ani przejścia.</p>
 </section>
 <section class="card">
 <h2 id="trip-title">Przykład Tumba → Lida</h2>
@@ -66,6 +69,8 @@ a{color:var(--accent)}.tag{color:var(--accent);font-size:.9rem}
  const KEY='nt-staging-trip-planner-v1';
  const ROUTER='https://valhalla1.openstreetmap.de/route';
  const MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
+ const routeColors={drive:'#FF2E7E',walk:'#BFFF2F'};
+ const routeOutline='#182738';
  const cache=Object.create(null);
  let trip=null,map=null,routeLayer=null,pinLayer=null,busy=false,calls=0,lastRequestTime=0,ready=false;
  function message(text,error=false){el('message').textContent=text;el('message').classList.toggle('error',error);}
@@ -108,7 +113,7 @@ a{color:var(--accent)}.tag{color:var(--accent);font-size:.9rem}
   segments.forEach((s,i)=>{
    const li=document.createElement('li');
    li.className='segment';
-   const name=s.mode==='drive'?'🚙 Samochód':'🥾 Pieszo';
+   const name=s.mode==='drive'?'🚙 Samochód':'🚶 Hiking';
    if(s.status==='routed')routingKm+=s.km;else draftKm+=s.km;
    li.textContent=(i+1)+'. '+name+': '+km(s.km)+' — '+(s.status==='routed'?'wyznaczono po OSM':'tylko szkic po prostej');
    sList.appendChild(li);
@@ -118,12 +123,20 @@ a{color:var(--accent)}.tag{color:var(--accent);font-size:.9rem}
   routeLayer.clearLayers();pinLayer.clearLayers();
   segments.forEach(s=>{
    const routed=s.status==='routed';
-   L.polyline(s.points.map(p=>[p.lat,p.lon]),{
-    color:s.mode==='drive'?'#f3bb62':'#73d4a5',
-    weight:routed?5:4,opacity:routed?0.95:0.46,
-    dashArray:routed?(s.mode==='walk'?'9 8':null):'4 11',
-    interactive:false
-   }).addTo(routeLayer);
+   const points=s.points.map(p=>[p.lat,p.lon]);
+   // Route styles are independent from underlying OSM road-surface layers.
+   // Three aligned strokes keep the route visible on roads, forests and water.
+   // Drafts remain distinctly dotted so they cannot be mistaken for computed routes.
+   const dashArray=routed?(s.mode==='walk'?'20 15':null):'5 23';
+   const opacity=routed?1:0.88;
+   for(const [color,weight] of [
+    [routeOutline,14],['#FFFFFF',10],[routeColors[s.mode],7]
+   ]){
+    L.polyline(points,{
+     color,weight,opacity,dashArray,lineCap:'round',lineJoin:'round',
+     interactive:false
+    }).addTo(routeLayer);
+   }
   });
   trip.waypoints.forEach((p,i)=>{
    const icon=L.divIcon({className:'',iconSize:[31,31],iconAnchor:[15,15],
