@@ -41,6 +41,17 @@ test('Public sample uses a car and pedestrian section',()=>{
  t=M.add(t,{lat:59.1636,lon:17.8622,name:'Walk',kind:'view',mode:'walk'});
  assert.deepEqual(R.displaySegments(t,{}).map(s=>s.mode),['drive','walk']);
 });
+
+test('High contrast car and hiking route styles use three aligned strokes',()=>{
+ assert.ok(script.includes("const routeColors={drive:'#FF2E7E',walk:'#BFFF2F'}"));
+ assert.ok(script.includes("const routeOutline='#182738'"));
+ assert.ok(script.includes("[routeOutline,14],['#FFFFFF',10],[routeColors[s.mode],7]"));
+ assert.ok(script.includes("s.mode==='walk'?'20 15':null"));
+ assert.ok(script.includes(":'5 23'"));
+ assert.ok(script.includes("interactive:false"));
+ assert.ok(html.includes('Kolory tras'));
+ assert.ok(html.includes('Hiking — limonkowa'));
+});
 test('Unrouted geometry is visibly labelled as draft',()=>{
  assert.ok(script.includes("s.status==='routed'"));
  assert.ok(script.includes("'tylko szkic po prostej'"));
