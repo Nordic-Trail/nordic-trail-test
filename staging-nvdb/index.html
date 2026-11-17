@@ -245,6 +245,15 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-group{margin-top:14px;border-top:1px solid rgba(231,245,219,.56)}
 .nt-osm-area-btn{margin:12px 0 0;min-height:48px;background:rgba(18,42,29,.28);color:#fffef4;border:1px solid rgba(231,245,219,.82);border-radius:14px;font-weight:750;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 .nt-osm-status{font-size:14px;line-height:1.55;color:#f1f6e9;margin:10px 0 0;text-shadow:0 1px 2px rgba(4,18,10,.86)}
+/* Kompaktowe przełączniki: nadal obsługa palcem i rysikiem >= 48 px. */
+.nt-layers-sheet .nt-layer-option{min-height:54px;padding:9px 0;font-size:16px}
+.nt-layers-sheet .nt-osm-group{margin-top:11px}
+.nt-layers-sheet .nt-layer-intro{margin:7px 0}
+.nt-layers-sheet .nt-osm-area-btn{margin:8px 0 0;min-height:44px;font-size:14px}
+.nt-layer-help{padding:0 12px 2px}
+.nt-layer-help p{margin:8px 0;font-size:13px;line-height:1.48}
+.nt-layer-help strong{font-weight:750}
+#nt-map-legend>summary{font-size:15px}
 
 /* Read-only legend: native NT circles and the actual static OSM SVG glyphs. */
 .nt-map-legend{margin:12px 0 14px;border:1px solid rgba(203,232,197,.72);border-radius:13px;background:rgba(18,42,29,.25)}
@@ -320,25 +329,30 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <section id="map-layers-sheet" class="nt-layers-sheet" role="dialog" aria-modal="true" aria-labelledby="nt-layer-title" hidden>
 <button type="button" id="nt-layer-handle" class="nt-layer-handle" aria-label="Zwiń lub rozwiń warstwy" title="Przeciągnij w górę lub w dół" aria-controls="nt-layer-body" aria-expanded="true"></button>
 <div class="nt-layer-header"><h2 id="nt-layer-title">Warstwy</h2><button type="button" id="nt-layer-close" class="nt-layer-close" aria-label="Zamknij warstwy">×</button></div>
-<div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wyświetlaj tylko potrzebne informacje.</p>
-<label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne<small>Zatwierdzone punkty NORDIC TRAIL</small></span>
+<div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wybierz warstwy, które chcesz zobaczyć na mapie.</p>
+<label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne</span>
 <input type="checkbox" id="nt-public-points-layer" checked></label>
 <div class="nt-osm-group" aria-label="Obserwacje OpenStreetMap z obszaru Tumba–Lida">
 <p class="nt-layer-intro"><strong>OSM — Tumba–Lida (pilotaż)</strong></p>
-<label class="nt-layer-option" for="nt-osm-barriers-layer"><span>Szlabany i przeszkody<small>29 oznaczeń społeczności OSM</small></span><input type="checkbox" id="nt-osm-barriers-layer"></label>
-<label class="nt-layer-option" for="nt-osm-roads-layer"><span>Drogi — tagi ograniczeń<small>26 odcinków, środki orientacyjne</small></span><input type="checkbox" id="nt-osm-roads-layer"></label>
-<label class="nt-layer-option" for="nt-osm-paths-layer"><span>Ścieżki piesze i rowerowe<small>11 odcinków, oddzielonych od dróg</small></span><input type="checkbox" id="nt-osm-paths-layer"></label>
+<label class="nt-layer-option" for="nt-osm-barriers-layer"><span>Szlabany i przeszkody</span><input type="checkbox" id="nt-osm-barriers-layer"></label>
+<label class="nt-layer-option" for="nt-osm-roads-layer"><span>Ograniczenia na drogach</span><input type="checkbox" id="nt-osm-roads-layer"></label>
+<label class="nt-layer-option" for="nt-osm-paths-layer"><span>Ścieżki piesze i rowerowe</span><input type="checkbox" id="nt-osm-paths-layer"></label>
 <button type="button" id="nt-osm-area-btn" class="nt-osm-area-btn">Pokaż Tumba–Lida na mapie</button>
-<p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite">Warstwy OSM są wyłączone. Dane wczytamy po włączeniu jednej z nich; nie wymagają logowania.</p>
-<p class="nt-layer-intro">Z daleka oznaczenia OSM są grupowane. Przy dużym zbliżeniu dotknij grupy nakładających się pinezek, aby je rozsunąć; cienkie linie wskazują ich zapisane położenie. Dla dróg i ścieżek są to jedynie przybliżone środki odcinków.</p>
+<p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite" hidden>Warstwy OSM są wyłączone.</p>
 </div>
 <div class="nt-osm-group" aria-label="NVDB — Gnesta / Klämmingen, dane testowe">
 <p class="nt-layer-intro"><strong>NVDB — Gnesta / Klämmingen (test)</strong></p>
-<label class="nt-layer-option" for="nt-nvdb-grus-layer"><span>Drogi żwirowe<small>765 odcinków, w tym 9 powiązanych wpisów ograniczeń ruchu</small></span><input type="checkbox" id="nt-nvdb-grus-layer"></label>
+<label class="nt-layer-option" for="nt-nvdb-grus-layer"><span>Drogi żwirowe</span><input type="checkbox" id="nt-nvdb-grus-layer"></label>
 <button type="button" id="nt-nvdb-area-btn" class="nt-osm-area-btn">Pokaż Gnesta / Klämmingen</button>
-<p id="nt-nvdb-status" class="nt-osm-status" role="status" aria-live="polite">Warstwa jest wyłączona. Dane NVDB zostaną wczytane dopiero po jej włączeniu.</p>
+<p id="nt-nvdb-status" class="nt-osm-status" role="status" aria-live="polite" hidden>Warstwa NVDB jest wyłączona.</p>
 </div>
 <details class="nt-map-legend" id="nt-map-legend">
+<summary>Legenda i informacje o danych</summary>
+<div class="nt-layer-help">
+<p><strong>OSM — Tumba–Lida:</strong> 29 szlabanów i przeszkód, 26 odcinków z tagami drogowymi oraz 11 ścieżek. Dla linii pinezka wskazuje orientacyjny środek, a nie zasięg ograniczenia. Przy dużym przybliżeniu grupy pinezek można rozsunąć.</p>
+<p><strong>NVDB — Gnesta/Klämmingen:</strong> 765 odcinków żwirowych, w tym 9 z powiązanymi wpisami o ograniczeniach tranzytu. Informacje o szerokości i ograniczeniach są w karcie drogi. Brak wpisu nie oznacza potwierdzenia legalnego przejazdu.</p>
+<p>Warstwy są niezależne. Dane zewnętrzne nie są aktualizowane przez użytkowników NORDIC TRAIL. Samodzielnie zweryfikuj znaki i przepisy.</p>
+</div>
 <summary>Legenda oznaczeń mapy</summary>
 <div class="nt-legend-body">
 <h3>OpenStreetMap — dane źródłowe</h3>
@@ -359,7 +373,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <p>Symbole OSM nie potwierdzają prawa wstępu, przejazdu ani tego, że ścieżka jest oznakowanym szlakiem hikingowym.</p>
 </div>
 </details>
-<p class="nt-layer-note">NVDB to ograniczony test rejonu Gnesta, nie mapa legalnej przejezdności. STFS nie jest jeszcze zintegrowany. Sprawdzaj znaki i obowiązujące przepisy.</p>
+
 </div></section>
 <section id="nt-osm-detail-sheet" class="nt-osm-detail-sheet" role="dialog" aria-modal="false" aria-labelledby="nt-osm-detail-title" hidden>
 <div class="nt-osm-detail-heading"><h2 id="nt-osm-detail-title">Obserwacja OSM</h2><button type="button" id="nt-osm-detail-close" aria-label="Zamknij kartę OSM">×</button></div>
@@ -1184,7 +1198,11 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   const osmClusterLayer=map&&window.L?L.layerGroup().addTo(map):null;
   const osmSpiderLayer=map&&window.L?L.layerGroup().addTo(map):null;
   let osmMarkers=[],activeSpiderMarker=null;
-  const osmStatus=text=>{el('nt-osm-status').textContent=text;};
+  const osmStatus=text=>{
+    const node=el('nt-osm-status');
+    node.textContent=text;
+    node.hidden=!(/Wczytywanie|Nie udało|Brak|Błąd/.test(text));
+  };
   const osmValidPoint=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)
     &&p.lat>=osmBBox[0]&&p.lat<=osmBBox[2]&&p.lon>=osmBBox[1]&&p.lon<=osmBBox[3];
   const osmKinds={barrier:'Szlaban lub przeszkoda',road:'Oznaczenie na drodze',path:'Ścieżka piesza lub rowerowa'};
@@ -1507,7 +1525,11 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   // NVDB – odizolowana, statyczna warstwa TYLKO do odczytu. Brak zaleznosci
   // od Supabase, punktow STAGING, moderacji, routingu i zapisanych tras.
   const nvdbCheckbox=el('nt-nvdb-grus-layer');
-  const nvdbStatus=text=>{el('nt-nvdb-status').textContent=text;};
+  const nvdbStatus=text=>{
+    const node=el('nt-nvdb-status');
+    node.textContent=text;
+    node.hidden=!(/Wczytywanie|Nie udało|Brak|Błąd/.test(text));
+  };
   const nvdbPane=map&&window.L?map.createPane('ntNvdbRoadPane'):null;
   if(nvdbPane)nvdbPane.style.zIndex='340'; // Pod punktami STAGING i oznaczeniami OSM.
   let nvdbLayer=null,nvdbLoadPromise=null,nvdbPack=null;
