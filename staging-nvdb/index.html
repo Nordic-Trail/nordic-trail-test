@@ -709,6 +709,17 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       closeOsmSpiderfy();
       return;
     }
+    // Dotkniecie drogi NVDB (nawet obok cienkiej linii) otwiera karte
+    // bez logowania. Nie pozwol, by przypadkowy dotyk uruchamial formularz.
+    if(!el('nt-nvdb-detail-sheet').hidden){
+      closeNvdbDetail();
+      return;
+    }
+    const tappedNvdb=nearestNvdbRoadAt(event.latlng);
+    if(tappedNvdb){
+      showNvdbDetail(tappedNvdb);
+      return;
+    }
     if(writingDraft)return;
     if(!el('point-sheet').hidden){
       // An incidental map tap must never close a form with unsaved changes.
@@ -1468,6 +1479,50 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   const nvdbPane=map&&window.L?map.createPane('ntNvdbRoadPane'):null;
   if(nvdbPane)nvdbPane.style.zIndex='340'; // Pod punktami STAGING i oznaczeniami OSM.
   let nvdbLayer=null,nvdbLoadPromise=null,nvdbPack=null;
+  let nvdbRoadHitIndex=[];
+  function nearestNvdbRoadAt(latlng){
+    if(!map||!nvdbLayer||!map.hasLayer(nvdbLayer)||!nvdbCheckbox.checked||!latlng)return null;
+    const zoom=map.getZoom();
+    if(zoom<12)return null; // Na widoku regionalnym dotyk sluzy przemieszczaniu mapy.
+    const tolerance=zoom>=15?19:zoom>=13?16:12;
+    const centre=map.latLngToContainerPoint(latlng);
+    const a=map.containerPointToLatLng([centre.x-tolerance,centre.y-tolerance]);
+    const b=map.containerPointToLatLng([centre.x+tolerance,centre.y+tolerance]);
+    const lonTolerance=Math.abs(a.lng-b.lng)/2;
+    const latTolerance=Math.abs(a.lat-b.lat)/2;
+    let bestSq=tolerance*tolerance;
+    let best=null;
+    for(const entry of nvdbRoadHitIndex){
+      const [minLon,maxLon,minLat,maxLat]=entry.bounds;
+      if(latlng.lng<minLon-lonTolerance||latlng.lng>maxLon+lonTolerance||
+         latlng.lat<minLat-latTolerance||latlng.lat>maxLat+latTolerance)continue;
+      let prev=null;
+      for(const coord of entry.coordinates){
+        const next=map.latLngToContainerPoint([coord[1],coord[0]]);
+        if(prev){
+          const vx=next.x-prev.x,vy=next.y-prev.y;
+          const lengthSq=vx*vx+vy*vy;
+          const t=lengthSq?Math.max(0,Math.min(1,((centre.x-prev.x)*vx+(centre.y-prev.y)*vy)/lengthSq)):0;
+          const dx=centre.x-(prev.x+t*vx),dy=centre.y-(prev.y+t*vy);
+          const sq=dx*dx+dy*dy;
+          if(sq<=bestSq){bestSq=sq;best=entry.properties;}
+        }
+        prev=next;
+      }
+    }
+    return best;
+  }
+  function prepareNvdbHitIndex(features){
+    nvdbRoadHitIndex=features.map(feature=>{
+      const coords=feature.geometry.coordinates;
+      let minLon=Infinity,maxLon=-Infinity,minLat=Infinity,maxLat=-Infinity;
+      for(const point of coords){
+        minLon=Math.min(minLon,point[0]);maxLon=Math.max(maxLon,point[0]);
+        minLat=Math.min(minLat,point[1]);maxLat=Math.max(maxLat,point[1]);
+      }
+      return {bounds:[minLon,maxLon,minLat,maxLat],coordinates:coords,properties:feature.properties};
+    });
+  }
   function nvdbRoadStyle(){
     // Zoom-out: thin, quiet lines. Zoom-in: full legibility and interaction.
     const zoom=map?map.getZoom():12;
@@ -1543,6 +1598,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
           });
         }
       });
+      prepareNvdbHitIndex(data.features);
       nvdbPack=data;
       return data;
     })();
