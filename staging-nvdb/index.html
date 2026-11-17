@@ -1284,7 +1284,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
         color:'#f4f5e9',weight:1,fillColor:'#294635',fillOpacity:1,interactive:false}).addTo(osmSpiderLayer);
       const icon=osmIconForEntry(entry);
       L.marker(location,{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
-        title:osmKinds[entry.kind]+' — odsunięta pinezka, linia wskazuje położenie OSM'})
+        title:osmDisplayType(entry.p,entry.kind).title+' — odsunięta pinezka, linia wskazuje położenie OSM'})
         .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
           showOsmDetail(entry.p,entry.kind);})
         .addTo(osmSpiderLayer);
@@ -1373,6 +1373,16 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   function isOsmPrivateAccess(tags){
     return tags.access==='private';
   }
+  function osmDisplayType(p,kind){
+    if(kind!=='path')return {title:osmKinds[kind],description:kind==='barrier'
+      ?'Oznaczenie OSM — stan w terenie niezweryfikowany.'
+      :'Oznaczenie dotyczące drogi (OSM).'};
+    const highway=p.tags?.highway;
+    if(highway==='cycleway')return {title:'Droga rowerowa',description:'Oznaczona w OpenStreetMap jako cycleway.'};
+    if(highway==='footway')return {title:'Ścieżka piesza',description:'Oznaczona w OpenStreetMap jako footway.'};
+    if(highway==='path')return {title:'Ścieżka',description:'Oznaczona w OpenStreetMap jako path. Rodzaj dostępu zależy od pozostałych tagów i przepisów.'};
+    return {title:'Ścieżka',description:'Rodzaj ścieżki według OSM wymaga sprawdzenia.'};
+  }
   function showOsmDetail(p,kind){
     if(placingNewPoint||movingPoint){
       placePointOnMap(L.latLng(p.lat,p.lon));
@@ -1390,11 +1400,9 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     const showSurface=kind!=='barrier'||Object.hasOwn(p.tags,'surface');
     surfaceBox.hidden=!showSurface;
     if(showSurface)addOsmDetailRow(surfaceBox,'Klasyfikacja nawierzchni',surface.group);
-    el('nt-osm-detail-title').textContent=osmKinds[kind];
-    el('nt-osm-detail-kind').textContent=kind==='barrier'
-      ?'Oznaczenie OSM — stan w terenie niezweryfikowany.'
-      :kind==='road'?'Oznaczenie dotyczące drogi (OSM).'
-      :'Ścieżka piesza lub rowerowa według OSM.';
+    const displayType=osmDisplayType(p,kind);
+    el('nt-osm-detail-title').textContent=displayType.title;
+    el('nt-osm-detail-kind').textContent=displayType.description;
     if(kind==='barrier'){
       addOsmDetailRow(meta,'Rodzaj przeszkody',p.tags.barrier||'Nieustalony');
     }
@@ -1454,7 +1462,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       const entry={p,kind};
       const icon=osmIconForEntry(entry);
       const marker=L.marker([p.lat,p.lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
-        title:osmKinds[kind]+' · OSM (niezweryfikowane)'})
+        title:osmDisplayType(p,kind).title+' · OSM (niezweryfikowane)'})
         .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind);});
       osmMarkers.push({...entry,marker});
     }
