@@ -292,6 +292,10 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-meta strong,.nt-osm-tags strong{font-size:13px;text-align:right;color:#fffef4;overflow-wrap:anywhere}
 .nt-osm-detail-sheet a{color:#f7ffe8;text-decoration:underline}
 .nt-osm-warning{border-left:3px solid #f5d68e;border-radius:9px;background:rgba(58,68,32,.76);padding:12px;font-size:14px;line-height:1.55;color:#fffef4}
+.nt-osm-details{margin:12px 0 0;border-top:1px solid rgba(231,245,219,.45)}
+.nt-osm-details>summary{cursor:pointer;min-height:48px;padding:12px 0;font-size:15px;font-weight:650;color:#fffef4}
+.nt-osm-details>.nt-osm-meta,.nt-osm-details>.nt-osm-tags{margin:8px 0 10px}
+#nt-osm-access-notice{margin:12px 0 0}
 /* NVDB jest dodatkowa warstwa testowa; informacje tylko w karcie, bez nowych ikon. */
 #nt-nvdb-detail-close{width:48px;min-width:48px;min-height:48px;margin:0;padding:0;font-size:24px;background:rgba(9,29,19,.73);color:#fff;border:1px solid rgba(231,245,219,.82);border-radius:12px}
 .nt-nvdb-details{margin-top:12px}
@@ -361,12 +365,16 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <div class="nt-osm-detail-heading"><h2 id="nt-osm-detail-title">Obserwacja OSM</h2><button type="button" id="nt-osm-detail-close" aria-label="Zamknij kartę OSM">×</button></div>
 <p id="nt-osm-detail-kind" class="nt-osm-micro">Dane niezweryfikowane</p>
 <div id="nt-osm-detail-meta" class="nt-osm-meta"></div>
-<h3 id="nt-osm-detail-surface-title" hidden>Nawierzchnia według OSM</h3>
+<p id="nt-osm-access-notice" class="nt-osm-warning">Dostępność prawna niezweryfikowana. Sprawdź oznakowanie i przepisy.</p>
+<details id="nt-osm-detail-more" class="nt-osm-details">
+<summary>Źródło i szczegóły OSM</summary>
+<div id="nt-osm-detail-source" class="nt-osm-meta"></div>
 <div id="nt-osm-detail-surface" class="nt-osm-meta" hidden></div>
-<h3>Oznaczenia zapisane w OSM</h3><div id="nt-osm-detail-tags" class="nt-osm-tags"></div>
+<h3>Tagi źródłowe OSM</h3>
+<div id="nt-osm-detail-tags" class="nt-osm-tags"></div>
+<p class="nt-osm-micro">Wpisy liniowe są przedstawione orientacyjną pinezką. Lokalizacja pinezki nie wyznacza prawnego zasięgu ograniczenia.</p>
 <p><a id="nt-osm-original" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Otwórz oryginalny wpis OSM</a></p>
-<p id="nt-osm-private-access" class="nt-osm-warning" hidden><strong>Uwaga — ograniczony dostęp według OSM (access=private).</strong> Ten tag nie przesądza sam o prawie przejścia pieszego w Szwecji (allemansrätten). Sprawdź oznakowanie, lokalne warunki i obowiązujące przepisy.</p>
-<p class="nt-osm-warning"><strong>Dostępność prawna: niezweryfikowana.</strong> Tagi OSM nie zastępują oznakowania ani obowiązujących przepisów. Środki odcinków nie określają prawnego zasięgu ograniczenia.</p>
+</details>
 </section>
 <section id="nt-nvdb-detail-sheet" class="nt-osm-detail-sheet" role="dialog" aria-modal="false" aria-labelledby="nt-nvdb-detail-title" hidden>
 <div class="nt-osm-detail-heading"><h2 id="nt-nvdb-detail-title">Informacje o drodze</h2><button id="nt-nvdb-detail-close" type="button" aria-label="Zamknij informacje o drodze">×</button></div>
@@ -1366,29 +1374,50 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     return tags.access==='private';
   }
   function showOsmDetail(p,kind){
+    if(placingNewPoint||movingPoint){
+      placePointOnMap(L.latLng(p.lat,p.lon));
+      return;
+    }
     if(!el('point-sheet').hidden){message('map-action-status','Najpierw zamknij edytor punktu.');return;}
     if(!osmPack)return;
-    const sheet=el('nt-osm-detail-sheet'),meta=el('nt-osm-detail-meta'),tags=el('nt-osm-detail-tags');
-    el('nt-osm-private-access').hidden=!isOsmPrivateAccess(p.tags);
-    const surfaceBox=el('nt-osm-detail-surface'),surfaceTitle=el('nt-osm-detail-surface-title');
-    meta.replaceChildren();tags.replaceChildren();surfaceBox.replaceChildren();
+    closeNvdbDetail();
+    const sheet=el('nt-osm-detail-sheet'),meta=el('nt-osm-detail-meta');
+    const source=el('nt-osm-detail-source'),tags=el('nt-osm-detail-tags');
+    const surfaceBox=el('nt-osm-detail-surface'),more=el('nt-osm-detail-more');
+    meta.replaceChildren();source.replaceChildren();tags.replaceChildren();surfaceBox.replaceChildren();
+    more.open=false;
+    const surface=describeOsmSurface(p.tags.surface);
     const showSurface=kind!=='barrier'||Object.hasOwn(p.tags,'surface');
-    surfaceBox.hidden=!showSurface;surfaceTitle.hidden=!showSurface;
-    if(showSurface){
-      const surface=describeOsmSurface(p.tags.surface);
-      addOsmDetailRow(surfaceBox,'Nawierzchnia',surface.name);
-      addOsmDetailRow(surfaceBox,'Klasyfikacja',surface.group);
-    }
+    surfaceBox.hidden=!showSurface;
+    if(showSurface)addOsmDetailRow(surfaceBox,'Klasyfikacja nawierzchni',surface.group);
     el('nt-osm-detail-title').textContent=osmKinds[kind];
     el('nt-osm-detail-kind').textContent=kind==='barrier'
-      ?'Punkt oznaczony w OSM — brak weryfikacji w terenie.'
-      :kind==='road'?'Środek odcinka jest przybliżony, nie stanowi zasięgu ograniczenia.'
-      :'Oznaczenie ścieżki pieszej/rowerowej, nie drogi dla samochodów.';
-    addOsmDetailRow(meta,'Źródło','OpenStreetMap · ODbL');
-    addOsmDetailRow(meta,'Identyfikator',(p.osm_type==='node'?'Węzeł ':'Odcinek OSM ')+'#'+p.osm_id);
-    addOsmDetailRow(meta,'Stan źródła OSM',osmPack.source_as_of.slice(0,16).replace('T',' ')+' UTC');
-    addOsmDetailRow(meta,'Paczka przygotowana',osmPack.source_checked_at.slice(0,16).replace('T',' ')+' UTC');
-    addOsmDetailRow(meta,'Weryfikacja w terenie','Brak');
+      ?'Oznaczenie OSM — stan w terenie niezweryfikowany.'
+      :kind==='road'?'Oznaczenie dotyczące drogi (OSM).'
+      :'Ścieżka piesza lub rowerowa według OSM.';
+    if(kind==='barrier'){
+      addOsmDetailRow(meta,'Rodzaj przeszkody',p.tags.barrier||'Nieustalony');
+    }
+    if(showSurface)addOsmDetailRow(meta,'Nawierzchnia',surface.name);
+    if(Object.hasOwn(p.tags,'motor_vehicle')){
+      const motor=p.tags.motor_vehicle;
+      addOsmDetailRow(meta,'Pojazdy silnikowe (OSM)',motor==='no'?'Nie':motor==='yes'?'Tak — wg tagu OSM':motor);
+    }
+    if(Object.hasOwn(p.tags,'access')){
+      const access=p.tags.access;
+      addOsmDetailRow(meta,'Dostęp (OSM)',access==='private'?'Prywatny':access==='no'?'Ograniczony':access);
+    }
+    if(!showSurface&&kind!=='barrier'&&!Object.hasOwn(p.tags,'access')&&!Object.hasOwn(p.tags,'motor_vehicle'))
+      addOsmDetailRow(meta,'Szczegóły','Brak podstawowych informacji');
+    const warning=isOsmPrivateAccess(p.tags)
+      ?'⚠ OSM oznacza dostęp jako prywatny (access=private). Nie rozstrzyga to samo w sobie prawa przejścia pieszego w Szwecji. Sprawdź oznakowanie i przepisy.'
+      :'Dostępność prawna niezweryfikowana. Tagi OSM nie zastępują oznakowania ani obowiązujących przepisów.';
+    el('nt-osm-access-notice').textContent=warning;
+    addOsmDetailRow(source,'Źródło','OpenStreetMap · ODbL');
+    addOsmDetailRow(source,'Identyfikator',(p.osm_type==='node'?'Węzeł ':'Odcinek OSM ')+'#'+p.osm_id);
+    addOsmDetailRow(source,'Stan źródła OSM',osmPack.source_as_of.slice(0,16).replace('T',' ')+' UTC');
+    addOsmDetailRow(source,'Paczka przygotowana',osmPack.source_checked_at.slice(0,16).replace('T',' ')+' UTC');
+    addOsmDetailRow(source,'Weryfikacja w terenie','Brak');
     for(const key of osmSafeTags){
       if(Object.hasOwn(p.tags,key))addOsmDetailRow(tags,key,p.tags[key]);
     }
