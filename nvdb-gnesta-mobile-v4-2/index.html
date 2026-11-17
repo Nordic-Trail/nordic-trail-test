@@ -13,6 +13,8 @@ html,body,#map{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont
   #control small {display:none}
   #control label {margin-top:6px;font-size:12px}
   body.nt-road-popup-open #control {display:none}
+  /* Przy otwartej karcie przyciski +/- nie zaslaniaja jej naglowka. */
+  body.nt-road-popup-open .leaflet-control-zoom {display:none}
   .leaflet-popup-content-wrapper {max-width:calc(100vw - 30px)}
   .leaflet-popup-content {margin:12px 12px}
   .card {min-width:0}
