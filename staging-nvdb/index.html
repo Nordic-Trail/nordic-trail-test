@@ -516,7 +516,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
   let db=null,seq=0,loggingIn=false;
   let markers=null,map=null;
-  let activeUser=null,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false,movingPoint=false,editingDraft=null;
+  let activeUser=null,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false,movingPoint=false,placingNewPoint=false,editingDraft=null;
   let moderationBusy=false,adminVerifiedUserId=null;
   const pointStatuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
   const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
@@ -645,11 +645,14 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     });
   }
   function updatePointAction(){
-    el('add-point-btn').textContent=!selectedPoint?'＋ Punkt':movingPoint?'↩ Wróć do formularza':editingDraft?'✎ Wróć do szkicu':'✎ Edytuj punkt';
-    el('add-point-btn').setAttribute('aria-label',selectedPoint?'Wróć do formularza wybranego punktu':'Dodaj punkt do mapy');
+    const button=el('add-point-btn');
+    button.textContent=placingNewPoint?'✕ Anuluj wybór':!selectedPoint?'＋ Punkt':movingPoint?'↩ Wróć do formularza':editingDraft?'✎ Wróć do szkicu':'✎ Edytuj punkt';
+    button.setAttribute('aria-label',placingNewPoint?'Anuluj wybieranie miejsca nowego punktu':selectedPoint?'Wróć do formularza wybranego punktu':'Dodaj punkt do mapy');
+    button.setAttribute('aria-pressed',String(placingNewPoint));
+    button.classList.toggle('nt-placing-point',placingNewPoint);
   }
   function clearSelection(){
-    selectedPoint=null;movingPoint=false;editingDraft=null;
+    selectedPoint=null;movingPoint=false;placingNewPoint=false;editingDraft=null;
     updatePointAction();
     setSheetCollapsed(false);
     el('point-sheet-title').textContent='Dodaj punkt';
@@ -668,6 +671,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   el('change-location-btn').addEventListener('click',()=>{
     if(writingDraft)return;
     movingPoint=true;
+    placingNewPoint=false;
     updatePointAction();
     closePointSheet();
     message('map-action-status','Dotknij raz nowego miejsca na mapie. Rodzaj, status i opis pozostaną bez zmian. Aby anulować wybór, kliknij „Wróć do formularza”.');
@@ -696,41 +700,15 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'&&!el('point-sheet').hidden&&!writingDraft)clearSelection();
   });
-  if(map)map.on('click',event=>{
-    // Dismissing OSM evidence must never create an authenticated draft.
-    if(!el('nt-osm-detail-sheet').hidden){
-      el('nt-osm-detail-sheet').hidden=true;
-      activeOsmKind=null;
-      syncOverlayPageScroll();
-      return;
-    }
-    // Dismissing spread-out OSM pins must never start drawing a draft.
-    if(activeSpiderMarker){
-      closeOsmSpiderfy();
-      return;
-    }
-    // Dotkniecie drogi NVDB (nawet obok cienkiej linii) otwiera karte
-    // bez logowania. Nie pozwol, by przypadkowy dotyk uruchamial formularz.
-    if(!el('nt-nvdb-detail-sheet').hidden){
-      closeNvdbDetail();
-      return;
-    }
-    const tappedNvdb=nearestNvdbRoadAt(event.latlng);
-    if(tappedNvdb){
-      showNvdbDetail(tappedNvdb);
-      return;
-    }
-    if(writingDraft)return;
+  // Jedyny tryb stawiania pinezki: po naciśnięciu „+ Punkt” albo
+  // podczas zmiany położenia już edytowanego szkicu.
+  function placePointOnMap(latlng){
+    if(!map||!db||!activeUser||writingDraft||submittingDraft)return;
     if(!el('point-sheet').hidden){
-      // An incidental map tap must never close a form with unsaved changes.
       message('point-sheet-status','Aby zmienić lokalizację, użyj przycisku „Zmień lokalizację”.');
       return;
     }
-    if(!activeUser||!db){
-      message('map-action-status','Aby dodać punkt, połącz się ze STAGING i zaloguj na konto testowe.',true);
-      return;
-    }
-    const lat=Number(event.latlng.lat.toFixed(6)),lon=Number(event.latlng.lng.toFixed(6));
+    const lat=Number(latlng.lat.toFixed(6)),lon=Number(latlng.lng.toFixed(6));
     if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
     const hadPoint=!!selectedPoint;
     selectedPoint={lat,lon};
@@ -744,12 +722,29 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       el('save-draft-btn').disabled=true;
       show('kind-picker',true);show('sheet-fields',false);
     }
+    placingNewPoint=false;
     movingPoint=false;
     updatePointAction();
     setSheetCollapsed(false);
     dismissMapNotice();el('point-sheet-status').hidden=true;
     show('point-sheet',true);
     adjustMapToPanel();
+  }
+  if(map)map.on('click',event=>{
+    // Panele OSM i rozsunięte pinezki mają pierwszeństwo przy zamykaniu.
+    if(!el('nt-osm-detail-sheet').hidden){closeOsmDetail();return;}
+    if(activeSpiderMarker){closeOsmSpiderfy();return;}
+    if(writingDraft)return;
+    // Dodawanie i przesuwanie punktów ma pierwszeństwo przed odczytem NVDB.
+    if(placingNewPoint||movingPoint){placePointOnMap(event.latlng);return;}
+    if(!el('point-sheet').hidden){
+      message('point-sheet-status','Aby zmienić lokalizację, użyj przycisku „Zmień lokalizację”.');
+      return;
+    }
+    if(!el('nt-nvdb-detail-sheet').hidden){closeNvdbDetail();return;}
+    const tappedNvdb=nearestNvdbRoadAt(event.latlng);
+    if(tappedNvdb)showNvdbDetail(tappedNvdb);
+    // Zwykłe dotknięcie pustej mapy nie tworzy punktów.
   });
 
   async function loadMyPoints(user=activeUser,request=seq){
@@ -1594,6 +1589,10 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
         onEachFeature:(f,l)=>{
           l.on('click',event=>{
             if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
+            if(placingNewPoint||movingPoint){
+              placePointOnMap(event.latlng);
+              return;
+            }
             showNvdbDetail(f.properties);
           });
         }
@@ -1695,6 +1694,12 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       return;
     }
     if(writingDraft)return;
+    if(placingNewPoint){
+      placingNewPoint=false;
+      updatePointAction();
+      dismissMapNotice();
+      return;
+    }
     if(selectedPoint){
       movingPoint=false;
       updatePointAction();
@@ -1704,7 +1709,12 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       adjustMapToPanel();
       return;
     }
-    message('map-action-status','Dotknij wybranego miejsca na mapie, aby rozpocząć dodawanie punktu.');
+    closeNvdbDetail();
+    closeOsmDetail();
+    closeOsmSpiderfy();
+    placingNewPoint=true;
+    updatePointAction();
+    message('map-action-status','Tryb dodawania: dotknij miejsca na mapie, również na drodze żwirowej. Aby anulować, wybierz „Anuluj wybór”.');
   });
   window.addEventListener('resize',()=>{
     if(map)map.invalidateSize({pan:false});
