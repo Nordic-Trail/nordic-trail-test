@@ -1468,6 +1468,18 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   const nvdbPane=map&&window.L?map.createPane('ntNvdbRoadPane'):null;
   if(nvdbPane)nvdbPane.style.zIndex='340'; // Pod punktami STAGING i oznaczeniami OSM.
   let nvdbLayer=null,nvdbLoadPromise=null,nvdbPack=null;
+  function nvdbRoadStyle(){
+    // Zoom-out: thin, quiet lines. Zoom-in: full legibility and interaction.
+    const zoom=map?map.getZoom():12;
+    if(zoom<=10)return {color:'#98764e',weight:1.1,opacity:.15};
+    if(zoom===11)return {color:'#98764e',weight:1.35,opacity:.26};
+    if(zoom===12)return {color:'#98764e',weight:1.8,opacity:.44};
+    if(zoom===13)return {color:'#98764e',weight:2.3,opacity:.65};
+    return {color:'#98764e',weight:3.2,opacity:.88};
+  }
+  if(map)map.on('zoomend',()=>{
+    if(nvdbLayer&&map.hasLayer(nvdbLayer))nvdbLayer.setStyle(nvdbRoadStyle);
+  });
   function closeNvdbDetail(){
     const sheet=el('nt-nvdb-detail-sheet');
     if(sheet.hidden)return;
@@ -1522,7 +1534,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
              f.geometry.coordinates.length>=2&&f.properties&&f.properties.nawierzchnia==='grus'))throw Error('NVDB dataset validation failed');
       nvdbLayer=L.geoJSON(data,{
         pane:'ntNvdbRoadPane',
-        style:{color:'#98764e',weight:4,opacity:.86},
+        style:nvdbRoadStyle,
         interactive:true,bubblingMouseEvents:false,
         onEachFeature:(f,l)=>{
           l.on('click',event=>{
