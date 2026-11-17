@@ -254,6 +254,16 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-layer-help p{margin:8px 0;font-size:13px;line-height:1.48}
 .nt-layer-help strong{font-weight:750}
 #nt-map-legend>summary{font-size:15px}
+.nt-layer-legend-title{margin:12px 12px 5px;font-size:14px;color:#fffef4}
+.nt-layer-group{margin-top:8px!important;border-top:1px solid rgba(231,245,219,.40)}
+.nt-layer-group>summary{display:flex;align-items:center;gap:9px;min-height:56px;padding:12px 2px;color:#fffef4;font-size:16px;font-weight:700;cursor:pointer;list-style:none}
+.nt-layer-group>summary::-webkit-details-marker{display:none}
+.nt-layer-group>summary:before{content:'▸';font-size:17px;line-height:1;color:#eef7e8;margin-right:3px;flex-shrink:0}
+.nt-layer-group[open]>summary:before{content:'▾'}
+.nt-layer-group>summary:focus-visible{outline:2px solid #f2d88b;outline-offset:2px;border-radius:8px}
+.nt-layer-group-content{padding:0 0 10px 20px}
+.nt-layer-group-summary-status{margin-left:auto;color:#e3f2dc;font-size:12px;font-weight:500;white-space:nowrap}
+.nt-layer-group[open] .nt-layer-group-summary-status{display:none}
 
 /* Read-only legend: native NT circles and the actual static OSM SVG glyphs. */
 .nt-map-legend{margin:12px 0 14px;border:1px solid rgba(203,232,197,.72);border-radius:13px;background:rgba(18,42,29,.25)}
@@ -332,20 +342,22 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wybierz warstwy, które chcesz zobaczyć na mapie.</p>
 <label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne</span>
 <input type="checkbox" id="nt-public-points-layer" checked></label>
-<div class="nt-osm-group" aria-label="Obserwacje OpenStreetMap z obszaru Tumba–Lida">
-<p class="nt-layer-intro"><strong>OSM — Tumba–Lida (pilotaż)</strong></p>
+<details class="nt-osm-group nt-layer-group" id="nt-osm-layer-group" aria-label="Warstwy OpenStreetMap Tumba–Lida">
+<summary>OSM — Tumba–Lida <span class="nt-layer-group-summary-status" id="nt-osm-layer-count">Wyłączone</span></summary>
+<div class="nt-layer-group-content">
 <label class="nt-layer-option" for="nt-osm-barriers-layer"><span>Szlabany i przeszkody</span><input type="checkbox" id="nt-osm-barriers-layer"></label>
 <label class="nt-layer-option" for="nt-osm-roads-layer"><span>Ograniczenia na drogach</span><input type="checkbox" id="nt-osm-roads-layer"></label>
 <label class="nt-layer-option" for="nt-osm-paths-layer"><span>Ścieżki piesze i rowerowe</span><input type="checkbox" id="nt-osm-paths-layer"></label>
 <button type="button" id="nt-osm-area-btn" class="nt-osm-area-btn">Pokaż Tumba–Lida na mapie</button>
 <p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite" hidden>Warstwy OSM są wyłączone.</p>
-</div>
-<div class="nt-osm-group" aria-label="NVDB — Gnesta / Klämmingen, dane testowe">
-<p class="nt-layer-intro"><strong>NVDB — Gnesta / Klämmingen (test)</strong></p>
+</div></details>
+<details class="nt-osm-group nt-layer-group" id="nt-nvdb-layer-group" aria-label="Warstwa NVDB Gnesta i Klämmingen">
+<summary>NVDB — Gnesta / Klämmingen <span class="nt-layer-group-summary-status" id="nt-nvdb-layer-count">Wyłączone</span></summary>
+<div class="nt-layer-group-content">
 <label class="nt-layer-option" for="nt-nvdb-grus-layer"><span>Drogi żwirowe</span><input type="checkbox" id="nt-nvdb-grus-layer"></label>
 <button type="button" id="nt-nvdb-area-btn" class="nt-osm-area-btn">Pokaż Gnesta / Klämmingen</button>
 <p id="nt-nvdb-status" class="nt-osm-status" role="status" aria-live="polite" hidden>Warstwa NVDB jest wyłączona.</p>
-</div>
+</div></details>
 <details class="nt-map-legend" id="nt-map-legend">
 <summary>Legenda i informacje o danych</summary>
 <div class="nt-layer-help">
@@ -353,7 +365,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <p><strong>NVDB — Gnesta/Klämmingen:</strong> 765 odcinków żwirowych, w tym 9 z powiązanymi wpisami o ograniczeniach tranzytu. Informacje o szerokości i ograniczeniach są w karcie drogi. Brak wpisu nie oznacza potwierdzenia legalnego przejazdu.</p>
 <p>Warstwy są niezależne. Dane zewnętrzne nie są aktualizowane przez użytkowników NORDIC TRAIL. Samodzielnie zweryfikuj znaki i przepisy.</p>
 </div>
-<summary>Legenda oznaczeń mapy</summary>
+<h3 class="nt-layer-legend-title">Legenda oznaczeń mapy</h3>
 <div class="nt-legend-body">
 <h3>OpenStreetMap — dane źródłowe</h3>
 <ul class="nt-legend-list">
@@ -1345,6 +1357,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       else if(!osmChecks[kind].checked&&map.hasLayer(group))map.removeLayer(group);
     }
     const active=Object.entries(osmChecks).filter(([,input])=>input.checked).map(([kind])=>kind);
+    el('nt-osm-layer-count').textContent=active.length?active.length+' z 3 włączone':'Wyłączone';
     if(activeOsmKind&&!osmChecks[activeOsmKind].checked){
       el('nt-osm-detail-sheet').hidden=true;
       activeOsmKind=null;
@@ -1666,6 +1679,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   }
   async function updateNvdbLayer(){
     if(!map)return;
+    el('nt-nvdb-layer-count').textContent=nvdbCheckbox.checked?'Włączone':'Wyłączone';
     if(!nvdbCheckbox.checked){
       if(nvdbLayer&&map.hasLayer(nvdbLayer))map.removeLayer(nvdbLayer);
       closeNvdbDetail();
