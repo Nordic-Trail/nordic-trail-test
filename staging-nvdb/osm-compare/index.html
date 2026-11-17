@@ -30,6 +30,8 @@ button:disabled{opacity:.65;cursor:wait}
 .card p{font-size:14px}
 .tag{display:inline-block;border-radius:8px;background:#36503e;padding:2px 8px;font-size:12px}
 .tag.warn{background:#574b2e}.tag.ok{background:#2e5940}
+.card.focus{border-color:#e2c67e;border-width:2px}
+.card.focus h3:after{content:" · kontrola";color:#e6d49e;font-weight:400;font-size:12px}
 details{margin-top:9px}summary{cursor:pointer;min-height:42px;padding:10px 0;color:var(--hi);font-weight:650}
 dl{display:grid;grid-template-columns:minmax(85px,1fr) minmax(0,2fr);gap:7px 10px;font-size:13px;margin:8px 0}
 dt{color:var(--sub)}dd{margin:0;overflow-wrap:anywhere}
@@ -59,17 +61,17 @@ footer{padding-top:18px}
 <section class="panel">
 <h2>Podgląd odcinków</h2>
 <div id="map" aria-label="Mapa lokalizacji odcinków NVDB i możliwych dopasowań OSM"></div>
-<p class="small">Brązowe: NVDB. Niebieska linia przerywana: kandydat OSM po pobraniu danych (nie jest to planowana trasa samochodowa).</p>
+<p class="small">Brązowe: NVDB. Fioletowa linia przerywana: kandydat OSM po pobraniu danych. Niebieski pozostaje zarezerwowany dla planowanej trasy samochodowej.</p>
 </section>
 <section class="panel">
 <h2>Wyniki analizy</h2>
 <div class="metrics">
 <div class="metric"><strong id="m1">9</strong><span>odcinków NVDB</span></div>
-<div class="metric"><strong id="m2">—</strong><span>przybliżone dopasowania OSM</span></div>
+<div class="metric"><strong id="m2">—</strong><span>z dopasowaniem 1+ fragmentów OSM</span></div>
 <div class="metric"><strong id="m3">—</strong><span>bez wiarygodnego dopasowania</span></div>
 </div>
 <p class="small" id="freshness">OSM: data nieustalona; NVDB: 13 listopada 2026.</p>
-<div id="results"><p class="small">Najpierw wybierz „Pobierz OSM i porównaj”.</p></div>
+<div id="results"><p class="small">Najpierw wybierz „Pobierz OSM i porównaj”. Szczególną uwagę poświęcimy NVDB #15968.</p></div>
 </section>
 <footer class="small">Źródła: Trafikverket NVDB (CC0 1.0) oraz © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL). Geometria może być przesunięta lub niepełna; dopasowanie przestrzenne nie oznacza tożsamości odcinków ani ważności przepisów. Test nie zmienia głównej aplikacji NORDIC TRAIL.</footer>
 </main>
@@ -103,31 +105,80 @@ function minDist(point,geometry){
   }
   return dist;
 }
-function selectSamples(line,maxSamples=16){
-  if(line.length<=maxSamples)return line;
-  const ret=[];
-  for(let i=0;i<maxSamples;i++)ret.push(line[Math.round(i*(line.length-1)/(maxSamples-1))]);
-  return ret;
+
+function sampledLine(line){
+  // Jednolite odstepy ~30 m, a nie co N-ty wierzcholek geometrii.
+  const coords=line.map(p=>[p[0]*scaleX,p[1]*scaleY]);
+  const lens=[],cum=[0];
+  for(let i=1;i<coords.length;i++){
+    const len=Math.hypot(coords[i][0]-coords[i-1][0],coords[i][1]-coords[i-1][1]);
+    lens.push(len);cum.push(cum[i-1]+len);
+  }
+  const total=cum[cum.length-1];
+  const n=Math.max(3,Math.min(48,Math.ceil(total/28)+1));
+  const samples=[];
+  for(let k=0;k<n;k++){
+    const d=total*k/(n-1);
+    let segment=0;
+    while(segment<lens.length-1&&cum[segment+1]<d)segment++;
+    const den=lens[segment],t=den?Math.max(0,Math.min(1,(d-cum[segment])/den)):0;
+    const a=coords[segment],b=coords[segment+1];
+    samples.push({x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t,
+      dx:b[0]-a[0],dy:b[1]-a[1]});
+  }
+  return {samples,metres:total};
+}
+function nearestWaySegment(sample,way){
+  let best=null;
+  for(let i=1;i<way.geometry.length;i++){
+    const a=way.geometry[i-1],b=way.geometry[i];
+    const ax=a.lon*scaleX,ay=a.lat*scaleY,bx=b.lon*scaleX,by=b.lat*scaleY;
+    const vx=bx-ax,vy=by-ay,mag=vx*vx+vy*vy;
+    if(mag<.05)continue;
+    const t=Math.max(0,Math.min(1,((sample.x-ax)*vx+(sample.y-ay)*vy)/mag));
+    const dist=Math.hypot(sample.x-ax-vx*t,sample.y-ay-vy*t);
+    const sampleMag=Math.hypot(sample.dx,sample.dy);
+    const cos=sampleMag?Math.min(1,Math.abs(sample.dx*vx+sample.dy*vy)/(sampleMag*Math.sqrt(mag))):0;
+    const angle=Math.acos(cos)*180/Math.PI;
+    if(!best||dist<best.distance)best={distance:dist,angle};
+  }
+  return best;
 }
 function matchRoad(road,ways){
-  let winner=null;
-  const samples=selectSamples(road.road);
-  for(const way of ways){
-    if(!Array.isArray(way.geometry)||way.geometry.length<2)continue;
-    // Spatial pre-filter to reduce distance calculations.
-    const bb=way.bb;
-    if(!samples.some(p=>p[0]>bb[0]-.001&&p[0]<bb[2]+.001&&p[1]>bb[1]-.001&&p[1]<bb[3]+.001))continue;
-    const distances=samples.map(p=>minDist(p,way.geometry));
-    const close=distances.filter(d=>d<=22).length;
-    const coverage=close/distances.length;
-    const mean=distances.reduce((a,b)=>a+b,0)/distances.length;
-    const score=coverage*1000-Math.min(mean,500);
-    if(!winner||score>winner.score)winner={way,coverage,mean,score};
+  const {samples,metres}=sampledLine(road.road);
+  const votes=new Map();
+  let matched=0,distSum=0,nearWrongDirection=0;
+  for(const point of samples){
+    let best=null;
+    for(const way of ways){
+      if(!Array.isArray(way.geometry)||way.geometry.length<2||!Array.isArray(way.bb))continue;
+      const bb=way.bb,lon=point.x/scaleX,lat=point.y/scaleY;
+      if(lon<bb[0]-.0006||lon>bb[2]+.0006||lat<bb[1]-.0004||lat>bb[3]+.0004)continue;
+      const d=nearestWaySegment(point,way);
+      if(!d||d.distance>22)continue;
+      if(d.angle>40){nearWrongDirection++;continue}
+      const score=d.distance+.045*d.angle;
+      if(!best||score<best.score)best={way,distance:d.distance,angle:d.angle,score};
+    }
+    if(best){
+      matched++;distSum+=best.distance;
+      const k=String(best.way.id);
+      const v=votes.get(k)||{way:best.way,hits:0,distSum:0};
+      v.hits++;v.distSum+=best.distance;votes.set(k,v);
+    }
   }
-  if(!winner||winner.coverage<.34||winner.mean>70)return {status:'none',candidate:null};
-  const good=winner.coverage>=.65&&winner.mean<=20;
-  return {status:good?'likely':'tentative',candidate:winner};
+  const coverage=matched/samples.length;
+  const mean=matched?distSum/matched:Infinity;
+  const ranked=[...votes.values()].sort((a,b)=>b.hits-a.hits||a.distSum-a.hits-b.distSum+b.hits).map(x=>({
+    way:x.way,hits:x.hits,share:x.hits/samples.length,mean:x.distSum/x.hits
+  }));
+  // Próg dotyczy jedynie przyblizenia geometrii, nie przepisów.
+  const status=coverage>=.70&&mean<=17?'likely':
+    coverage>=.30&&mean<=22?'tentative':'none';
+  return {status,ways:status==='none'?[]:ranked,coverage,mean,metres,
+    samples:samples.length,nearWrongDirection};
 }
+
 function make(tag,cls,text){
   const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=String(text);return n;
 }
@@ -146,42 +197,62 @@ function surfaceEvaluation(t){
   if(['asphalt','concrete','paving_stones','paved'].includes(s))return 'Potencjalna rozbieżność — sprawdź odcinek i daty';
   return 'Nieporównywalne bez dodatkowej weryfikacji';
 }
+
 function showResults(ways,datetime){
   const results=roads.map(r=>({road:r,...matchRoad(r,ways)}));
-  $('m2').textContent=results.filter(r=>r.status!=='none').length;
-  $('m3').textContent=results.filter(r=>r.status==='none').length;
+  const usable=results.filter(r=>r.status!=='none');
+  $('m2').textContent=usable.length;
+  $('m3').textContent=roads.length-usable.length;
   $('freshness').textContent='OSM: '+(datetime||'czas migawki nieznany')+'; NVDB: 13 listopada 2026.';
   const root=$('results');root.replaceChildren();
-  const good=results.filter(r=>r.status==='likely').length;
-  const summary=make('p','small','Spośród dopasowań '+good+' ma wyższą zgodność geometrii. To nadal kandydaci, a nie potwierdzone identyczne odcinki.');
-  root.append(summary);
+  const likely=results.filter(r=>r.status==='likely').length;
+  root.append(make('p','small','Geometria: '+likely+' z '+roads.length+
+    ' odcinków ma wyższy poziom zgodności przestrzennej. Algorytm dopuszcza łączenie kilku fragmentów OSM; nie dowodzi ciągłości drogowej ani prawa przejazdu.'));
   for(const result of results){
     const card=make('article','card');
+    if(result.road.id==='15968'){card.id='nvdb-15968';card.classList.add('focus');}
     const head=make('header');
     head.append(make('h3',null,'NVDB #'+result.road.id+' · wpis '+result.road.rid));
-    head.append(make('span','tag '+(result.status==='likely'?'ok':'warn'),result.status==='likely'?'Kandydat OSM':result.status==='tentative'?'Niepewne dopasowanie':'Bez dopasowania'));
+    const label=result.status==='likely'?'Kandydaci OSM':
+      result.status==='tentative'?'Niepewny przebieg':'Bez dopasowania';
+    head.append(make('span','tag '+(result.status==='likely'?'ok':'warn'),label));
     card.append(head);
-    const r=result.candidate;
-    if(!r){
-      card.append(make('p','small','Brak wystarczająco bliskiego pojedynczego odcinka OSM w tej próbie. Może to oznaczać różne podziały drogi lub brak danych; nie stwierdzamy rozbieżności.'));
+    const geometry='Pokrycie próbek do 22 m i kierunek ≤40°: '+Math.round(result.coverage*100)+
+      '% · średnia odległość trafień: '+(Number.isFinite(result.mean)?Math.round(result.mean)+' m':'brak')+
+      ' · długość NVDB: '+Math.round(result.metres)+' m.';
+    card.append(make('p','small',geometry));
+    if(!result.ways.length){
+      card.append(make('p',null,'Nie udało się wskazać wystarczająco spójnego przebiegu OSM. Może to wynikać z podziału, przesunięcia, skrzyżowań albo niekompletnej próbki danych. Nie jest to dowód braku drogi.'));
+      card.append(make('p','small','Pobliskie segmenty o odmiennym kierunku w próbkach: '+result.nearWrongDirection+'.'));
     }else{
-      const tags=r.way.tags||{};
-      const line=make('p',null,'OSM way #'+r.way.id+' · highway='+String(tags.highway||'brak')+' · '+describeSurface(tags.surface));
-      card.append(line);
-      card.append(make('p','small','Próbki geometrii w odległości do 22 m: '+Math.round(r.coverage*100)+'%; średnia odległość: '+Math.round(r.mean)+' m.'));
-      card.append(make('p','small',surfaceEvaluation(tags)));
-      if(tags.access||tags.motor_vehicle||tags.vehicle){
-        const extra=make('p','alert','OSM: '+['access','motor_vehicle','vehicle'].filter(k=>tags[k]).map(k=>k+'='+tags[k]).join('; ')+'. To tagi źródłowe, nie rozstrzygnięcie prawne.');
-        card.append(extra);
+      const primary=result.ways.slice(0,6);
+      card.append(make('p','small','Pasujące fragmenty OSM: '+result.ways.length+
+        ' (poniżej pokazano maksymalnie sześć). Różne identyfikatory mogą opisywać sąsiadujące części tej samej drogi.'));
+      const allSurfaces=[...new Set(primary.map(x=>x.way.tags?.surface||'brak'))];
+      if(allSurfaces.length>1)card.append(make('p','alert','Różne opisy nawierzchni wśród kandydatów OSM. Nie przenosimy automatycznie żadnego na cały odcinek NVDB.'));
+      for(const x of primary){
+        const t=x.way.tags||{};
+        const p=make('p');
+        p.append(make('strong',null,'OSM way #'+x.way.id));
+        p.append(document.createTextNode(' · '+Math.round(x.share*100)+'% próbek · '+Math.round(x.mean)+' m · '+String(t.highway||'nieznany')+' · '+describeSurface(t.surface)));
+        card.append(p);
+        const surface=make('p','small','Nawierzchnia: '+surfaceEvaluation(t));
+        card.append(surface);
+        const keys=['access','motor_vehicle','vehicle','motorcar','access:conditional','motor_vehicle:conditional'].filter(k=>Object.hasOwn(t,k));
+        if(keys.length)card.append(make('p','alert','Tagi dostępu dla tego fragmentu OSM: '+keys.map(k=>k+'='+t[k]).join('; ')+'. Nie stanowią potwierdzenia prawa przejazdu.'));
       }
-      const more=make('details');more.append(make('summary',null,'Identyfikatory i tagi'));
-      const data=make('dl');
-      addPair(data,'NVDB ELEMENT_ID',result.road.element);
-      addPair(data,'OSM way ID',r.way.id);
-      for(const key of ['highway','surface','tracktype','access','vehicle','motor_vehicle','motorcar','bicycle','foot','name'])if(Object.hasOwn(tags,key))addPair(data,key,tags[key]);
+      const more=make('details');more.append(make('summary',null,'Identyfikatory i linki do OSM'));
+      const data=make('dl');addPair(data,'NVDB ELEMENT_ID',result.road.element);
+      addPair(data,'NVDB wpis',result.road.rid);
+      addPair(data,'Pokryte próbki',Math.round(result.coverage*100)+'% ('+result.samples+' sprawdzonych)');
       more.append(data);
-      const link=make('a',null,'Otwórz drogę w OSM');link.href='https://www.openstreetmap.org/way/'+r.way.id;link.target='_blank';link.rel='noopener noreferrer';
-      more.append(link);card.append(more);
+      for(const x of primary){
+        const link=make('a',null,'OSM way #'+x.way.id);
+        link.href='https://www.openstreetmap.org/way/'+x.way.id;
+        link.target='_blank';link.rel='noopener noreferrer';
+        const wrap=make('p');wrap.append(link);more.append(wrap);
+      }
+      card.append(more);
     }
     root.append(card);
   }
@@ -190,12 +261,18 @@ function showResults(ways,datetime){
     wayLayers=L.layerGroup().addTo(map);
     const seen=new Set();
     for(const r of results){
-      if(!r.candidate||seen.has(r.candidate.way.id))continue;
-      seen.add(r.candidate.way.id);
-      L.polyline(r.candidate.way.geometry.map(p=>[p.lat,p.lon]),{color:'#2e7dba',weight:3,dashArray:'7,8',opacity:.8,interactive:false}).addTo(wayLayers);
+      if(r.status==='none')continue;
+      for(const cand of r.ways){
+        if(seen.has(cand.way.id))continue;
+        seen.add(cand.way.id);
+        L.polyline(cand.way.geometry.map(p=>[p.lat,p.lon]),{
+          color:'#a77ce1',weight:3,dashArray:'7,8',opacity:.85,interactive:false
+        }).addTo(wayLayers);
+      }
     }
   }
 }
+
 async function requestOverpass(){
   if(window.L&&!map)throw Error('Nie udało się uruchomić mapy.');
   // Two limited regions around nine NVDB records. Do not request all Sweden.
