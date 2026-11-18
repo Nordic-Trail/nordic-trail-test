@@ -700,50 +700,17 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'&&!el('point-sheet').hidden&&!writingDraft)clearSelection();
   });
-  if(map)map.on('click',event=>{
+  // Preview-only read mode: tapping empty map never opens a point editor or login notice.
+  // Tapping outside an open card dismisses that card without creating a point.
+  if(map)map.on('click',()=>{
     if(!el('nt-nvdb-road-card').hidden){closeNvdbRoadCard();return;}
-    // Dismissing OSM evidence must never create an authenticated draft.
     if(!el('nt-osm-detail-sheet').hidden){
       el('nt-osm-detail-sheet').hidden=true;
       activeOsmKind=null;
       syncOverlayPageScroll();
       return;
     }
-    // Dismissing spread-out OSM pins must never start drawing a draft.
-    if(activeSpiderMarker){
-      closeOsmSpiderfy();
-      return;
-    }
-    if(writingDraft)return;
-    if(!el('point-sheet').hidden){
-      // An incidental map tap must never close a form with unsaved changes.
-      message('point-sheet-status','Aby zmienić lokalizację, użyj przycisku „Zmień lokalizację”.');
-      return;
-    }
-    if(!activeUser||!db){
-      message('map-action-status','Aby dodać punkt, połącz się ze STAGING i zaloguj na konto testowe.',true);
-      return;
-    }
-    const lat=Number(event.latlng.lat.toFixed(6)),lon=Number(event.latlng.lng.toFixed(6));
-    if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
-    const hadPoint=!!selectedPoint;
-    selectedPoint={lat,lon};
-    if(selectionMarker)map.removeLayer(selectionMarker);
-    selectionMarker=L.circleMarker([lat,lon],{radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false}).addTo(map);
-    el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
-    if(!hadPoint&&!movingPoint){
-      el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
-      el('point-sheet-title').textContent='Dodaj punkt';
-      el('note-details').open=false;el('point-coords-details').open=false;
-      el('save-draft-btn').disabled=true;
-      show('kind-picker',true);show('sheet-fields',false);
-    }
-    movingPoint=false;
-    updatePointAction();
-    setSheetCollapsed(false);
-    dismissMapNotice();el('point-sheet-status').hidden=true;
-    show('point-sheet',true);
-    adjustMapToPanel();
+    if(activeSpiderMarker)closeOsmSpiderfy();
   });
 
   async function loadMyPoints(user=activeUser,request=seq){
