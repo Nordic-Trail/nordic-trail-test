@@ -53,7 +53,7 @@ let server,browser;
   console.log('PASS: Leaflet map started in mobile Chrome');
   assert.equal(network.filter(x=>x.url.includes('gnesta-nvdb-v45.json')).length,0,'NVDB must not load before opting in');
   assert.equal(await page.$eval('#nt-nvdb-toggle',el=>el.checked),false);
-  const layerOrder=await page.$eval('#nt-layer-body > .nt-osm-group',groups=>Array.from(groups,group=>group.querySelector('input')?.id));
+  const layerOrder=await page.evaluate(()=>[...document.querySelectorAll('#nt-layer-body .nt-osm-group')].map(group=>group.querySelector('input')?.id).filter(Boolean));
   assert.deepEqual(layerOrder,['nt-nvdb-toggle','nt-osm-barriers-layer'],'NVDB must be discoverable before the OSM pilot');
   console.log('PASS: NVDB is visible before OSM pilot in the layers panel');
   console.log('PASS: NVDB disabled and no eager fetch');
