@@ -62,9 +62,9 @@ let server,browser;
   console.log('PASS: opt-in fetched and validated 765-road snapshot once');
   await page.click('#nt-nvdb-goto');
   await page.waitForFunction(()=>document.querySelector('#map-layers-sheet').hidden);
-  await page.waitForFunction(()=>document.querySelectorAll('.leaflet-ntnvdbpane-pane path.leaflet-interactive').length>0);
+  await page.waitForFunction(()=>document.querySelectorAll('.leaflet-ntNvdbPane-pane path.leaflet-interactive').length>0);
   const selected=await page.evaluate(()=>{
-    const paths=[...document.querySelectorAll('.leaflet-ntnvdbpane-pane path.leaflet-interactive')];
+    const paths=[...document.querySelectorAll('.leaflet-ntNvdbPane-pane path.leaflet-interactive')];
     for(const p of paths){
       p.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
       if(!document.getElementById('nt-nvdb-road-card').hidden)return {paths:paths.length,opened:true};
@@ -79,7 +79,7 @@ let server,browser;
   await page.click('#nt-nvdb-road-close');
   assert.equal(await page.$eval('#nt-nvdb-road-card',e=>e.hidden),true);
   const others=await page.evaluate(()=>{
-    const p=[...document.querySelectorAll('.leaflet-ntnvdbpane-pane path.leaflet-interactive')];
+    const p=[...document.querySelectorAll('.leaflet-ntNvdbPane-pane path.leaflet-interactive')];
     if(p.length<2)return false;
     p[1].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
     return !document.getElementById('nt-nvdb-road-card').hidden;
@@ -91,7 +91,7 @@ let server,browser;
   await page.click('#open-layers-btn');
   await page.click('#nt-nvdb-toggle');
   assert.equal(await page.$eval('#nt-nvdb-toggle',e=>e.checked),false);
-  const remaining=await page.evaluate(()=>[...document.querySelectorAll('.leaflet-ntnvdbpane-pane path.leaflet-interactive')].filter(e=>e.getClientRects().length).length);
+  const remaining=await page.evaluate(()=>[...document.querySelectorAll('.leaflet-ntNvdbPane-pane path.leaflet-interactive')].filter(e=>e.getClientRects().length).length);
   assert.equal(remaining,0,'Removing NVDB layer should remove rendered road paths');
   assert.equal(await page.$eval('#point-sheet',e=>e.hidden),true);
   console.log('PASS: switching road layer off removes road paths');
