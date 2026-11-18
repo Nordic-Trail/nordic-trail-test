@@ -119,7 +119,7 @@ let server,browser;
   },noRestrictionIndex);
   assert.ok(await page.$eval('#nt-nvdb-road-fields',el=>el.textContent.includes('Brak powiązanego wpisu NVDB')));
   assert.ok(await page.$eval('#nt-nvdb-road-fields',el=>el.textContent.includes('Dostępność prawna')));
-  assert.ok(await page.$eval('#nt-nvdb-road-card .nvdb-micro',el=>el.textContent.includes('Brak ostrzeżenia nie oznacza legalnej dostępności')));
+  assert.ok(await page.$eval('#nt-nvdb-road-card > .nvdb-micro',el=>el.textContent.includes('Brak ostrzeżenia nie oznacza legalnej dostępności')));
   const linkedIndex=nvdbPack.features.findIndex(f=>!!f.properties?.powiazany_wpis_nvdb);
   assert.ok(linkedIndex>=0);
   await page.evaluate(i=>{
