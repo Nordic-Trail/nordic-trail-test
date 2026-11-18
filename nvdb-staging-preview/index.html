@@ -301,6 +301,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 #nt-nvdb-road-card .nvdb-micro{font-size:12px;line-height:1.55;color:#e2e9dc}
 #nt-nvdb-status{font-size:13px;color:var(--muted)}
 #nt-nvdb-goto{width:100%;margin:5px 0;background:rgba(48,88,59,.6);color:white;border:1px solid #a9c1a6;border-radius:10px}
+#nt-tile-diagnostics{position:fixed;left:12px;top:calc(85px + env(safe-area-inset-top));z-index:910;max-width:min(80vw,300px);padding:9px 12px;border:1px solid #b1c7b2;border-radius:10px;background:rgba(16,36,25,.91);color:#f5f8ee;font:600 12px/1.5 system-ui,sans-serif;white-space:pre-line;pointer-events:none;box-shadow:0 3px 12px rgba(0,0,0,.25)}
 </style>
 </head>
 <body>
@@ -540,13 +541,45 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     map.attributionControl.setPrefix('');
     // Mobile pan trial: request only currently visible tiles during movement (throttled).
     // Do not prefetch areas or alter OSM's native HTTP caching.
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    const baseTiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:19,
       attribution:'© OpenStreetMap contributors',
       updateWhenIdle:false,
       updateInterval:500,
       keepBuffer:2
-    }).addTo(map);
+    });
+    // Local, opt-in diagnostics. No network telemetry, no cookies, no Supabase.
+    if(new URLSearchParams(window.location.search).get('diag')==='1'){
+      const diagnostic=document.createElement('div');
+      diagnostic.id='nt-tile-diagnostics';
+      diagnostic.setAttribute('role','status');
+      diagnostic.setAttribute('aria-live','off');
+      document.body.appendChild(diagnostic);
+      let ok=0,failed=0,aborted=0,totalMs=0;
+      const inFlight=new Map();
+      const renderTiles=()=>{
+        const now=performance.now();
+        let longest=0;
+        for(const began of inFlight.values())longest=Math.max(longest,now-began);
+        const avg=ok?Math.round(totalMs/ok):0;
+        diagnostic.textContent='OSM DIAG v3 — mapa\\n'
+          +'Pobrano: '+ok+'  Błędy: '+failed+'  Anulowane: '+aborted+'\\n'
+          +'Czeka: '+inFlight.size+'  Najdłużej: '+(longest/1000).toFixed(1)+' s\\n'
+          +'Średni czas: '+(avg/1000).toFixed(1)+' s';
+      };
+      baseTiles.on('tileloadstart',e=>{inFlight.set(e.tile,performance.now());renderTiles();});
+      baseTiles.on('tileload',e=>{
+        const begin=inFlight.get(e.tile);
+        if(begin!==undefined)totalMs+=performance.now()-begin;
+        inFlight.delete(e.tile);ok++;renderTiles();
+      });
+      baseTiles.on('tileerror',e=>{inFlight.delete(e.tile);failed++;renderTiles();});
+      baseTiles.on('tileabort',e=>{inFlight.delete(e.tile);aborted++;renderTiles();});
+      baseTiles.on('tileunload',e=>{inFlight.delete(e.tile);renderTiles();});
+      window.setInterval(renderTiles,1000);
+      renderTiles();
+    }
+    baseTiles.addTo(map);
     markers=L.layerGroup().addTo(map);
   }catch(_error){message('map-status','Nie udało się uruchomić mapy. Sprawdź połączenie z Internetem.',true);}
   async function publicPoints(){
