@@ -562,9 +562,9 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
         let longest=0;
         for(const began of inFlight.values())longest=Math.max(longest,now-began);
         const avg=ok?Math.round(totalMs/ok):0;
-        diagnostic.textContent='OSM DIAG v3 — mapa\\n'
-          +'Pobrano: '+ok+'  Błędy: '+failed+'  Anulowane: '+aborted+'\\n'
-          +'Czeka: '+inFlight.size+'  Najdłużej: '+(longest/1000).toFixed(1)+' s\\n'
+        diagnostic.textContent='OSM DIAG v4 — mapa\n'
+          +'Pobrano: '+ok+'  Błędy: '+failed+'  Anulowane: '+aborted+'\n'
+          +'Czeka: '+inFlight.size+'  Najdłużej: '+(longest/1000).toFixed(1)+' s\n'
           +'Średni czas: '+(avg/1000).toFixed(1)+' s';
       };
       baseTiles.on('tileloadstart',e=>{inFlight.set(e.tile,performance.now());renderTiles();});
