@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="pl"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>NORDIC TRAIL — mapa i karta drogi (test)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--ink:#f7f6eb;--muted:#e2e9dc;--accent:#d4e7b4;--border:#c7d6c38c}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}
+body{font:15px/1.46 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:#183025}
+button{font:inherit;min-height:44px;cursor:pointer}button:disabled{opacity:.6;cursor:wait}
+button:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid #f7dea7;outline-offset:2px}
+#map{position:fixed;inset:0;width:100%;height:100%;background:#b3c9b4}.leaflet-container{font:inherit}
+#brand{pointer-events:none;position:fixed;top:calc(12px + env(safe-area-inset-top));left:12px;z-index:600;text-shadow:0 2px 5px #091c14,0 0 10px #091c14}
+#brand b{font-size:15px;letter-spacing:.04em}#brand small{display:block;font-size:10px;letter-spacing:.04em;color:#f1f7ec}
+#layerToggle{position:fixed;z-index:690;right:12px;top:calc(12px + env(safe-area-inset-top));width:48px;height:48px;border:1px solid var(--border);border-radius:12px;background:rgba(12,37,23,.4);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:white;box-shadow:0 2px 15px #001a0c6a}
+#layerToggle svg{width:26px;height:26px}
+#layers{position:fixed;z-index:680;right:12px;top:calc(68px + env(safe-area-inset-top));width:min(300px,calc(100vw - 24px));
+border:1px solid var(--border);border-radius:13px;padding:13px;background:rgba(12,37,23,.4);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);color:white;text-shadow:0 1px 3px #03110b}
+[hidden]{display:none!important}
+#layers h2{font-size:16px;margin:0 0 5px}
+#layers label{display:flex;align-items:center;gap:10px;min-height:44px}
+#layers input{width:22px;height:22px;accent-color:#d4e6b1}
+#layers button{width:100%;border:1px solid var(--border);border-radius:10px;background:rgba(35,73,49,.5);color:#fff;font-weight:650}
+#layers p{font-size:12px;margin:8px 0 0;color:var(--muted)}
+#help{position:fixed;z-index:610;left:12px;top:calc(85px + env(safe-area-inset-top));padding:10px;max-width:230px;
+border:1px solid var(--border);border-radius:10px;background:rgba(12,37,23,.4);backdrop-filter:blur(17px);-webkit-backdrop-filter:blur(17px);
+text-shadow:0 1px 4px #03150a;font-size:13px}
+#help button{background:#cfe3b4;color:#193122;border:0;border-radius:9px;min-height:40px;padding:7px 12px;margin-top:6px;font-weight:750}
+#sheet{position:fixed;z-index:780;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:620px;
+margin:auto;max-height:67vh;overflow:auto;overscroll-behavior:contain;border:1px solid var(--border);border-radius:17px;
+background:rgba(12,37,23,.4);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);
+box-shadow:0 10px 40px #00190e99;padding:14px 15px;color:#fff;text-shadow:0 1px 4px #00190f}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sheet-head h2{font-size:17px;margin:0}.close{min-width:44px;width:44px;height:44px;border-radius:10px;background:rgba(10,27,18,.5);
+border:1px solid var(--border);color:white;font-size:26px;line-height:1}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 13px;margin:6px 0 0;font-size:14px}
+dt{color:var(--muted)}dd{margin:0;font-weight:630}
+.warning{border-left:3px solid #e5cc91;background:rgba(132,102,50,.25);padding:9px 11px;border-radius:8px;margin:11px 0 6px}
+.warning strong{color:#fff0c9;font-size:15px}
+.warning p{font-size:13px;margin:4px 0 0}
+.note{font-size:13px;color:#e9eee5;margin:7px 0}
+details{margin-top:10px;border-top:1px solid #b0cab09c;padding-top:3px}
+summary{color:var(--accent);font-weight:700;min-height:44px;padding:11px 0;cursor:pointer}
+.source p{font-size:13px;margin:7px 0}.source a{color:var(--accent)}
+.part{border-top:1px solid #bed1bb6c;padding:10px 0}
+.part strong{font-size:13px}
+#fetchOsm{width:100%;border:1px solid var(--border);border-radius:10px;min-height:44px;background:rgba(48,88,59,.5);color:white;font-weight:700}
+#osmStatus{font-size:12px;color:#edf2e8}
+#state{position:fixed;z-index:650;left:13px;bottom:calc(12px + env(safe-area-inset-bottom));right:13px;max-width:430px;margin:auto;
+border-radius:11px;border:1px solid var(--border);padding:10px 12px;background:rgba(11,36,22,.4);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+font-size:13px;color:#fff;text-align:center;text-shadow:0 1px 4px #001c0e}
+@media(min-width:820px){#sheet{margin:0;right:auto;left:14px;width:430px;max-height:75vh}}
+</style></head><body>
+<div id="map" aria-label="Testowa mapa dróg NVDB Gnesta/Klämmingen"></div>
+<div id="brand"><b>NORDIC TRAIL</b><small>MAPA + KARTA DROGI · TEST</small></div>
+<button type="button" id="layerToggle" aria-label="Warstwy mapy" aria-controls="layers" aria-expanded="false">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5ZM2 12l10 5 10-5M2 17l10 5 10-5"/></svg></button>
+<section id="layers" hidden>
+<h2>Warstwy mapy</h2>
+<label><input id="nvdbVisible" type="checkbox" checked> Drogi żwirowe NVDB</label>
+<button type="button" id="focusExample">Pokaż odcinek #15968</button>
+<p>765 dróg NVDB · 9 wpisów dotyczących tranzytu. Brak ostrzeżenia nie potwierdza prawa przejazdu.</p>
+</section>
+<div id="help">Dotknij brązowej drogi, żeby zobaczyć jej kartę.
+<button type="button" id="showExample">Pokaż przykład #15968</button></div>
+<section id="sheet" role="dialog" aria-modal="false" aria-label="Informacje o drodze" hidden>
+<div class="sheet-head"><h2>Informacje o drodze</h2><button id="close" type="button" class="close" aria-label="Zamknij kartę">×</button></div>
+<dl><dt>Nawierzchnia</dt><dd id="surface"></dd><dt>Źródło</dt><dd>NVDB · 13.11.2026</dd></dl>
+<div class="warning"><strong id="warnTitle"></strong><p id="warnText"></p></div>
+<p class="note" id="access">Dostęp samochodem: niepotwierdzony</p>
+<p class="note" id="mixed" hidden></p>
+<details id="details"><summary>Ograniczenia i dane źródłowe</summary>
+<div class="source" id="source"></div>
+<p id="osmStatus">Dane OSM: niepobrane.</p>
+<button id="fetchOsm" type="button">Sprawdź tagi OSM</button>
+</details>
+</section>
+<div id="state" role="status" aria-live="polite">Wczytywanie danych NVDB…</div>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import {evaluateTrafficWarning} from '../traffic-warning-policy/traffic-warning-policy.mjs';
+const $=id=>document.getElementById(id);
+const map=window.L?L.map('map',{zoomControl:true,preferCanvas:true}):null;
+let features=null,roads=null,hitRoads=null,selected=null,osmWays=null,osmDate=null,pendingOsm=null,osmError='';
+const featureIndex=new Map(),layerIndex=new Map();
+if(map){L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map);map.setView([59.13,17.29],12)}
+function pointOnSegment(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay,len=dx*dx+dy*dy;
+  const t=len?Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/len)):0;
+  return Math.hypot(px-ax-t*dx,py-ay-t*dy);
+}
+const scaleX=111320*Math.cos(59.13*Math.PI/180),scaleY=111320;
+function minDist(point,geometry){
+  const px=point[0]*scaleX,py=point[1]*scaleY;
+  let dist=Infinity;
+  for(let i=1;i<geometry.length;i++){
+    const a=geometry[i-1],b=geometry[i];
+    dist=Math.min(dist,pointOnSegment(px,py,a.lon*scaleX,a.lat*scaleY,b.lon*scaleX,b.lat*scaleY));
+  }
+  return dist;
+}
+
+function sampledLine(line){
+  // Jednolite odstepy ~30 m, a nie co N-ty wierzcholek geometrii.
+  const coords=line.map(p=>[p[0]*scaleX,p[1]*scaleY]);
+  const lens=[],cum=[0];
+  for(let i=1;i<coords.length;i++){
+    const len=Math.hypot(coords[i][0]-coords[i-1][0],coords[i][1]-coords[i-1][1]);
+    lens.push(len);cum.push(cum[i-1]+len);
+  }
+  const total=cum[cum.length-1];
+  const n=Math.max(3,Math.min(48,Math.ceil(total/28)+1));
+  const samples=[];
+  for(let k=0;k<n;k++){
+    const d=total*k/(n-1);
+    let segment=0;
+    while(segment<lens.length-1&&cum[segment+1]<d)segment++;
+    const den=lens[segment],t=den?Math.max(0,Math.min(1,(d-cum[segment])/den)):0;
+    const a=coords[segment],b=coords[segment+1];
+    samples.push({x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t,
+      dx:b[0]-a[0],dy:b[1]-a[1]});
+  }
+  return {samples,metres:total};
+}
+function nearestWaySegment(sample,way){
+  let best=null;
+  for(let i=1;i<way.geometry.length;i++){
+    const a=way.geometry[i-1],b=way.geometry[i];
+    const ax=a.lon*scaleX,ay=a.lat*scaleY,bx=b.lon*scaleX,by=b.lat*scaleY;
+    const vx=bx-ax,vy=by-ay,mag=vx*vx+vy*vy;
+    if(mag<.05)continue;
+    const t=Math.max(0,Math.min(1,((sample.x-ax)*vx+(sample.y-ay)*vy)/mag));
+    const dist=Math.hypot(sample.x-ax-vx*t,sample.y-ay-vy*t);
+    const sampleMag=Math.hypot(sample.dx,sample.dy);
+    const cos=sampleMag?Math.min(1,Math.abs(sample.dx*vx+sample.dy*vy)/(sampleMag*Math.sqrt(mag))):0;
+    const angle=Math.acos(cos)*180/Math.PI;
+    if(!best||dist<best.distance)best={distance:dist,angle};
+  }
+  return best;
+}
+function matchRoad(road,ways){
+  const {samples,metres}=sampledLine(road.road);
+  const votes=new Map();
+  let matched=0,distSum=0,nearWrongDirection=0;
+  for(const point of samples){
+    let best=null;
+    for(const way of ways){
+      if(!Array.isArray(way.geometry)||way.geometry.length<2||!Array.isArray(way.bb))continue;
+      const bb=way.bb,lon=point.x/scaleX,lat=point.y/scaleY;
+      if(lon<bb[0]-.0006||lon>bb[2]+.0006||lat<bb[1]-.0004||lat>bb[3]+.0004)continue;
+      const d=nearestWaySegment(point,way);
+      if(!d||d.distance>22)continue;
+      if(d.angle>40){nearWrongDirection++;continue}
+      const score=d.distance+.045*d.angle;
+      if(!best||score<best.score)best={way,distance:d.distance,angle:d.angle,score};
+    }
+    if(best){
+      matched++;distSum+=best.distance;
+      const k=String(best.way.id);
+      const v=votes.get(k)||{way:best.way,hits:0,distSum:0};
+      v.hits++;v.distSum+=best.distance;votes.set(k,v);
+    }
+  }
+  const coverage=matched/samples.length;
+  const mean=matched?distSum/matched:Infinity;
+  const ranked=[...votes.values()].sort((a,b)=>b.hits-a.hits||a.distSum-a.hits-b.distSum+b.hits).map(x=>({
+    way:x.way,hits:x.hits,share:x.hits/samples.length,mean:x.distSum/x.hits
+  }));
+  // Próg dotyczy jedynie przyblizenia geometrii, nie przepisów.
+  const status=coverage>=.70&&mean<=17?'likely':
+    coverage>=.30&&mean<=22?'tentative':'none';
+  return {status,ways:status==='none'?[]:ranked,coverage,mean,metres,
+    samples:samples.length,nearWrongDirection};
+}
+
+
+function make(type,text,cls){
+ const el=document.createElement(type);
+ if(text!==null&&text!==undefined)el.textContent=String(text);
+ if(cls)el.className=cls;
+ return el;
+}
+function togglePanel(open){
+ $('layers').hidden=!open;$('layerToggle').setAttribute('aria-expanded',String(open));
+}
+function closeCard(){
+ $('sheet').hidden=true;selected=null;
+}
+function getStyle(){
+ const z=map?.getZoom()||12;
+ if(z<=11)return {color:'#91724c',weight:1.4,opacity:.35};
+ if(z===12)return {color:'#96724b',weight:2,opacity:.6};
+ if(z===13)return {color:'#96724b',weight:2.6,opacity:.75};
+ return {color:'#96724b',weight:3.2,opacity:.87};
+}
+function showCard(feature){
+ if(!feature||!$('nvdbVisible').checked)return;
+ selected=feature;
+ $('help').hidden=true;
+ togglePanel(false);
+ $('details').open=false;
+ $('sheet').hidden=false;
+ updateCard();
+}
+function focusExample(){
+ if(!featureIndex.has('15968'))return;
+ if(!$('nvdbVisible').checked){$('nvdbVisible').checked=true;setVisible();}
+ const f=featureIndex.get('15968');
+ const layer=layerIndex.get('15968');
+ if(layer&&map)map.fitBounds(layer.getBounds(),{padding:[35,35],maxZoom:15});
+ showCard(f);
+}
+function matchOsm(feature){
+ if(!osmWays||!feature?.properties?.powiazany_wpis_nvdb)return null;
+ const g=feature.geometry?.coordinates;
+ if(!Array.isArray(g)||g.length<2)return null;
+ return matchRoad({road:g},osmWays);
+}
+function getDetails(rule){
+ if(!rule)return 'W tej próbce brak powiązanego wpisu o ograniczeniu ruchu. Nie oznacza to potwierdzonego dostępu.';
+ const vehicle=rule.pojazdy==='fordon'?'pojazdy':rule.pojazdy==='motordrivna fordon'?'pojazdy silnikowe':rule.pojazdy||'nieznane';
+ return 'NVDB: '+vehicle+' · tranzyt='+rule.tranzyt+' · '+(rule.kierunek==='Med och mot'?'oba kierunki':rule.kierunek||'brak kierunku')+'.';
+}
+function updateCard(){
+ const f=selected;if(!f)return;
+ const p=f.properties||{},rule=p.powiazany_wpis_nvdb||null;
+ const match=matchOsm(f);
+ const candidates=match?.status!=='none'?match?.ways||[]:[];
+ const warning=evaluateTrafficWarning({nvdb:rule,osmWays:candidates.map(x=>x.way),geometryMatch:'unverified'});
+ $('surface').textContent=p.nawierzchnia==='grus'?'Żwirowa (NVDB)':p.nawierzchnia||'Brak danych';
+ $('warnTitle').textContent=rule?.tranzyt==='sant'?'Możliwe ograniczenie tranzytu':warning.title;
+ $('warnText').textContent=warning.explanation;
+ $('access').textContent='Dostęp samochodem: niepotwierdzony';
+ const mixed=warning.mixedOsmAccess?'OSM: różne oznaczenia dostępu na fragmentach drogi.':
+   warning.flags.includes('osm_possible_restriction')?'OSM wskazuje ograniczenie dostępu samochodów na co najmniej jednym fragmencie.':'';
+ $('mixed').textContent=mixed;$('mixed').hidden=!mixed;
+ const source=$('source');source.replaceChildren();
+ source.append(make('p','NVDB #'+p.id+' · '+getDetails(rule)));
+ if(rule)source.append(make('p','Wpis '+rule.rekord+' · ELEMENT_ID '+rule.element_id+' · zakres '+rule.zakres+'.'));
+ source.append(make('p','Pełny STFS, godziny, wyjątki i oznakowanie: niezweryfikowane.'));
+ if(osmWays&&rule){
+  if(!match||match.status==='none')source.append(make('p','OSM: brak wystarczającego dopasowania. To nie oznacza braku drogi.'));
+  else{
+   source.append(make('p','Wstępna zgodność geometrii: '+Math.round(match.coverage*100)+'% próbek do 22 m i kierunek ≤40°. Nie potwierdza to tożsamości prawnej.'));
+   for(const c of candidates){
+    const part=make('div',null,'part'),t=c.way.tags||{};
+    const record=warning.segmentAccess.find(x=>x.id===String(c.way.id));
+    part.append(make('strong','OSM #'+c.way.id+' · '+Math.round(c.share*100)+'% próbek'));
+    part.append(make('p',record?.explanation||'Brak szczegółowej informacji o dostępie.'));
+    part.append(make('p','Tag: '+(record?.accessKey?record.accessKey+'='+record.accessValue:'brak')+' · surface='+(t.surface||'brak')));
+    if(record?.conditionalTags?.length)part.append(make('p','Uwaga: tagi warunkowe wymagają dodatkowej weryfikacji.'));
+    const a=make('a','Otwórz wpis w OSM');
+    a.href='https://www.openstreetmap.org/way/'+encodeURIComponent(c.way.id);a.target='_blank';a.rel='noopener noreferrer';
+    part.append(a);source.append(part);
+   }
+  }
+ }
+ $('fetchOsm').textContent=osmWays?'Odśwież tagi OSM':'Sprawdź tagi OSM';
+ $('fetchOsm').disabled=Boolean(pendingOsm);
+ $('osmStatus').textContent=pendingOsm?'Pobieranie danych OSM…':
+  osmError?'Nie udało się pobrać OSM: '+osmError:
+  osmWays?'OSM: '+osmWays.length+' dróg odczytanych'+(osmDate?' · '+osmDate:'')+'.':'Dane OSM: niepobrane.';
+}
+async function requestOsm(){
+ if(pendingOsm)return pendingOsm;
+ const query='[out:json][timeout:45];(way["highway"](59.113,17.274,59.155,17.298);way["highway"](59.043,17.310,59.047,17.318););out tags geom;';
+ const endpoints=['https://overpass-api.de/api/interpreter','https://ovp.dresel.systems/api/interpreter'];
+ pendingOsm=(async()=>{
+  let last='Błąd odczytu OSM';
+  for(const endpoint of endpoints){
+   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),48000);
+   try{
+    const res=await fetch(endpoint+'?data='+encodeURIComponent(query),{credentials:'omit',mode:'cors',signal:controller.signal});
+    if(!res.ok)throw Error('HTTP '+res.status);
+    const text=await res.text();if(text.length>10000000)throw Error('Przekroczono limit odpowiedzi');
+    const payload=JSON.parse(text);if(!Array.isArray(payload.elements))throw Error('Niepoprawna odpowiedź Overpass');
+    const ways=payload.elements.filter(x=>x.type==='way'&&x.geometry?.length>=2).map(w=>{
+      const lat=w.geometry.map(p=>p.lat),lon=w.geometry.map(p=>p.lon);
+      return {...w,bb:[Math.min(...lon),Math.min(...lat),Math.max(...lon),Math.max(...lat)]};
+    });
+    if(!ways.length)throw Error('Brak dróg OSM');
+    return {ways,date:payload.osm3s?.timestamp_osm_base||null};
+   }catch(e){last=String(e.message||e)}
+   finally{clearTimeout(timeout)}
+  }
+  throw Error(last);
+ })();
+ updateCard();
+ try{
+  const result=await pendingOsm;
+  osmWays=result.ways;osmDate=result.date;osmError='';
+ }catch(e){osmError=String(e.message||e)}
+ finally{pendingOsm=null;updateCard();}
+}
+function setVisible(){
+ if(!map||!roads||!hitRoads)return;
+ if($('nvdbVisible').checked){
+  if(!map.hasLayer(roads))map.addLayer(roads);
+  if(!map.hasLayer(hitRoads))map.addLayer(hitRoads);
+ }else{
+  map.removeLayer(roads);map.removeLayer(hitRoads);closeCard();
+ }
+}
+async function init(){
+ if(!map)throw Error('Nie można uruchomić mapy Leaflet.');
+ const response=await fetch('../data/gnesta-nvdb-v4.json',{credentials:'omit',cache:'no-store'});
+ if(!response.ok)throw Error('NVDB HTTP '+response.status);
+ const text=await response.text();if(text.length>1500000)throw Error('Dane NVDB za duże');
+ const json=JSON.parse(text);
+ if(json.type!=='FeatureCollection'||!Array.isArray(json.features)||json.features.length!==765||
+   json.features.filter(f=>f.properties?.powiazany_wpis_nvdb).length!==9||
+   !json.features.every(f=>f.geometry?.type==='LineString'&&f.geometry.coordinates?.length>=2))throw Error('Błąd walidacji danych NVDB');
+ features=json;
+ for(const f of json.features)featureIndex.set(String(f.properties.id),f);
+ roads=L.geoJSON(json,{style:getStyle,interactive:false}).addTo(map);
+ hitRoads=L.geoJSON(json,{style:()=>({color:'#896943',weight:16,opacity:.004}),bubblingMouseEvents:false,
+   onEachFeature:(f,layer)=>{
+     layerIndex.set(String(f.properties.id),layer);
+     layer.on('click',evt=>{
+      if(evt.originalEvent)L.DomEvent.stopPropagation(evt.originalEvent);
+      showCard(f);
+     });
+   }}).addTo(map);
+ map.fitBounds(roads.getBounds(),{padding:[22,22],maxZoom:12});
+ map.on('zoomend',()=>roads.setStyle(getStyle));
+ map.on('click',()=>{if(!$('sheet').hidden)closeCard();else togglePanel(false);});
+ $('state').hidden=true;
+}
+$('layerToggle').addEventListener('click',()=>togglePanel($('layers').hidden));
+$('nvdbVisible').addEventListener('change',setVisible);
+$('focusExample').addEventListener('click',focusExample);
+$('showExample').addEventListener('click',focusExample);
+$('close').addEventListener('click',closeCard);
+$('fetchOsm').addEventListener('click',()=>{void requestOsm();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCard();togglePanel(false);}});
+init().catch(e=>{$('state').hidden=false;$('state').textContent='Nie udało się wczytać NVDB: '+String(e.message||e);});
+</script></body></html>
