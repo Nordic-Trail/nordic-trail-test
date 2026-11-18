@@ -376,7 +376,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <div class="nt-osm-detail-heading"><h2 id="nt-nvdb-road-title">Informacje o drodze</h2><button type="button" id="nt-nvdb-road-close" aria-label="Zamknij kartę">×</button></div>
 <div class="nt-osm-meta" id="nt-nvdb-road-fields"></div>
 <div class="nt-nvdb-warning" id="nt-nvdb-warning" hidden><strong id="nt-nvdb-warning-title">Możliwe ograniczenie tranzytu</strong><p id="nt-nvdb-warning-text"></p></div>
-<details id="nt-nvdb-detail" hidden><summary>Szczegóły wpisu NVDB</summary><div class="nt-osm-meta" id="nt-nvdb-detail-fields"></div><p class="nvdb-micro">Zgodność identyfikatora i zakresu nie potwierdza obowiązywania przepisu ani prawa przejazdu.</p></details>
+<details id="nt-nvdb-detail" hidden><summary>Szczegóły wpisu NVDB</summary><div class="nt-osm-meta" id="nt-nvdb-detail-fields"></div><p class="nvdb-micro">To wstępne powiązanie danych NVDB z odcinkiem. Pełny przepis, wyjątki i zasięg ograniczenia wymagają niezależnego sprawdzenia.</p></details>
 <p class="nvdb-micro">Trafikverket/NVDB · 13.11.2026. Brak ostrzeżenia nie oznacza legalnej dostępności.</p>
 </section>
 <div class="workspace" id="workspace">
@@ -1179,8 +1179,8 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     fields.replaceChildren();extra.replaceChildren();
     nvdbRow(fields,'Nawierzchnia','Żwirowa (grus)');
     // No width is presented until each NVDB segment match is independently verified.
-    if(!r)nvdbRow(fields,'Ograniczenia','Brak powiązanego wpisu NVDB — nie potwierdza prawa przejazdu');
-    nvdbRow(fields,'Dostępność','Niezweryfikowana');
+    nvdbRow(fields,'Dostępność prawna','Niezweryfikowana');
+    if(!r)nvdbRow(fields,'Ograniczenia','Brak powiązanego wpisu NVDB');
     el('nt-nvdb-warning').hidden=!r;
     el('nt-nvdb-detail').hidden=!r;
     el('nt-nvdb-detail').open=false;
@@ -1188,12 +1188,12 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       const warning=nvdbPolicy?nvdbPolicy({nvdb:r,osmWays:[],geometryMatch:'unverified'}):null;
       el('nt-nvdb-warning-title').textContent=warning?.title||'Możliwe ograniczenie tranzytu';
       el('nt-nvdb-warning-text').textContent=warning?.explanation||'Konieczna weryfikacja przepisu i wyjątków.';
-      nvdbRow(extra,'Dotyczy',r.pojazdy==='motordrivna fordon'?'Pojazdy silnikowe':r.pojazdy==='fordon'?'Pojazdy':r.pojazdy);
-      nvdbRow(extra,'Rodzaj','Tranzyt (NVDB: '+r.tranzyt+')');
-      nvdbRow(extra,'Kierunek',r.kierunek==='Med och mot'?'Oba kierunki':'Nieustalone');
-      nvdbRow(extra,'Wyjątki','Nieustalone');
-      nvdbRow(extra,'Zgodność','ELEMENT_ID + zakres');
-      nvdbRow(extra,'Rekord / element',r.rekord+' / '+r.element_id);
+      nvdbRow(extra,'Dotyczy',r.pojazdy==='motordrivna fordon'?'Pojazdy silnikowe':r.pojazdy==='fordon'?'Pojazdy':'Niezweryfikowane');
+      nvdbRow(extra,'Rodzaj wpisu','Dotyczy tranzytu (według NVDB)');
+      nvdbRow(extra,'Kierunek',r.kierunek==='Med och mot'?'Oba kierunki (według NVDB)':'Niezweryfikowany');
+      nvdbRow(extra,'Wyjątki','Niezweryfikowane');
+      nvdbRow(extra,'Powiązanie z drogą','Wstępne — wymaga kontroli');
+      nvdbRow(extra,'Rekord / element NVDB',r.rekord+' / '+r.element_id);
     }
     el('nt-nvdb-road-card').hidden=false;syncOverlayPageScroll();
     el('nt-nvdb-road-close').focus({preventScroll:true});
