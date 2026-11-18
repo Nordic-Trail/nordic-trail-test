@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="pl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>NORDIC TRAIL · karta drogi v1</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--bg:#111c16;--panel:#1d3326;--line:#56745e;--fg:#f2f5ed;--sub:#d4dfd0;--link:#cde2ad}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;margin:0}
+main{max-width:720px;margin:auto;padding:14px 12px 36px}
+h1{font-size:22px;line-height:1.2;margin:0 0 5px}h2{font-size:17px;margin:0 0 12px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+a{color:var(--link)}
+header a{font-size:13px}
+.small{font-size:13px;color:var(--sub)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px;margin-top:13px}
+button,select{font:inherit;min-height:46px;border-radius:10px;width:100%;padding:8px 12px}
+select{background:#2c4835;color:var(--fg);border:1px solid #829b87}
+button{background:#c2d7a5;color:#182a20;border:0;font-weight:750}
+button:disabled{opacity:.65}
+label{display:block;font-size:13px;font-weight:650;color:var(--sub);margin-bottom:5px}
+#status{min-height:17px;font-size:13px;color:var(--sub)}
+.row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+dt{color:var(--sub)}dd{margin:0}dl{display:grid;grid-template-columns:auto 1fr;gap:7px 13px}
+.notice{margin:12px 0;padding:13px;border:1px solid #c2a774;border-left:4px solid #e5cd87;border-radius:10px;background:#4b412b}
+.notice strong{display:block;font-size:16px;color:#fff1c4}
+.note{color:#dfe3d9;font-size:14px}
+.tag{display:inline-block;border-radius:100px;border:1px solid #9c8c60;background:#51482f;color:#f7e9c0;font-size:12px;padding:4px 10px;margin:4px 6px 4px 0}
+details{border-top:1px solid var(--line);margin-top:12px}
+summary{color:var(--link);font-weight:650;cursor:pointer;min-height:46px;padding:12px 0}
+.segment{border-top:1px solid #465c4b;padding:10px 0}.segment p{font-size:13px;margin:6px 0}
+#map{height:270px;border-radius:10px;overflow:hidden;background:#3d5445}
+footer{font-size:12px;color:var(--sub);margin-top:18px}
+</style></head><body><main>
+<header><div><h1>Karta drogi <small style="font-size:13px;color:#cde2ad">TEST v1</small></h1>
+<div class="small">NORDIC TRAIL · Gnesta/Klämmingen · tylko odczyt</div></div><a href="../">Mapa testowa</a></header>
+<section class="panel">
+<label for="roadSelect">Odcinek NVDB</label>
+<select id="roadSelect"></select>
+<p><button id="load" type="button">Pobierz OSM i sprawdź</button></p>
+<div id="status" role="status" aria-live="polite">Dane NVDB dostępne. OSM jeszcze niepobrane.</div>
+</section>
+<section class="panel">
+<h2 id="roadTitle">Informacje o drodze</h2>
+<dl><dt>Nawierzchnia</dt><dd id="surface">—</dd><dt>Źródło</dt><dd id="source">—</dd></dl>
+<div class="notice"><strong id="warningTitle">Dostępność niezweryfikowana</strong>
+<p id="warningText"></p></div>
+<span class="tag">Prawo przejazdu niezweryfikowane</span><span class="tag" id="osmStatus">OSM niepobrane</span>
+<p class="note" id="mixed"></p>
+<details><summary>Informacje źródłowe i tagi OSM</summary><div id="detailBody"></div></details>
+</section>
+<section class="panel"><h2>Przebieg drogi</h2><div id="map"></div>
+<p class="small">Brązowy: geometria NVDB. Fioletowy przerywany: kandydaci OSM. To nie jest planowana trasa ani potwierdzenie dostępności.</p></section>
+<footer>Prototyp, nie system nawigacji. NVDB: 13.11.2026. OSM: pobierane na żądanie. Pełne przepisy STFS, godziny i wyjątki niezweryfikowane. Dane nie trafiają do Supabase. © OpenStreetMap contributors.</footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import {evaluateTrafficWarning} from '../traffic-warning-policy/traffic-warning-policy.mjs';
+const roads=[{"id":"15926","rid":"17","element":"3:303827","road":[[17.276657,59.153281],[17.276855,59.152224],[17.276399,59.151743],[17.276444,59.151462],[17.277612,59.15037],[17.278577,59.148787],[17.279281,59.148172],[17.280289,59.147713],[17.280516,59.14745],[17.280574,59.146321],[17.280408,59.145894],[17.279766,59.144982],[17.279745,59.144749],[17.279854,59.144504],[17.280091,59.144167],[17.280961,59.143325],[17.281865,59.142558],[17.28415,59.140976],[17.284695,59.140658]]},{"id":"15966","rid":"203","element":"3:303829","road":[[17.284695,59.140658],[17.284988,59.140523]]},{"id":"15967","rid":"18","element":"3:303933","road":[[17.284988,59.140523],[17.286134,59.140043],[17.287117,59.139029],[17.287436,59.138809],[17.288476,59.138519],[17.288952,59.138338]]},{"id":"15968","rid":"19","element":"3:304355","road":[[17.288952,59.138338],[17.289343,59.138049],[17.289926,59.137455],[17.290833,59.137133],[17.291541,59.136666],[17.291727,59.136445],[17.291751,59.13629],[17.291578,59.1357],[17.291779,59.135233],[17.291751,59.135085],[17.291307,59.13445],[17.291379,59.133167],[17.291735,59.132539],[17.292383,59.132193],[17.293478,59.131437],[17.293752,59.130645],[17.293514,59.130007]]},{"id":"15969","rid":"20","element":"3:304512","road":[[17.293514,59.130007],[17.293257,59.129545],[17.293262,59.129172],[17.293966,59.128738],[17.294158,59.128505],[17.294182,59.128352],[17.294064,59.128101],[17.293644,59.127873]]},{"id":"15970","rid":"21","element":"3:304709","road":[[17.293644,59.127873],[17.292829,59.127804],[17.292227,59.127586],[17.292088,59.127422],[17.291859,59.126851],[17.292078,59.125862],[17.291965,59.125475],[17.291297,59.124984],[17.291292,59.124562],[17.291181,59.12439],[17.290301,59.123933]]},{"id":"15971","rid":"22","element":"3:305050","road":[[17.289189,59.117526],[17.288374,59.117905],[17.287875,59.11839],[17.287888,59.11855],[17.288154,59.118885],[17.288714,59.119296],[17.288794,59.119438],[17.288508,59.120254],[17.288181,59.12088],[17.288166,59.121059],[17.288614,59.122005],[17.288597,59.122644],[17.288921,59.1233],[17.289003,59.123795],[17.289402,59.123922],[17.290301,59.123933]]},{"id":"16025","rid":"23","element":"3:305147","road":[[17.290165,59.114882],[17.290564,59.115364],[17.290813,59.115879],[17.290489,59.116327],[17.290421,59.116815],[17.290299,59.117092],[17.290101,59.117234],[17.289189,59.117526]]},{"id":"59093","rid":"182","element":"3:309403","road":[[17.312262,59.045025],[17.315239,59.045097]]}];
+const records=[{"id":"15926","surface":"grus","rule":{"rekord":"17","element_id":"3:303827","pojazdy":"fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}},{"id":"15966","surface":"grus","rule":{"rekord":"203","element_id":"3:303829","pojazdy":"fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}},{"id":"15967","surface":"grus","rule":{"rekord":"18","element_id":"3:303933","pojazdy":"fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}},{"id":"15968","surface":"grus","rule":{"rekord":"19","element_id":"3:304355","pojazdy":"fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}},{"id":"15969","surface":"grus","rule":{"rekord":"20","element_id":"3:304512","pojazdy":"fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}},{"id":"15970","surface":"grus","rule":{"rekord":"21","element_id":"3:304709","pojazdy":"fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}},{"id":"15971","surface":"grus","rule":{"rekord":"22","element_id":"3:305050","pojazdy":"fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}},{"id":"16025","surface":"grus","rule":{"rekord":"23","element_id":"3:305147","pojazdy":"fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}},{"id":"59093","surface":"grus","rule":{"rekord":"182","element_id":"3:309403","pojazdy":"motordrivna fordon","tranzyt":"sant","kierunek":"Med och mot","zakres":"0.0–1.0"}}];
+const roadMap=new Map(roads.map(x=>[String(x.id),x]));
+const recordMap=new Map(records.map(x=>[String(x.id),x]));
+const $=id=>document.getElementById(id);
+let osms=null,timestamp=null,roadLayer=null,osmLayer=null;
+const map=window.L?L.map('map'):null;
+if(map)L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM contributors'}).addTo(map);
+function pointOnSegment(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay,len=dx*dx+dy*dy;
+  const t=len?Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/len)):0;
+  return Math.hypot(px-ax-t*dx,py-ay-t*dy);
+}
+const scaleX=111320*Math.cos(59.13*Math.PI/180),scaleY=111320;
+function minDist(point,geometry){
+  const px=point[0]*scaleX,py=point[1]*scaleY;
+  let dist=Infinity;
+  for(let i=1;i<geometry.length;i++){
+    const a=geometry[i-1],b=geometry[i];
+    dist=Math.min(dist,pointOnSegment(px,py,a.lon*scaleX,a.lat*scaleY,b.lon*scaleX,b.lat*scaleY));
+  }
+  return dist;
+}
+
+function sampledLine(line){
+  // Jednolite odstepy ~30 m, a nie co N-ty wierzcholek geometrii.
+  const coords=line.map(p=>[p[0]*scaleX,p[1]*scaleY]);
+  const lens=[],cum=[0];
+  for(let i=1;i<coords.length;i++){
+    const len=Math.hypot(coords[i][0]-coords[i-1][0],coords[i][1]-coords[i-1][1]);
+    lens.push(len);cum.push(cum[i-1]+len);
+  }
+  const total=cum[cum.length-1];
+  const n=Math.max(3,Math.min(48,Math.ceil(total/28)+1));
+  const samples=[];
+  for(let k=0;k<n;k++){
+    const d=total*k/(n-1);
+    let segment=0;
+    while(segment<lens.length-1&&cum[segment+1]<d)segment++;
+    const den=lens[segment],t=den?Math.max(0,Math.min(1,(d-cum[segment])/den)):0;
+    const a=coords[segment],b=coords[segment+1];
+    samples.push({x:a[0]+(b[0]-a[0])*t,y:a[1]+(b[1]-a[1])*t,
+      dx:b[0]-a[0],dy:b[1]-a[1]});
+  }
+  return {samples,metres:total};
+}
+function nearestWaySegment(sample,way){
+  let best=null;
+  for(let i=1;i<way.geometry.length;i++){
+    const a=way.geometry[i-1],b=way.geometry[i];
+    const ax=a.lon*scaleX,ay=a.lat*scaleY,bx=b.lon*scaleX,by=b.lat*scaleY;
+    const vx=bx-ax,vy=by-ay,mag=vx*vx+vy*vy;
+    if(mag<.05)continue;
+    const t=Math.max(0,Math.min(1,((sample.x-ax)*vx+(sample.y-ay)*vy)/mag));
+    const dist=Math.hypot(sample.x-ax-vx*t,sample.y-ay-vy*t);
+    const sampleMag=Math.hypot(sample.dx,sample.dy);
+    const cos=sampleMag?Math.min(1,Math.abs(sample.dx*vx+sample.dy*vy)/(sampleMag*Math.sqrt(mag))):0;
+    const angle=Math.acos(cos)*180/Math.PI;
+    if(!best||dist<best.distance)best={distance:dist,angle};
+  }
+  return best;
+}
+function matchRoad(road,ways){
+  const {samples,metres}=sampledLine(road.road);
+  const votes=new Map();
+  let matched=0,distSum=0,nearWrongDirection=0;
+  for(const point of samples){
+    let best=null;
+    for(const way of ways){
+      if(!Array.isArray(way.geometry)||way.geometry.length<2||!Array.isArray(way.bb))continue;
+      const bb=way.bb,lon=point.x/scaleX,lat=point.y/scaleY;
+      if(lon<bb[0]-.0006||lon>bb[2]+.0006||lat<bb[1]-.0004||lat>bb[3]+.0004)continue;
+      const d=nearestWaySegment(point,way);
+      if(!d||d.distance>22)continue;
+      if(d.angle>40){nearWrongDirection++;continue}
+      const score=d.distance+.045*d.angle;
+      if(!best||score<best.score)best={way,distance:d.distance,angle:d.angle,score};
+    }
+    if(best){
+      matched++;distSum+=best.distance;
+      const k=String(best.way.id);
+      const v=votes.get(k)||{way:best.way,hits:0,distSum:0};
+      v.hits++;v.distSum+=best.distance;votes.set(k,v);
+    }
+  }
+  const coverage=matched/samples.length;
+  const mean=matched?distSum/matched:Infinity;
+  const ranked=[...votes.values()].sort((a,b)=>b.hits-a.hits||a.distSum-a.hits-b.distSum+b.hits).map(x=>({
+    way:x.way,hits:x.hits,share:x.hits/samples.length,mean:x.distSum/x.hits
+  }));
+  // Próg dotyczy jedynie przyblizenia geometrii, nie przepisów.
+  const status=coverage>=.70&&mean<=17?'likely':
+    coverage>=.30&&mean<=22?'tentative':'none';
+  return {status,ways:status==='none'?[]:ranked,coverage,mean,metres,
+    samples:samples.length,nearWrongDirection};
+}
+
+
+function make(tag,text,cls){
+ const e=document.createElement(tag);
+ if(text!==undefined&&text!==null)e.textContent=String(text);
+ if(cls)e.className=cls;return e;
+}
+function updateMap(road,match){
+ if(!map)return;
+ if(roadLayer)map.removeLayer(roadLayer);
+ if(osmLayer)map.removeLayer(osmLayer);
+ roadLayer=L.polyline(road.road.map(p=>[p[1],p[0]]),{color:'#9b7752',weight:5}).addTo(map);
+ osmLayer=L.layerGroup().addTo(map);
+ for(const candidate of (match?.ways||[])){
+  L.polyline(candidate.way.geometry.map(p=>[p.lat,p.lon]),{color:'#ae8ae6',weight:3,dashArray:'7,7',interactive:false}).addTo(osmLayer);
+ }
+ map.fitBounds(roadLayer.getBounds(),{padding:[20,20]});
+}
+function render(){
+ const id=$('roadSelect').value,road=roadMap.get(id),rec=recordMap.get(id);
+ if(!road||!rec)return;
+ const match=osms?matchRoad(road,osms):null;
+ const relevant=match?.status!=='none'&&match?.ways?match.ways.map(x=>x.way):[];
+ const result=evaluateTrafficWarning({nvdb:rec.rule,osmWays:relevant,geometryMatch:'unverified'});
+ $('roadTitle').textContent='Odcinek NVDB #'+id;
+ $('surface').textContent=rec.surface==='grus'?'Żwirowa (NVDB)':rec.surface||'Nieznana';
+ $('source').textContent='NVDB, wpis '+rec.rule.rekord;
+ $('warningTitle').textContent=result.title;
+ $('warningText').textContent=result.explanation;
+ $('osmStatus').textContent=!osms?'OSM niepobrane':match.status==='none'?'Brak wiarygodnego dopasowania':'OSM: '+relevant.length+' fragmentów';
+ $('mixed').textContent=result.mixedOsmAccess?'Uwaga: różne tagi dostępu na fragmentach OSM. Nie można przypisać jednej reguły całej drodze.':
+  result.flags.includes('osm_possible_restriction')?'Uwaga: tag OSM wskazuje ograniczenie dostępu samochodów na co najmniej jednym fragmencie.':'';
+ const details=$('detailBody');details.replaceChildren();
+ details.append(make('p','NVDB: kategoria='+rec.rule.pojazdy+'; tranzyt='+rec.rule.tranzyt+'; kierunek='+rec.rule.kierunek+'.'));
+ details.append(make('p','ELEMENT_ID='+rec.rule.element_id+'; zakres='+rec.rule.zakres+'.','small'));
+ details.append(make('p','STFS: numer przepisu, godziny i wyjątki wymagają weryfikacji.','small'));
+ if(!osms)details.append(make('p','OSM nie zostało jeszcze pobrane.','small'));
+ else if(match.status==='none')details.append(make('p','Geometria OSM nie została wiarygodnie dopasowana. To nie oznacza braku drogi lub ograniczeń.','small'));
+ else{
+  details.append(make('p','Geometria: '+Math.round(match.coverage*100)+'% próbek w tolerancji 22 m (kąt ≤40°), średnia odległość '+Math.round(match.mean)+' m. Wstępne dopasowanie, nie weryfikacja przepisów.','small'));
+  for(const c of match.ways){
+   const p=result.segmentAccess.find(x=>x.id===String(c.way.id));
+   const section=make('div',null,'segment');
+   section.append(make('strong','OSM #'+c.way.id+' · '+Math.round(c.share*100)+'% próbek'));
+   section.append(make('p',p?.explanation||'Tagi niezweryfikowane'));
+   section.append(make('p','Źródłowy tag: '+(p?.accessKey?p.accessKey+'='+p.accessValue:'brak')+' · surface='+(c.way.tags?.surface||'brak'),'small'));
+   if(p?.conditionalTags.length)section.append(make('p','Uwaga: warunkowe tagi dostępu wymagają osobnej interpretacji.','small'));
+   const link=make('a','Zobacz w OSM');link.href='https://www.openstreetmap.org/way/'+encodeURIComponent(c.way.id);link.target='_blank';link.rel='noopener noreferrer';section.append(link);
+   details.append(section);
+  }
+ }
+ updateMap(road,match);
+}
+async function fetchOsm(){
+ const query='[out:json][timeout:45];(way["highway"](59.113,17.274,59.155,17.298);way["highway"](59.043,17.310,59.047,17.318););out tags geom;';
+ const servers=['https://overpass-api.de/api/interpreter','https://ovp.dresel.systems/api/interpreter'];
+ let lastError='Nieznany błąd';
+ for(const server of servers){
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),48000);
+  try{
+   const response=await fetch(server+'?data='+encodeURIComponent(query),{credentials:'omit',mode:'cors',signal:controller.signal});
+   if(!response.ok)throw Error('HTTP '+response.status);
+   const raw=await response.text();
+   if(raw.length>10000000)throw Error('Zbyt duża odpowiedź');
+   const data=JSON.parse(raw);
+   if(!Array.isArray(data.elements))throw Error('Niepoprawne dane Overpass');
+   const ways=data.elements.filter(w=>w.type==='way'&&w.geometry?.length>1).map(w=>{
+    const lat=w.geometry.map(p=>p.lat),lon=w.geometry.map(p=>p.lon);
+    return {...w,bb:[Math.min(...lon),Math.min(...lat),Math.max(...lon),Math.max(...lat)]};
+   });
+   if(!ways.length)throw Error('Brak dróg w odpowiedzi');
+   return {ways,timestamp:data.osm3s?.timestamp_osm_base||null};
+  }catch(e){lastError=String(e.message||e)}
+  finally{clearTimeout(timeout)}
+ }
+ throw Error(lastError);
+}
+for(const road of roads){
+ const option=make('option','#'+road.id+' · wpis '+road.rid);
+ option.value=road.id;$('roadSelect').append(option);
+}
+$('roadSelect').value='15968';$('roadSelect').addEventListener('change',render);
+$('load').addEventListener('click',async()=>{
+ const btn=$('load');btn.disabled=true;$('status').textContent='Pobieram drogi OSM…';
+ try{
+  const data=await fetchOsm();osms=data.ways;timestamp=data.timestamp;
+  render();$('status').textContent='Pobrano '+osms.length+' dróg OSM'+(timestamp?' · '+timestamp:'')+'.';
+ }catch(e){$('status').textContent='Nie udało się pobrać OSM: '+String(e.message||e)+'. Wpis NVDB nadal jest widoczny.';}
+ finally{btn.disabled=false;}
+});
+render();
+</script></body></html>
