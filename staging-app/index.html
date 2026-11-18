@@ -325,7 +325,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <input type="checkbox" id="nt-public-points-layer" checked></label>
 <div class="nt-osm-group" aria-label="Pilotaż NVDB Gnesta/Klämmingen">
 <p class="nt-layer-intro"><strong>NVDB — Gnesta / Klämmingen (pilotaż)</strong></p>
-<label class="nt-layer-option" for="nt-nvdb-toggle"><span>Drogi żwirowe<small>765 odcinków · brązowe linie</small></span><input type="checkbox" id="nt-nvdb-toggle"></label>
+<label class="nt-layer-option" for="nt-nvdb-toggle"><span>Drogi żwirowe<small>764 odcinki · brązowe linie</small></span><input type="checkbox" id="nt-nvdb-toggle"></label>
 <button id="nt-nvdb-goto" type="button" disabled>Pokaż Gnesta na mapie</button>
 <p id="nt-nvdb-status" role="status" aria-live="polite">Warstwa wyłączona. Dane wczytamy na żądanie.</p>
 <p class="nt-layer-intro">9 wstępnie powiązanych wpisów dotyczących tranzytu. Brak weryfikacji prawnej.</p></div>
@@ -1200,15 +1200,16 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   }
   function validNvdbData(data){
     if(!data||data.schema_version!==1||data.source!=='Trafikverket NVDB'
-       ||data.legal_access!=='unverified'||data.road_count!==765
+       ||data.legal_access!=='unverified'||data.road_count!==764
        ||data.linked_restriction_count!==9||data.type!=='FeatureCollection'
-       ||!Array.isArray(data.features)||data.features.length!==765)return false;
+       ||!Array.isArray(data.features)||data.features.length!==764)return false;
     const ids=new Set();let matched=0;
     for(const f of data.features){
       if(f.type!=='Feature'||f.geometry?.type!=='LineString'
          ||!Array.isArray(f.geometry.coordinates)||f.geometry.coordinates.length<2
          ||f.properties?.nawierzchnia!=='grus')return false;
       const id=String(f.properties.id);if(ids.has(id))return false;ids.add(id);
+      if(f.geometry.coordinates.every(pt=>pt[0]===f.geometry.coordinates[0][0]&&pt[1]===f.geometry.coordinates[0][1]))return false;
       if(f.properties.powiazany_wpis_nvdb){
         matched++;
         if(f.properties.powiazany_wpis_nvdb.tranzyt!=='sant'||!f.properties.powiazany_wpis_nvdb.element_id)return false;
@@ -1271,7 +1272,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     const pack=await loadNvdbData();if(!pack||!nvdbSwitch.checked)return;
     if(nvdbLayer&&!map.hasLayer(nvdbLayer))nvdbLayer.addTo(map);
     nvdbJump.disabled=false;
-    nvdbStatus.textContent='765 dróg; 9 wpisów tranzytu. Prawo przejazdu niezweryfikowane.';
+    nvdbStatus.textContent='764 drogi; 9 wpisów tranzytu. Prawo przejazdu niezweryfikowane.';
   });
   nvdbJump.addEventListener('click',()=>{
     if(!map||!nvdbSwitch.checked||!nvdbData)return;
