@@ -129,7 +129,7 @@ function injectFakeSupabase(){
   console.log('PASS: ordinary user reads own mock draft; admin RPC returns 42501 and queue stays hidden');
   await page.click('#open-layers-btn');
   await page.$eval('#nt-nvdb-toggle',e=>{e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));});
-  await page.waitForFunction(()=>document.querySelector('#nt-nvdb-status')?.textContent.includes('765 dróg'));
+  await page.waitForFunction(()=>document.querySelector('#nt-nvdb-status')?.textContent.includes('764 drogi'));
   await page.$eval('#nt-nvdb-goto',e=>e.click());
   await page.waitForFunction(()=>document.querySelector('#map-layers-sheet').hidden);
   const opened=await page.evaluate(()=>{
