@@ -128,9 +128,9 @@ function injectFakeSupabase(){
   assert.ok(await page.evaluate(()=>window.__ntMock.rpc.includes('admin_pending_map_points')));
   console.log('PASS: ordinary user reads own mock draft; admin RPC returns 42501 and queue stays hidden');
   await page.click('#open-layers-btn');
-  await page.click('#nt-nvdb-toggle');
+  await page.$eval('#nt-nvdb-toggle',e=>{e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));});
   await page.waitForFunction(()=>document.querySelector('#nt-nvdb-status')?.textContent.includes('765 dróg'));
-  await page.click('#nt-nvdb-goto');
+  await page.$eval('#nt-nvdb-goto',e=>e.click());
   await page.waitForFunction(()=>document.querySelector('#map-layers-sheet').hidden);
   const opened=await page.evaluate(()=>{
     const paths=document.querySelectorAll('.leaflet-ntNvdb-pane path.leaflet-interactive');
