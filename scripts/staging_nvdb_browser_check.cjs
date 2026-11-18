@@ -68,6 +68,19 @@ let server,browser;
   });
   console.log('DIAGNOSTIC Leaflet rendering '+JSON.stringify(rendering));
   await page.waitForFunction(()=>document.querySelectorAll('.leaflet-ntNvdb-pane path.leaflet-interactive').length>0,{timeout:5000});
+  const hitArea=await page.evaluate(()=>{
+    const pane=document.querySelector('.leaflet-ntNvdb-pane');
+    const paths=[...pane.querySelectorAll('path')];
+    const visible=paths.filter(p=>p.getAttribute('stroke-width')==='3');
+    const hits=paths.filter(p=>p.getAttribute('stroke-width')==='26');
+    return {all:paths.length,visible:visible.length,hits:hits.length,
+      hitStyle:hits[0]?.style.pointerEvents,visibleInteractive:visible[0]?.classList.contains('leaflet-interactive')};
+  });
+  assert.equal(hitArea.visible,765,'Visible roads retain a 3px line');
+  assert.equal(hitArea.hits,765,'All roads get a 26px finger target');
+  assert.equal(hitArea.hitStyle,'stroke','Wide hit stroke must receive pointer events');
+  assert.equal(hitArea.visibleInteractive,false,'Thin visual road must not block the hit area');
+  console.log('PASS: all roads retain 3px appearance and expose a separate 26px finger target');
   const selected=await page.evaluate(()=>{
     const paths=[...document.querySelectorAll('.leaflet-ntNvdb-pane path.leaflet-interactive')];
     for(const p of paths){
