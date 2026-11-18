@@ -293,7 +293,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-detail-sheet a{color:#f7ffe8;text-decoration:underline}
 .nt-osm-warning{border-left:3px solid #f5d68e;border-radius:9px;background:rgba(58,68,32,.76);padding:12px;font-size:14px;line-height:1.55;color:#fffef4}
 
-#nt-nvdb-road-card .nt-osm-detail-heading{position:sticky;top:-20px;margin-top:-20px;padding:18px 0 10px;background:rgba(18,42,29,.95);z-index:1}
+#nt-nvdb-road-card .nt-osm-detail-heading{position:sticky;top:-20px;margin-top:-20px;padding:18px 0 10px;background:rgba(18,42,29,.40);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);z-index:1}
 #nt-nvdb-road-close{width:48px;min-height:48px;margin:0;padding:0;border:1px solid rgba(231,245,219,.75);color:#fff;background:rgba(9,29,19,.75);border-radius:12px;font-size:24px}
 #nt-nvdb-road-card .nt-nvdb-warning{border-left:3px solid #e9c36d;border-radius:7px;padding:10px 12px;background:rgba(90,62,28,.55);color:#fff0cc;margin:12px 0}
 #nt-nvdb-road-card details{border-top:1px solid rgba(231,245,219,.45);margin-top:10px;padding-top:6px}
@@ -1160,8 +1160,11 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   const nvdbPane=map&&window.L?map.createPane('ntNvdbPane'):null;
   if(nvdbPane)nvdbPane.style.zIndex='345'; // NT points and OSM evidence stay above lines
   function closeNvdbRoadCard(){
-    if(el('nt-nvdb-road-card').hidden)return;
-    el('nt-nvdb-road-card').hidden=true;syncOverlayPageScroll();
+    const card=el('nt-nvdb-road-card');
+    if(card.hidden)return;
+    const restoreMapFocus=card.contains(document.activeElement);
+    card.hidden=true;syncOverlayPageScroll();
+    if(restoreMapFocus&&map)map.getContainer().focus({preventScroll:true});
   }
   function nvdbRow(box,label,value){
     const row=document.createElement('div'),a=document.createElement('span'),b=document.createElement('strong');
@@ -1175,7 +1178,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     const fields=el('nt-nvdb-road-fields'),extra=el('nt-nvdb-detail-fields');
     fields.replaceChildren();extra.replaceChildren();
     nvdbRow(fields,'Nawierzchnia','Żwirowa (grus)');
-    nvdbRow(fields,'Szerokość',Number.isFinite(p.szerokosc)?p.szerokosc.toLocaleString('pl-PL',{maximumFractionDigits:1})+' m (wstępne)':'Brak potwierdzonych danych');
+    // No width is presented until each NVDB segment match is independently verified.
     if(!r)nvdbRow(fields,'Ograniczenia','Brak powiązanego wpisu w tym teście');
     nvdbRow(fields,'Dostępność','Niezweryfikowana');
     el('nt-nvdb-warning').hidden=!r;
@@ -1193,6 +1196,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       nvdbRow(extra,'Rekord / element',r.rekord+' / '+r.element_id);
     }
     el('nt-nvdb-road-card').hidden=false;syncOverlayPageScroll();
+    el('nt-nvdb-road-close').focus({preventScroll:true});
   }
   function validNvdbData(data){
     if(!data||data.schema_version!==1||data.source!=='Trafikverket NVDB'
