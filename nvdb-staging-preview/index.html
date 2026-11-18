@@ -545,7 +545,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       maxZoom:19,
       attribution:'© OpenStreetMap contributors',
       updateWhenIdle:false,
-      updateInterval:500,
+      updateInterval:200,
       keepBuffer:2
     });
     // Local, opt-in diagnostics. No network telemetry, no cookies, no Supabase.
@@ -555,19 +555,22 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       diagnostic.setAttribute('role','status');
       diagnostic.setAttribute('aria-live','off');
       document.body.appendChild(diagnostic);
-      let ok=0,failed=0,aborted=0,totalMs=0;
+      let ok=0,failed=0,aborted=0,totalMs=0,moving=false,movesFinished=0,tileStarts=0;
       const inFlight=new Map();
       const renderTiles=()=>{
         const now=performance.now();
         let longest=0;
         for(const began of inFlight.values())longest=Math.max(longest,now-began);
         const avg=ok?Math.round(totalMs/ok):0;
-        diagnostic.textContent='OSM DIAG v4 — mapa\n'
+        diagnostic.textContent='OSM DIAG v5 — mapa\n'
           +'Pobrano: '+ok+'  Błędy: '+failed+'  Anulowane: '+aborted+'\n'
           +'Czeka: '+inFlight.size+'  Najdłużej: '+(longest/1000).toFixed(1)+' s\n'
-          +'Średni czas: '+(avg/1000).toFixed(1)+' s';
+          +'Średni czas: '+(avg/1000).toFixed(1)+' s\n'
+          +'Ruch: '+(moving?'TAK':'nie')+'  Końce ruchu: '+movesFinished+'  Zlecone: '+tileStarts;
       };
-      baseTiles.on('tileloadstart',e=>{inFlight.set(e.tile,performance.now());renderTiles();});
+      map.on('movestart',()=>{moving=true;renderTiles();});
+      map.on('moveend',()=>{moving=false;movesFinished++;renderTiles();});
+      baseTiles.on('tileloadstart',e=>{tileStarts++;inFlight.set(e.tile,performance.now());renderTiles();});
       baseTiles.on('tileload',e=>{
         const begin=inFlight.get(e.tile);
         if(begin!==undefined)totalMs+=performance.now()-begin;
