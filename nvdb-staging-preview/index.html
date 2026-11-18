@@ -1195,16 +1195,26 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       if(!response.ok)throw Error('Invalid response');
       const raw=await response.text();if(raw.length>1500000)throw Error('Size limit');
       const pack=JSON.parse(raw);if(!validNvdbData(pack))throw Error('Invalid data');
-      nvdbLayer=L.geoJSON({type:'FeatureCollection',features:pack.features},{
-        pane:'ntNvdbPane',style:{color:'#96764e',weight:3,opacity:.78},
+      // Thin visible road line. Pointer input is handled by a separate wider stroke.
+      const visibleRoads=L.geoJSON({type:'FeatureCollection',features:pack.features},{
+        pane:'ntNvdbPane',interactive:false,style:{color:'#96764e',weight:3,opacity:.78}
+      });
+      // 26-pixel nearly transparent stroke for comfortable finger selection.
+      const fingerTargets=L.geoJSON({type:'FeatureCollection',features:pack.features},{
+        pane:'ntNvdbPane',style:{color:'#96764e',weight:26,opacity:.001,lineCap:'round',lineJoin:'round'},
         onEachFeature:(feature,layer)=>{
           layer.options.bubblingMouseEvents=false;
+          layer.on('add',()=>{
+            const path=layer.getElement();
+            if(path)path.style.pointerEvents='stroke';
+          });
           layer.on('click',event=>{
             if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
             openNvdbRoadCard(feature);
           });
         }
       });
+      nvdbLayer=L.layerGroup([visibleRoads,fingerTargets]);
       try{
         const mod=await import('../staging-nvdb/traffic-warning-policy/traffic-warning-policy.mjs');
         nvdbPolicy=typeof mod.evaluateTrafficWarning==='function'?mod.evaluateTrafficWarning:null;
