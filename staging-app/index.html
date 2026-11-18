@@ -323,6 +323,12 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wyświetlaj tylko potrzebne informacje.</p>
 <label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne<small>Zatwierdzone punkty NORDIC TRAIL</small></span>
 <input type="checkbox" id="nt-public-points-layer" checked></label>
+<div class="nt-osm-group" aria-label="Pilotaż NVDB Gnesta/Klämmingen">
+<p class="nt-layer-intro"><strong>NVDB — Gnesta / Klämmingen (pilotaż)</strong></p>
+<label class="nt-layer-option" for="nt-nvdb-toggle"><span>Drogi żwirowe<small>765 odcinków · brązowe linie</small></span><input type="checkbox" id="nt-nvdb-toggle"></label>
+<button id="nt-nvdb-goto" type="button" disabled>Pokaż Gnesta na mapie</button>
+<p id="nt-nvdb-status" role="status" aria-live="polite">Warstwa wyłączona. Dane wczytamy na żądanie.</p>
+<p class="nt-layer-intro">9 wstępnie powiązanych wpisów dotyczących tranzytu. Brak weryfikacji prawnej.</p></div>
 <div class="nt-osm-group" aria-label="Obserwacje OpenStreetMap z obszaru Tumba–Lida">
 <p class="nt-layer-intro"><strong>OSM — Tumba–Lida (pilotaż)</strong></p>
 <label class="nt-layer-option" for="nt-osm-barriers-layer"><span>Szlabany i przeszkody<small>29 oznaczeń społeczności OSM</small></span><input type="checkbox" id="nt-osm-barriers-layer"></label>
@@ -332,12 +338,6 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite">Warstwy OSM są wyłączone. Dane wczytamy po włączeniu jednej z nich; nie wymagają logowania.</p>
 <p class="nt-layer-intro">Z daleka oznaczenia OSM są grupowane. Przy dużym zbliżeniu dotknij grupy nakładających się pinezek, aby je rozsunąć; cienkie linie wskazują ich zapisane położenie. Dla dróg i ścieżek są to jedynie przybliżone środki odcinków.</p>
 </div>
-<div class="nt-osm-group" aria-label="Pilotaż NVDB Gnesta/Klämmingen">
-<p class="nt-layer-intro"><strong>NVDB — Gnesta / Klämmingen (pilotaż)</strong></p>
-<label class="nt-layer-option" for="nt-nvdb-toggle"><span>Drogi żwirowe<small>765 odcinków · brązowe linie</small></span><input type="checkbox" id="nt-nvdb-toggle"></label>
-<button id="nt-nvdb-goto" type="button" disabled>Pokaż Gnesta na mapie</button>
-<p id="nt-nvdb-status" role="status" aria-live="polite">Warstwa wyłączona. Dane wczytamy na żądanie.</p>
-<p class="nt-layer-intro">9 wpisów o możliwych ograniczeniach tranzytu. Brak weryfikacji prawnej.</p></div>
 <details class="nt-map-legend" id="nt-map-legend">
 <summary>Legenda oznaczeń mapy</summary>
 <div class="nt-legend-body">
@@ -1179,7 +1179,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     fields.replaceChildren();extra.replaceChildren();
     nvdbRow(fields,'Nawierzchnia','Żwirowa (grus)');
     // No width is presented until each NVDB segment match is independently verified.
-    if(!r)nvdbRow(fields,'Ograniczenia','Brak powiązanego wpisu w tym teście');
+    if(!r)nvdbRow(fields,'Ograniczenia','Brak powiązanego wpisu NVDB — nie potwierdza prawa przejazdu');
     nvdbRow(fields,'Dostępność','Niezweryfikowana');
     el('nt-nvdb-warning').hidden=!r;
     el('nt-nvdb-detail').hidden=!r;
