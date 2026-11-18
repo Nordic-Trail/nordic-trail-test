@@ -536,7 +536,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   }
   try{
     if(!window.L)throw Error('Leaflet unavailable');
-    map=L.map('map',{zoomControl:false}).setView([62.2,15.2],5);
+    map=L.map('map',{zoomControl:false,fadeAnimation:new URLSearchParams(window.location.search).get('fade')!=='off'}).setView([62.2,15.2],5);
     L.control.zoom({position:'bottomleft'}).addTo(map);
     map.attributionControl.setPrefix('');
     // Mobile pan trial: request only currently visible tiles during movement (throttled).
@@ -556,17 +556,33 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       diagnostic.setAttribute('aria-live','off');
       document.body.appendChild(diagnostic);
       let ok=0,failed=0,aborted=0,totalMs=0,moving=false,movesFinished=0,tileStarts=0;
+      let lastVisualAt=-Infinity,visualReport='Wizualnie: pomiar…';
       const inFlight=new Map();
       const renderTiles=()=>{
         const now=performance.now();
         let longest=0;
         for(const began of inFlight.values())longest=Math.max(longest,now-began);
         const avg=ok?Math.round(totalMs/ok):0;
-        diagnostic.textContent='OSM DIAG v5 — mapa\n'
+        if(now-lastVisualAt>=350){
+          lastVisualAt=now;
+          const bounds=map.getContainer().getBoundingClientRect();
+          const t=[...map.getPane('tilePane').querySelectorAll('img.leaflet-tile')].map(img=>({rect:img.getBoundingClientRect(),alpha:parseFloat(getComputedStyle(img).opacity)||0,ready:img.complete&&img.naturalWidth>0}));
+          let blank=0,partial=0;
+          const cols=5,rows=8;
+          for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+            const sx=bounds.left+bounds.width*(x+.5)/cols,sy=bounds.top+bounds.height*(y+.5)/rows;
+            const hits=t.filter(v=>v.ready&&v.alpha>.01&&sx>=v.rect.left&&sx<v.rect.right&&sy>=v.rect.top&&sy<v.rect.bottom);
+            if(!hits.length)blank++;
+            else if(!hits.some(v=>v.alpha>=.98))partial++;
+          }
+          visualReport='Próbki ekranu: brak '+blank+'/40, półprzezr. '+partial+'/40';
+        }
+        diagnostic.textContent='OSM DIAG v6 — mapa\n'
           +'Pobrano: '+ok+'  Błędy: '+failed+'  Anulowane: '+aborted+'\n'
           +'Czeka: '+inFlight.size+'  Najdłużej: '+(longest/1000).toFixed(1)+' s\n'
           +'Średni czas: '+(avg/1000).toFixed(1)+' s\n'
-          +'Ruch: '+(moving?'TAK':'nie')+'  Końce ruchu: '+movesFinished+'  Zlecone: '+tileStarts;
+          +'Ruch: '+(moving?'TAK':'nie')+'  Końce ruchu: '+movesFinished+'  Zlecone: '+tileStarts+'\n'
+          +'Fade: '+(map._fadeAnimated?'AKTYWNY':'WYŁĄCZONY')+'  '+visualReport;
       };
       map.on('movestart',()=>{moving=true;renderTiles();});
       map.on('moveend',()=>{moving=false;movesFinished++;renderTiles();});
