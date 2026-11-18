@@ -106,11 +106,11 @@ button:disabled{opacity:.5;cursor:wait}
 .leaflet-control-attribution a{color:#143e61!important}
 html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}
 #map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16);touch-action:none}
-.nt-layers-sheet{--nt-offset:0px;position:fixed;left:50%;bottom:0;z-index:1180;transform:translate(-50%,var(--nt-offset));width:min(100%,550px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
+.nt-layers-sheet{position:fixed;left:50%;bottom:0;z-index:1180;transform:translateX(-50%);width:min(100%,550px);height:var(--nt-layer-height,min(78dvh,760px));min-height:120px;max-height:min(92dvh,900px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
 .nt-layers-sheet[data-dragging="true"]{transition:none}
-.nt-layers-sheet.is-collapsed{max-height:min(135px,28dvh);overflow:hidden}
+.nt-layers-sheet.is-collapsed{overflow:hidden}
 .nt-layers-sheet.is-collapsed .nt-layer-body{display:none}
-.nt-layer-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;min-height:38px;margin:-18px 0 8px;padding:0;background:transparent;border:0;border-radius:8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.nt-layer-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;min-height:38px;margin:-18px 0 8px;padding:0;background:transparent;border:0;border-radius:8px;cursor:ns-resize;touch-action:none;user-select:none;-webkit-user-select:none}
 .nt-layer-handle::before{content:"";width:54px;height:6px;border-radius:9px;background:#b6cbb3}
 .nt-layer-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .nt-layer-header h2{margin:0;font-size:22px}
@@ -318,7 +318,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 </section>
 <div id="map-layers-backdrop" hidden></div>
 <section id="map-layers-sheet" class="nt-layers-sheet" role="dialog" aria-modal="true" aria-labelledby="nt-layer-title" hidden>
-<button type="button" id="nt-layer-handle" class="nt-layer-handle" aria-label="Zwiń lub rozwiń warstwy" title="Przeciągnij w górę lub w dół" aria-controls="nt-layer-body" aria-expanded="true"></button>
+<button type="button" id="nt-layer-handle" class="nt-layer-handle" aria-label="Przeciągnij, aby zmienić wysokość panelu warstw; klawisze strzałek też regulują wysokość" title="Przeciągnij w górę lub w dół" aria-controls="nt-layer-body" aria-expanded="true"></button>
 <div class="nt-layer-header"><h2 id="nt-layer-title">Warstwy</h2><button type="button" id="nt-layer-close" class="nt-layer-close" aria-label="Zamknij warstwy">×</button></div>
 <div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wyświetlaj tylko potrzebne informacje.</p>
 <label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne<small>Zatwierdzone punkty NORDIC TRAIL</small></span>
@@ -1116,13 +1116,21 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   function setLayersCollapsed(value){
     layersSheet.classList.toggle('is-collapsed',value);
     layerHandle.setAttribute('aria-expanded',value?'false':'true');
-    if(value)layerHandle.focus();
+  }
+  function clampLayersHeight(height){
+    const max=Math.max(120,Math.min(window.innerHeight*.92,900));
+    return Math.max(120,Math.min(height,max));
+  }
+  function resizeLayers(height){
+    const h=clampLayersHeight(height);
+    layersSheet.style.setProperty('--nt-layer-height',h+'px');
+    setLayersCollapsed(h<=155);
   }
   function closeLayers(){
     if(layersSheet.hidden)return;
     layersSheet.hidden=true;layersBackdrop.hidden=true;
     syncOverlayPageScroll();
-    layersSheet.style.removeProperty('--nt-offset');
+    layersSheet.style.removeProperty('--nt-layer-height');
     delete layersSheet.dataset.dragging;
     setLayersCollapsed(false);
     layersButton.setAttribute('aria-expanded','false');
@@ -1595,37 +1603,39 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     closeLayers();
   });
 
-  let handleDragging=false,handleStart=0,handleLast=0,handleMoved=false,suppressHandleClick=false;
+  // The grip resizes the sheet on mouse, touch and pen. It NEVER closes the sheet.
+  // Dismissal is handled by the separate close control, not by tapping or dragging the grip.
+  let handlePointerId=null,handleStart=0,handleHeight=0;
   layerHandle.addEventListener('pointerdown',event=>{
-    if(layersSheet.hidden||event.button!==0||!['touch','pen'].includes(event.pointerType))return;
-    handleDragging=true;handleStart=event.clientY;handleLast=event.clientY;
-    handleMoved=false;suppressHandleClick=false;layersSheet.dataset.dragging='true';
+    if(layersSheet.hidden||event.button!==0||handlePointerId!==null)return;
+    handlePointerId=event.pointerId;
+    handleStart=event.clientY;
+    handleHeight=layersSheet.getBoundingClientRect().height;
+    layersSheet.dataset.dragging='true';
     layerHandle.setPointerCapture(event.pointerId);
+    event.preventDefault();
   });
   layerHandle.addEventListener('pointermove',event=>{
-    if(!handleDragging)return;
-    handleLast=event.clientY;const d=handleLast-handleStart;
-    if(Math.abs(d)>8)handleMoved=true;
-    layersSheet.style.setProperty('--nt-offset',Math.max(-90,Math.min(d,200))+'px');
+    if(handlePointerId!==event.pointerId)return;
+    resizeLayers(handleHeight+handleStart-event.clientY);
   });
   function finishLayerDrag(event){
-    if(!handleDragging)return;
-    handleDragging=false;delete layersSheet.dataset.dragging;
-    layersSheet.style.removeProperty('--nt-offset');
-    const d=handleLast-handleStart;
-    if(handleMoved){
-      suppressHandleClick=true;
-      if(d>125&&layersSheet.classList.contains('is-collapsed'))closeLayers();
-      else if(d>55)setLayersCollapsed(true);
-      else if(d< -55)setLayersCollapsed(false);
-    }
+    if(handlePointerId!==event.pointerId)return;
+    if(event.type==='pointerup')resizeLayers(handleHeight+handleStart-event.clientY);
+    handlePointerId=null;
+    delete layersSheet.dataset.dragging;
     if(layerHandle.hasPointerCapture(event.pointerId))layerHandle.releasePointerCapture(event.pointerId);
   }
   layerHandle.addEventListener('pointerup',finishLayerDrag);
   layerHandle.addEventListener('pointercancel',finishLayerDrag);
-  layerHandle.addEventListener('click',()=>{
-    if(suppressHandleClick){suppressHandleClick=false;return;}
-    if(!layersSheet.hidden)setLayersCollapsed(!layersSheet.classList.contains('is-collapsed'));
+  // Clicking the grip alone does nothing. Arrow keys allow resizing without a pointer.
+  layerHandle.addEventListener('click',event=>event.preventDefault());
+  layerHandle.addEventListener('keydown',event=>{
+    if(layersSheet.hidden)return;
+    const direction=event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0;
+    if(!direction)return;
+    event.preventDefault();
+    resizeLayers(layersSheet.getBoundingClientRect().height+direction*64);
   });
   document.addEventListener('keydown',event=>{
     if(layersSheet.hidden)return;
