@@ -93,7 +93,7 @@ const layerCases=[
  ['Handle supports tap, up/down gestures and pointer cancellation',html.includes("layerHandle.addEventListener('pointerdown'")&&html.includes("layerHandle.addEventListener('pointermove'")&&html.includes("layerHandle.addEventListener('pointercancel'")&&html.includes("layerHandle.addEventListener('click'")],
  ['Panel is not opened over the existing point editor',html.includes("if(!el('point-sheet').hidden){")&&html.includes('Najpierw zamknij edytor punktu.')],
  ['Keyboard focus is kept inside modal sheet',html.includes("if(event.key!=='Tab')return")&&html.includes("const els=[...layersSheet.querySelectorAll")],
- ['No unverified NVDB or STFS status layer is presented',html.includes('Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł')&&!html.includes('id="nt-nvdb-layer"')]
+ ['NVDB pilot is optional, STFS still not confirmed',html.includes('id="nt-nvdb-toggle"')&&html.includes('NVDB Gnesta jest pilotażem')&&html.includes('STFS i prawo przejazdu pozostają niezweryfikowane.')&&!html.includes('id="nt-nvdb-toggle" checked')]
 ];
 for(const [label,passed] of layerCases){console.log((passed?'PASS':'FAIL')+': '+label);assert.ok(passed,label);}
 
