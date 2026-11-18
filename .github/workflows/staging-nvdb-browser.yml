@@ -1,0 +1,25 @@
+name: NORDIC TRAIL - NVDB Gnesta Browser Smoke
+on:
+  pull_request:
+    paths:
+      - 'staging-app/**'
+      - 'staging-nvdb/traffic-warning-policy/**'
+      - 'scripts/staging_nvdb_browser_check.cjs'
+      - '.github/workflows/staging-nvdb-browser.yml'
+permissions:
+  contents: read
+jobs:
+  nvdb-chrome-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Check Chrome availability
+        run: |
+          command -v google-chrome || command -v google-chrome-stable || command -v chromium
+          google-chrome --version || google-chrome-stable --version || chromium --version
+      - name: Install temporary browser test dependencies
+        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.28.0 leaflet@1.9.4
+      - name: Test mobile map without authentication or Supabase writes
+        run: CHROME_PATH=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium) node scripts/staging_nvdb_browser_check.cjs
