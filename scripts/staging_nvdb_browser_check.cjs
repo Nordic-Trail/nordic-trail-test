@@ -60,9 +60,9 @@ let server,browser;
   await page.click('#open-layers-btn');
   await page.waitForFunction(()=>!document.querySelector('#map-layers-sheet').hidden);
   await page.click('#nt-nvdb-toggle');
-  await page.waitForFunction(()=>document.querySelector('#nt-nvdb-status')?.textContent.includes('765 dróg'));
+  await page.waitForFunction(()=>document.querySelector('#nt-nvdb-status')?.textContent.includes('764 drogi'));
   assert.equal(network.filter(x=>x.url.includes('gnesta-nvdb-v45.json')).length,1);
-  console.log('PASS: opt-in fetched and validated 765-road snapshot once');
+  console.log('PASS: opt-in fetched and validated 764-road snapshot once');
   await page.click('#nt-nvdb-goto');
   await page.waitForFunction(()=>document.querySelector('#map-layers-sheet').hidden);
   const rendering=await page.evaluate(()=>{
@@ -79,8 +79,8 @@ let server,browser;
     return {all:paths.length,visible:visible.length,hits:hits.length,
       hitStyle:hits[0]?.style.pointerEvents,visibleInteractive:visible[0]?.classList.contains('leaflet-interactive')};
   });
-  assert.equal(hitArea.visible,765,'Visible roads retain a 3px line');
-  assert.equal(hitArea.hits,765,'All roads get a 26px finger target');
+  assert.equal(hitArea.visible,764,'Visible roads retain a 3px line');
+  assert.equal(hitArea.hits,764,'All roads get a 26px finger target');
   assert.equal(hitArea.hitStyle,'stroke','Wide hit stroke must receive pointer events');
   assert.equal(hitArea.visibleInteractive,false,'Thin visual road must not block the hit area');
   console.log('PASS: all roads retain 3px appearance and expose a separate 26px finger target');
@@ -102,6 +102,11 @@ let server,browser;
   const headingBg=await page.$eval('#nt-nvdb-road-card .nt-osm-detail-heading',e=>getComputedStyle(e).backgroundColor);
   assert.match(headingBg,/rgba\(18,\s*42,\s*29,\s*0\.4\)/,'NVDB heading must use agreed 40% opacity');
   const nvdbPack=JSON.parse(fs.readFileSync(path.join(root,'staging-app/data/gnesta-nvdb-v45.json'),'utf8'));
+  assert.equal(nvdbPack.road_count,764,'Snapshot count must match usable geometry count');
+  assert.equal(nvdbPack.features.length,764);
+  assert.equal(nvdbPack.features.filter(f=>f.properties?.powiazany_wpis_nvdb).length,9);
+  assert.ok(!nvdbPack.features.some(f=>String(f.properties.id)==='38463'),'The zero-length road is removed');
+  assert.ok(nvdbPack.features.every(f=>f.geometry.coordinates.some(pt=>pt[0]!==f.geometry.coordinates[0][0]||pt[1]!==f.geometry.coordinates[0][1])),'No zero-length line geometry remains');
   const widthIndex=nvdbPack.features.findIndex(f=>Number.isFinite(f.properties?.szerokosc));
   assert.ok(widthIndex>=0,'Fixture must include an unverified road width');
   const widthRowVisible=await page.evaluate(i=>{
