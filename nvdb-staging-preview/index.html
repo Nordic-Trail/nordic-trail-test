@@ -538,7 +538,15 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     map=L.map('map',{zoomControl:false}).setView([62.2,15.2],5);
     L.control.zoom({position:'bottomleft'}).addTo(map);
     map.attributionControl.setPrefix('');
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+    // Mobile pan trial: request only currently visible tiles during movement (throttled).
+    // Do not prefetch areas or alter OSM's native HTTP caching.
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:19,
+      attribution:'© OpenStreetMap contributors',
+      updateWhenIdle:false,
+      updateInterval:500,
+      keepBuffer:2
+    }).addTo(map);
     markers=L.layerGroup().addTo(map);
   }catch(_error){message('map-status','Nie udało się uruchomić mapy. Sprawdź połączenie z Internetem.',true);}
   async function publicPoints(){
