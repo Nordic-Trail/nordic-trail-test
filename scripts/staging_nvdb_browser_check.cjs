@@ -93,9 +93,24 @@ let server,browser;
   assert.ok(await page.$eval('#nt-nvdb-road-fields',e=>e.textContent.includes('Żwirowa (grus)')));
   assert.ok(await page.$eval('#nt-nvdb-road-fields',e=>e.textContent.includes('Niezweryfikowana')));
   assert.equal(await page.$eval('#point-sheet',e=>e.hidden),true,'Road selection must not open NT draft editor');
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'nt-nvdb-road-close','Keyboard focus moves to the card close button');
+  const headingBg=await page.$eval('#nt-nvdb-road-card .nt-osm-detail-heading',e=>getComputedStyle(e).backgroundColor);
+  assert.match(headingBg,/rgba\(18,\s*42,\s*29,\s*0\.4\)/,'NVDB heading must use agreed 40% opacity');
+  const nvdbPack=JSON.parse(fs.readFileSync(path.join(root,'staging-app/data/gnesta-nvdb-v45.json'),'utf8'));
+  const widthIndex=nvdbPack.features.findIndex(f=>Number.isFinite(f.properties?.szerokosc));
+  assert.ok(widthIndex>=0,'Fixture must include an unverified road width');
+  const widthRowVisible=await page.evaluate(i=>{
+    const roads=[...document.querySelectorAll('.leaflet-ntNvdb-pane path.leaflet-interactive')];
+    roads[i].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+    return [...document.querySelectorAll('#nt-nvdb-road-fields>div')].some(row=>row.firstElementChild?.textContent==='Szerokość');
+  },widthIndex);
+  assert.equal(widthRowVisible,false,'Unverified widths must stay hidden even where the source contains a number');
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'nt-nvdb-road-close','Focus remains available after switching roads');
+  console.log('PASS: unverified widths hidden, 40% heading and accessible card focus');
   console.log('PASS: tapping a rendered road opens NVDB card without starting draft; SVG roads '+selected.paths);
   await page.click('#nt-nvdb-road-close');
   assert.equal(await page.$eval('#nt-nvdb-road-card',e=>e.hidden),true);
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'map','Closing the card restores map focus');
   const others=await page.evaluate(()=>{
     const p=[...document.querySelectorAll('.leaflet-ntNvdb-pane path.leaflet-interactive')];
     if(p.length<2)return false;
