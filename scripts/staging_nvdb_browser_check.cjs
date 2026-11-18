@@ -62,7 +62,12 @@ let server,browser;
   console.log('PASS: opt-in fetched and validated 765-road snapshot once');
   await page.click('#nt-nvdb-goto');
   await page.waitForFunction(()=>document.querySelector('#map-layers-sheet').hidden);
-  await page.waitForFunction(()=>document.querySelectorAll('.leaflet-ntNvdbPane-pane path.leaflet-interactive').length>0);
+  const rendering=await page.evaluate(()=>{
+    const paneNames=[...document.querySelectorAll('.leaflet-pane')].map(e=>({className:e.className,svg:e.querySelectorAll('svg').length,canvas:e.querySelectorAll('canvas').length,paths:e.querySelectorAll('path').length}));
+    return {paneNames,svgPaths:document.querySelectorAll('svg path').length,canvases:document.querySelectorAll('canvas').length,nvdbStatus:document.querySelector('#nt-nvdb-status')?.textContent};
+  });
+  console.log('DIAGNOSTIC Leaflet rendering '+JSON.stringify(rendering));
+  await page.waitForFunction(()=>document.querySelectorAll('.leaflet-ntNvdbPane-pane path.leaflet-interactive').length>0,{timeout:5000});
   const selected=await page.evaluate(()=>{
     const paths=[...document.querySelectorAll('.leaflet-ntNvdbPane-pane path.leaflet-interactive')];
     for(const p of paths){
