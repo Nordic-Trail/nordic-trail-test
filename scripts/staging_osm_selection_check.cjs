@@ -36,9 +36,12 @@ const first=js[0].indexOf("  if(map)map.on('click',event=>{");
 const last=js[0].indexOf('    if(writingDraft)return;',first);
 assert.ok(first>=0&&last>first);
 const prefix=js[0].slice(first,last);
-const modal={hidden:false},state={selectedKind:'road',created:0,scrollSyncCalls:0},events={};
+const modal={hidden:false},nvdbModal={hidden:true},state={selectedKind:'road',created:0,scrollSyncCalls:0},events={};
 vm.runInNewContext("let activeOsmKind='road'; const selectedPoint=null; "+prefix+" state.created++;});",{
- map:{on(name,fn){events[name]=fn;}},el(id){assert.equal(id,'nt-osm-detail-sheet');return modal;},
+ map:{on(name,fn){events[name]=fn;}},el(id){
+   if(id==='nt-nvdb-road-card')return nvdbModal;
+   assert.equal(id,'nt-osm-detail-sheet');return modal;
+ },closeNvdbRoadCard(){nvdbModal.hidden=true;state.scrollSyncCalls++;},
  state,activeOsmKind:'road',
  syncOverlayPageScroll(){state.scrollSyncCalls++;}
 });
@@ -48,6 +51,12 @@ assert.equal(modal.hidden,true);
 assert.equal(state.created,0);
 assert.equal(state.scrollSyncCalls,1,'Dismissing the OSM card synchronizes the background scroll lock');
 console.log('PASS: map tap closes OSM card without entering draft creation');
+modal.hidden=true;nvdbModal.hidden=false;
+events.click({latlng:{lat:59.10,lng:17.28}});
+assert.equal(nvdbModal.hidden,true,'NVDB card must close on map tap');
+assert.equal(state.created,0,'Closing NVDB must never start an NT draft');
+assert.equal(state.scrollSyncCalls,2,'Dismissing NVDB card synchronizes background scroll lock');
+console.log('PASS: map tap closes NVDB card without creating a draft');
 
 const freezeCases=[
  ['Overlay scroll locks root and body',page.includes("html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}")],
@@ -69,11 +78,14 @@ function fakeClasses(){
  return {add(x){vals.add(x)},remove(x){vals.delete(x)},has(x){return vals.has(x)}};
 }
 const rootClasses=fakeClasses(),bodyClasses=fakeClasses();
-const layerBox={hidden:true},detailBox={hidden:true};
+const layerBox={hidden:true},detailBox={hidden:true},nvdbBox={hidden:true};
 const fakeDocument={documentElement:{classList:rootClasses},body:{classList:bodyClasses},scrollingElement:{scrollTop:830}};
 const scrollEvents={},scrollCalls=[];
 const fakeWindow={scrollY:830,scrollX:0,scrollTo(x,y){scrollCalls.push([x,y]);this.scrollY=y;fakeDocument.scrollingElement.scrollTop=y;},addEventListener(name,fn){scrollEvents[name]=fn;}};
-const scrollCtx={document:fakeDocument,window:fakeWindow,layersSheet:layerBox,el(id){assert.equal(id,'nt-osm-detail-sheet');return detailBox;}};
+const scrollCtx={document:fakeDocument,window:fakeWindow,layersSheet:layerBox,el(id){
+ if(id==='nt-nvdb-road-card')return nvdbBox;
+ assert.equal(id,'nt-osm-detail-sheet');return detailBox;
+}};
 vm.runInNewContext(freezeCode+';this.sync=syncOverlayPageScroll;',scrollCtx);
 assert.ok(!rootClasses.has('nt-page-scroll-locked'));
 layerBox.hidden=false;scrollCtx.sync();
@@ -84,7 +96,11 @@ detailBox.hidden=false;layerBox.hidden=true;scrollCtx.sync();
 assert.ok(rootClasses.has('nt-page-scroll-locked'));
 detailBox.hidden=true;scrollCtx.sync();
 assert.ok(!rootClasses.has('nt-page-scroll-locked')&&!bodyClasses.has('nt-page-scroll-locked'));
+nvdbBox.hidden=false;scrollCtx.sync();
+assert.ok(rootClasses.has('nt-page-scroll-locked')&&bodyClasses.has('nt-page-scroll-locked'),'NVDB sheet also locks scroll');
+nvdbBox.hidden=true;scrollCtx.sync();
+assert.ok(!rootClasses.has('nt-page-scroll-locked')&&!bodyClasses.has('nt-page-scroll-locked'),'Closing NVDB sheet restores scroll');
 assert.equal(scrollCalls.at(-1)[1],830);
-console.log('PASS: scroll lock, stylus guard, overlay handoff, restore position');
+console.log('PASS: scroll lock, stylus guard, OSM/NVDB overlay handoff, restore position');
 
-console.log('OSM and approved-point interaction audit: '+(cases.length+2+freezeCases.length+1)+' PASS');
+console.log('OSM/NVDB and approved-point interaction audit: '+(cases.length+3+freezeCases.length+1)+' PASS');

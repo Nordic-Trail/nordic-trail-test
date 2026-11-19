@@ -69,7 +69,7 @@ const cases=[
  ['Connect-src allows only same-origin and existing Supabase',html.includes("connect-src 'self' https://bairmdubhnodwplioxld.supabase.co;")],
  ['Separate Leaflet layer groups for all 3 classifications',html.includes('const osmLayers=map&&window.L?{')&&html.includes("barrier:L.layerGroup().addTo(map)")&&html.includes("road:L.layerGroup().addTo(map)")&&html.includes("path:L.layerGroup().addTo(map)")],
  ['No automatic zoom; explicit area button',html.includes("el('nt-osm-area-btn').addEventListener('click',()=>")&&html.includes("map.fitBounds([[osmBBox[0]")],
- ['OSM layer does not modify map_points in Supabase',!js[0].slice(js[0].indexOf('  // Read-only OSM observation layers.'),js[0].indexOf('  let handleDragging=')).includes('db.')],
+ ['OSM layer does not modify map_points in Supabase',!js[0].slice(js[0].indexOf('  // Read-only OSM observation layers.'),js[0].indexOf('  // The grip resizes the sheet')).includes('db.')],
  ['Supabase moderation and original RLS paths untouched',html.includes("db.rpc('moderate_map_point'")&&html.includes("db.rpc('update_private_map_point'")],
  ['All OSM warnings explicit and unverified',html.includes('Dostępność prawna: niezweryfikowana.')&&html.includes("p.legal_access!=='unverified'")],
  ['OSM tag content rendered via textContent not innerHTML',html.includes('text.textContent=String(value)')&&html.includes('name.textContent=label')],
@@ -79,7 +79,7 @@ const cases=[
  ['Static JSON metadata includes source and acquisition timestamps',typeof pack.source_as_of==='string'&&typeof pack.source_checked_at==='string'],
  ['OSM labels do not classify footway as road',html.includes("['path','footway','cycleway'].includes(p.tags.highway)")],
  ['Existing map style and drag gesture present',html.includes("layerHandle.addEventListener('pointerdown'")&&html.includes('.nt-layers-sheet{')],
- ['No storage of OSM state in browser',!js[0].slice(js[0].indexOf('  // Read-only OSM observation layers.'),js[0].indexOf('  let handleDragging=')).includes('localStorage')]
+ ['No storage of OSM state in browser',!js[0].slice(js[0].indexOf('  // Read-only OSM observation layers.'),js[0].indexOf('  // The grip resizes the sheet')).includes('localStorage')]
 ];
 for(const entry of cases){const label=entry[0];const ok=entry.slice(1).every(Boolean);console.log((ok?'PASS':'FAIL')+': '+label);assert.ok(ok,label)}
 console.log('STAGING OSM integration: '+cases.length+' PASS; data counts '+JSON.stringify(actual));

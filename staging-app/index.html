@@ -106,11 +106,11 @@ button:disabled{opacity:.5;cursor:wait}
 .leaflet-control-attribution a{color:#143e61!important}
 html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}
 #map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16);touch-action:none}
-.nt-layers-sheet{--nt-offset:0px;position:fixed;left:50%;bottom:0;z-index:1180;transform:translate(-50%,var(--nt-offset));width:min(100%,550px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
+.nt-layers-sheet{position:fixed;left:50%;bottom:0;z-index:1180;transform:translateX(-50%);width:min(100%,550px);height:var(--nt-layer-height,min(78dvh,760px));min-height:120px;max-height:min(92dvh,900px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
 .nt-layers-sheet[data-dragging="true"]{transition:none}
-.nt-layers-sheet.is-collapsed{max-height:min(135px,28dvh);overflow:hidden}
+.nt-layers-sheet.is-collapsed{overflow:hidden}
 .nt-layers-sheet.is-collapsed .nt-layer-body{display:none}
-.nt-layer-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;min-height:38px;margin:-18px 0 8px;padding:0;background:transparent;border:0;border-radius:8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.nt-layer-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;min-height:38px;margin:-18px 0 8px;padding:0;background:transparent;border:0;border-radius:8px;cursor:ns-resize;touch-action:none;user-select:none;-webkit-user-select:none}
 .nt-layer-handle::before{content:"";width:54px;height:6px;border-radius:9px;background:#b6cbb3}
 .nt-layer-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .nt-layer-header h2{margin:0;font-size:22px}
@@ -292,6 +292,15 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-meta strong,.nt-osm-tags strong{font-size:13px;text-align:right;color:#fffef4;overflow-wrap:anywhere}
 .nt-osm-detail-sheet a{color:#f7ffe8;text-decoration:underline}
 .nt-osm-warning{border-left:3px solid #f5d68e;border-radius:9px;background:rgba(58,68,32,.76);padding:12px;font-size:14px;line-height:1.55;color:#fffef4}
+
+#nt-nvdb-road-card .nt-osm-detail-heading{position:sticky;top:-20px;margin-top:-20px;padding:18px 0 10px;background:rgba(18,42,29,.40);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);z-index:1}
+#nt-nvdb-road-close{width:48px;min-height:48px;margin:0;padding:0;border:1px solid rgba(231,245,219,.75);color:#fff;background:rgba(9,29,19,.75);border-radius:12px;font-size:24px}
+#nt-nvdb-road-card .nt-nvdb-warning{border-left:3px solid #e9c36d;border-radius:7px;padding:10px 12px;background:rgba(90,62,28,.55);color:#fff0cc;margin:12px 0}
+#nt-nvdb-road-card details{border-top:1px solid rgba(231,245,219,.45);margin-top:10px;padding-top:6px}
+#nt-nvdb-road-card summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700}
+#nt-nvdb-road-card .nvdb-micro{font-size:12px;line-height:1.55;color:#e2e9dc}
+#nt-nvdb-status{font-size:13px;color:var(--muted)}
+#nt-nvdb-goto{width:100%;margin:5px 0;background:rgba(48,88,59,.6);color:white;border:1px solid #a9c1a6;border-radius:10px}
 </style>
 </head>
 <body>
@@ -309,11 +318,17 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 </section>
 <div id="map-layers-backdrop" hidden></div>
 <section id="map-layers-sheet" class="nt-layers-sheet" role="dialog" aria-modal="true" aria-labelledby="nt-layer-title" hidden>
-<button type="button" id="nt-layer-handle" class="nt-layer-handle" aria-label="Zwiń lub rozwiń warstwy" title="Przeciągnij w górę lub w dół" aria-controls="nt-layer-body" aria-expanded="true"></button>
+<button type="button" id="nt-layer-handle" class="nt-layer-handle" aria-label="Przeciągnij, aby zmienić wysokość panelu warstw; klawisze strzałek też regulują wysokość" title="Przeciągnij w górę lub w dół" aria-controls="nt-layer-body" aria-expanded="true"></button>
 <div class="nt-layer-header"><h2 id="nt-layer-title">Warstwy</h2><button type="button" id="nt-layer-close" class="nt-layer-close" aria-label="Zamknij warstwy">×</button></div>
 <div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wyświetlaj tylko potrzebne informacje.</p>
 <label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne<small>Zatwierdzone punkty NORDIC TRAIL</small></span>
 <input type="checkbox" id="nt-public-points-layer" checked></label>
+<div class="nt-osm-group" aria-label="Pilotaż NVDB Gnesta/Klämmingen">
+<p class="nt-layer-intro"><strong>NVDB — Gnesta / Klämmingen (pilotaż)</strong></p>
+<label class="nt-layer-option" for="nt-nvdb-toggle"><span>Drogi żwirowe<small>764 odcinki · brązowe linie</small></span><input type="checkbox" id="nt-nvdb-toggle"></label>
+<button id="nt-nvdb-goto" type="button" disabled>Pokaż Gnesta na mapie</button>
+<p id="nt-nvdb-status" role="status" aria-live="polite">Warstwa wyłączona. Dane wczytamy na żądanie.</p>
+<p class="nt-layer-intro">9 wstępnie powiązanych wpisów dotyczących tranzytu. Brak weryfikacji prawnej.</p></div>
 <div class="nt-osm-group" aria-label="Obserwacje OpenStreetMap z obszaru Tumba–Lida">
 <p class="nt-layer-intro"><strong>OSM — Tumba–Lida (pilotaż)</strong></p>
 <label class="nt-layer-option" for="nt-osm-barriers-layer"><span>Szlabany i przeszkody<small>29 oznaczeń społeczności OSM</small></span><input type="checkbox" id="nt-osm-barriers-layer"></label>
@@ -344,7 +359,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <p>Symbole OSM nie potwierdzają prawa wstępu, przejazdu ani tego, że ścieżka jest oznakowanym szlakiem hikingowym.</p>
 </div>
 </details>
-<p class="nt-layer-note">Dostępność dróg pozostaje niezweryfikowana. Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł. Routing nie oznacza prawa przejazdu.</p>
+<p class="nt-layer-note">Dostępność dróg pozostaje niezweryfikowana. NVDB Gnesta jest pilotażem. STFS i prawo przejazdu pozostają niezweryfikowane. Routing nie oznacza prawa przejazdu.</p>
 </div></section>
 <section id="nt-osm-detail-sheet" class="nt-osm-detail-sheet" role="dialog" aria-modal="false" aria-labelledby="nt-osm-detail-title" hidden>
 <div class="nt-osm-detail-heading"><h2 id="nt-osm-detail-title">Obserwacja OSM</h2><button type="button" id="nt-osm-detail-close" aria-label="Zamknij kartę OSM">×</button></div>
@@ -356,6 +371,13 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <p><a id="nt-osm-original" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Otwórz oryginalny wpis OSM</a></p>
 <p id="nt-osm-private-access" class="nt-osm-warning" hidden><strong>Uwaga — ograniczony dostęp według OSM (access=private).</strong> Ten tag nie przesądza sam o prawie przejścia pieszego w Szwecji (allemansrätten). Sprawdź oznakowanie, lokalne warunki i obowiązujące przepisy.</p>
 <p class="nt-osm-warning"><strong>Dostępność prawna: niezweryfikowana.</strong> Tagi OSM nie zastępują oznakowania ani obowiązujących przepisów. Środki odcinków nie określają prawnego zasięgu ograniczenia.</p>
+</section>
+<section id="nt-nvdb-road-card" class="nt-osm-detail-sheet" role="dialog" aria-modal="false" aria-labelledby="nt-nvdb-road-title" hidden>
+<div class="nt-osm-detail-heading"><h2 id="nt-nvdb-road-title">Informacje o drodze</h2><button type="button" id="nt-nvdb-road-close" aria-label="Zamknij kartę">×</button></div>
+<div class="nt-osm-meta" id="nt-nvdb-road-fields"></div>
+<div class="nt-nvdb-warning" id="nt-nvdb-warning" hidden><strong id="nt-nvdb-warning-title">Zakaz przejazdu tranzytowego</strong><p id="nt-nvdb-warning-text"></p></div>
+<details id="nt-nvdb-detail" hidden><summary>Szczegóły ograniczenia tranzytu</summary><div class="nt-osm-meta" id="nt-nvdb-detail-fields"></div><p class="nvdb-micro">To wstępne powiązanie danych NVDB z odcinkiem. Pełny przepis, wyjątki i zasięg ograniczenia wymagają niezależnego sprawdzenia.</p><p><a id="nt-nvdb-stfs-search" href="https://rdt.transportstyrelsen.se/rdt/af06_search.aspx?usestfs=1" target="_blank" rel="noopener noreferrer">Sprawdź przepisy w STFS (Transportstyrelsen)</a></p><p class="nvdb-micro">Otwiera ogólną wyszukiwarkę oficjalnych przepisów. Nie jest to odnośnik do potwierdzonego przepisu dla tej drogi. Nie interpretuj wpisu jako potwierdzonego zakazu ani zezwolenia na przejazd.</p></details>
+<p class="nvdb-micro">Trafikverket/NVDB · 13.11.2026. Brak ostrzeżenia nie oznacza legalnej dostępności.</p>
 </section>
 <div class="workspace" id="workspace">
 <nav class="workspace-nav" aria-label="Nawigacja panelu">
@@ -679,6 +701,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     if(event.key==='Escape'&&!el('point-sheet').hidden&&!writingDraft)clearSelection();
   });
   if(map)map.on('click',event=>{
+    if(!el('nt-nvdb-road-card').hidden){closeNvdbRoadCard();return;}
     // Dismissing OSM evidence must never create an authenticated draft.
     if(!el('nt-osm-detail-sheet').hidden){
       el('nt-osm-detail-sheet').hidden=true;
@@ -1071,7 +1094,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   const layersButton=el('open-layers-btn'),layerHandle=el('nt-layer-handle');
   let pageScrollLocked=false,lockedScrollX=0,lockedScrollY=0;
   function syncOverlayPageScroll(){
-    const shouldLock=!layersSheet.hidden||!el('nt-osm-detail-sheet').hidden;
+    const shouldLock=!layersSheet.hidden||!el('nt-osm-detail-sheet').hidden||!el('nt-nvdb-road-card').hidden;
     if(shouldLock&&!pageScrollLocked){
       lockedScrollX=window.scrollX||0;
       lockedScrollY=window.scrollY||document.scrollingElement?.scrollTop||0;
@@ -1093,13 +1116,21 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   function setLayersCollapsed(value){
     layersSheet.classList.toggle('is-collapsed',value);
     layerHandle.setAttribute('aria-expanded',value?'false':'true');
-    if(value)layerHandle.focus();
+  }
+  function clampLayersHeight(height){
+    const max=Math.max(120,Math.min(window.innerHeight*.92,900));
+    return Math.max(120,Math.min(height,max));
+  }
+  function resizeLayers(height){
+    const h=clampLayersHeight(height);
+    layersSheet.style.setProperty('--nt-layer-height',h+'px');
+    setLayersCollapsed(h<=155);
   }
   function closeLayers(){
     if(layersSheet.hidden)return;
     layersSheet.hidden=true;layersBackdrop.hidden=true;
     syncOverlayPageScroll();
-    layersSheet.style.removeProperty('--nt-offset');
+    layersSheet.style.removeProperty('--nt-layer-height');
     delete layersSheet.dataset.dragging;
     setLayersCollapsed(false);
     layersButton.setAttribute('aria-expanded','false');
@@ -1111,6 +1142,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       message('map-action-status','Najpierw zamknij edytor punktu.');return;
     }
     closeOsmSpiderfy();
+    closeNvdbRoadCard();
     // Never stack the layers dialog above a selected OSM detail card.
     if(!el('nt-osm-detail-sheet').hidden){
       el('nt-osm-detail-sheet').hidden=true;
@@ -1128,6 +1160,136 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   el('nt-layer-close').addEventListener('click',closeLayers);
   layersBackdrop.addEventListener('click',closeLayers);
   el('nt-public-points-layer').addEventListener('change',event=>setPublicLayerVisible(event.target.checked));
+
+
+  // Optional NVDB overlay (read-only, disabled by default).
+  const nvdbSwitch=el('nt-nvdb-toggle'),nvdbJump=el('nt-nvdb-goto'),nvdbStatus=el('nt-nvdb-status');
+  let nvdbData=null,nvdbLoading=null,nvdbLayer=null,nvdbPolicy=null;
+  const nvdbPane=map&&window.L?map.createPane('ntNvdbPane'):null;
+  if(nvdbPane)nvdbPane.style.zIndex='345'; // NT points and OSM evidence stay above lines
+  function closeNvdbRoadCard(){
+    const card=el('nt-nvdb-road-card');
+    if(card.hidden)return;
+    const restoreMapFocus=card.contains(document.activeElement);
+    card.hidden=true;syncOverlayPageScroll();
+    if(restoreMapFocus&&map)map.getContainer().focus({preventScroll:true});
+  }
+  function nvdbRow(box,label,value){
+    const row=document.createElement('div'),a=document.createElement('span'),b=document.createElement('strong');
+    a.textContent=label;b.textContent=String(value);row.append(a,b);box.appendChild(row);
+  }
+  function openNvdbRoadCard(feature){
+    if(!el('point-sheet').hidden){message('map-action-status','Najpierw zamknij edytor punktu.');return;}
+    if(!layersSheet.hidden)closeLayers();
+    closeOsmDetail();closeOsmSpiderfy();map.closePopup();
+    const p=feature.properties||{},r=p.powiazany_wpis_nvdb||null;
+    const fields=el('nt-nvdb-road-fields'),extra=el('nt-nvdb-detail-fields');
+    fields.replaceChildren();extra.replaceChildren();
+    nvdbRow(fields,'Nawierzchnia','Żwirowa (grus)');
+    // No width is presented until each NVDB segment match is independently verified.
+    nvdbRow(fields,'Dostępność prawna','Niezweryfikowana');
+    if(!r)nvdbRow(fields,'Ograniczenia','Brak powiązanego wpisu NVDB');
+    el('nt-nvdb-warning').hidden=!r;
+    el('nt-nvdb-detail').hidden=!r;
+    el('nt-nvdb-detail').open=false;
+    if(r){
+      const warning=nvdbPolicy?nvdbPolicy({nvdb:r,osmWays:[],geometryMatch:'unverified'}):null;
+      el('nt-nvdb-warning-title').textContent=warning?.title||'Zakaz przejazdu tranzytowego';
+      el('nt-nvdb-warning-text').textContent=warning?.explanation||'Wskazanie NVDB. Dokładny zasięg, aktualność przepisu i wyjątki wymagają potwierdzenia w STFS.';
+      nvdbRow(extra,'Dotyczy',r.pojazdy==='motordrivna fordon'?'Pojazdy silnikowe':r.pojazdy==='fordon'?'Pojazdy':'Niezweryfikowane');
+      nvdbRow(extra,'Rodzaj wpisu','Dotyczy tranzytu (według NVDB)');
+      nvdbRow(extra,'Kierunek',r.kierunek==='Med och mot'?'Oba kierunki (według NVDB)':'Niezweryfikowany');
+      nvdbRow(extra,'Wyjątki','Niezweryfikowane');
+      nvdbRow(extra,'Powiązanie z drogą','Wstępne — wymaga kontroli');
+      nvdbRow(extra,'Rekord / element NVDB',r.rekord+' / '+r.element_id);
+    }
+    el('nt-nvdb-road-card').hidden=false;syncOverlayPageScroll();
+    el('nt-nvdb-road-close').focus({preventScroll:true});
+  }
+  function validNvdbData(data){
+    if(!data||data.schema_version!==1||data.source!=='Trafikverket NVDB'
+       ||data.legal_access!=='unverified'||data.road_count!==764
+       ||data.linked_restriction_count!==9||data.type!=='FeatureCollection'
+       ||!Array.isArray(data.features)||data.features.length!==764)return false;
+    const ids=new Set();let matched=0;
+    for(const f of data.features){
+      if(f.type!=='Feature'||f.geometry?.type!=='LineString'
+         ||!Array.isArray(f.geometry.coordinates)||f.geometry.coordinates.length<2
+         ||f.properties?.nawierzchnia!=='grus')return false;
+      const id=String(f.properties.id);if(ids.has(id))return false;ids.add(id);
+      if(f.geometry.coordinates.every(pt=>pt[0]===f.geometry.coordinates[0][0]&&pt[1]===f.geometry.coordinates[0][1]))return false;
+      if(f.properties.powiazany_wpis_nvdb){
+        matched++;
+        if(f.properties.powiazany_wpis_nvdb.tranzyt!=='sant'||!f.properties.powiazany_wpis_nvdb.element_id)return false;
+      }
+      for(const coords of f.geometry.coordinates){
+        if(!Array.isArray(coords)||coords.length!==2
+         ||!Number.isFinite(coords[0])||!Number.isFinite(coords[1])
+         ||coords[0]<17||coords[0]>17.6||coords[1]<58.8||coords[1]>59.4)return false;
+      }
+    }
+    return matched===9;
+  }
+  async function loadNvdbData(){
+    if(nvdbData)return nvdbData;if(nvdbLoading)return nvdbLoading;
+    nvdbStatus.textContent='Wczytywanie NVDB Gnesta…';
+    nvdbLoading=(async()=>{
+      const response=await fetch('data/gnesta-nvdb-v45.json',{method:'GET',credentials:'omit',cache:'no-store'});
+      if(!response.ok)throw Error('Invalid response');
+      const raw=await response.text();if(raw.length>1500000)throw Error('Size limit');
+      const pack=JSON.parse(raw);if(!validNvdbData(pack))throw Error('Invalid data');
+      // Draw the same thin brown line as before. Do not let its visible SVG intercept taps.
+      const nvdbVisibleRoads=L.geoJSON({type:'FeatureCollection',features:pack.features},{
+        pane:'ntNvdbPane',interactive:false,
+        style:{color:'#96764e',weight:3,opacity:.78}
+      });
+      // A separate, effectively invisible stroke gives fingers a 26px-wide tap target.
+      // It does not make the road visually thicker or change routing/access conclusions.
+      const nvdbFingerTargets=L.geoJSON({type:'FeatureCollection',features:pack.features},{
+        pane:'ntNvdbPane',style:{color:'#96764e',weight:26,opacity:.001,lineCap:'round',lineJoin:'round'},
+        onEachFeature:(feature,layer)=>{
+          layer.options.bubblingMouseEvents=false;
+          layer.on('add',()=>{
+            const svg=layer.getElement();
+            if(svg)svg.style.pointerEvents='stroke';
+          });
+          layer.on('click',event=>{
+            if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
+            openNvdbRoadCard(feature);
+          });
+        }
+      });
+      // Draw visible geometry first and finger targets last, so the wider hit area is above it.
+      nvdbLayer=L.layerGroup([nvdbVisibleRoads,nvdbFingerTargets]);
+      try{
+        const mod=await import('../staging-nvdb/traffic-warning-policy/traffic-warning-policy.mjs');
+        nvdbPolicy=typeof mod.evaluateTrafficWarning==='function'?mod.evaluateTrafficWarning:null;
+      }catch(_error){nvdbPolicy=null;}
+      nvdbData=pack;return pack;
+    })();
+    try{return await nvdbLoading;}
+    catch(_error){nvdbSwitch.checked=false;nvdbJump.disabled=true;nvdbStatus.textContent='Błąd odczytu NVDB. Pozostałe warstwy działają.';return null;}
+    finally{nvdbLoading=null;}
+  }
+  nvdbSwitch.addEventListener('change',async()=>{
+    if(!map)return;
+    if(!nvdbSwitch.checked){
+      if(nvdbLayer&&map.hasLayer(nvdbLayer))map.removeLayer(nvdbLayer);
+      closeNvdbRoadCard();nvdbStatus.textContent='Warstwa wyłączona.';return;
+    }
+    const pack=await loadNvdbData();if(!pack||!nvdbSwitch.checked)return;
+    if(nvdbLayer&&!map.hasLayer(nvdbLayer))nvdbLayer.addTo(map);
+    nvdbJump.disabled=false;
+    nvdbStatus.textContent='764 drogi; 9 wpisów tranzytu. Prawo przejazdu niezweryfikowane.';
+  });
+  nvdbJump.addEventListener('click',()=>{
+    if(!map||!nvdbSwitch.checked||!nvdbData)return;
+    map.setView([59.10,17.28],12,{animate:false});closeLayers();
+  });
+  el('nt-nvdb-road-close').addEventListener('click',closeNvdbRoadCard);
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!el('nt-nvdb-road-card').hidden){event.preventDefault();closeNvdbRoadCard();}
+  });
 
   // Read-only OSM observation layers. Separate from authenticated map_points,
   // moderation, drafts, Supabase sessions, routing and saved user data.
@@ -1386,6 +1548,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   });
   // Opening an approved point's Leaflet popup takes precedence over OSM.
   if(map)map.on('popupopen',()=>{
+    closeNvdbRoadCard();
     closeOsmDetail();
     closeOsmSpiderfy();
   });
@@ -1440,37 +1603,39 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     closeLayers();
   });
 
-  let handleDragging=false,handleStart=0,handleLast=0,handleMoved=false,suppressHandleClick=false;
+  // The grip resizes the sheet on mouse, touch and pen. It NEVER closes the sheet.
+  // Dismissal is handled by the separate close control, not by tapping or dragging the grip.
+  let handlePointerId=null,handleStart=0,handleHeight=0;
   layerHandle.addEventListener('pointerdown',event=>{
-    if(layersSheet.hidden||event.button!==0||!['touch','pen'].includes(event.pointerType))return;
-    handleDragging=true;handleStart=event.clientY;handleLast=event.clientY;
-    handleMoved=false;suppressHandleClick=false;layersSheet.dataset.dragging='true';
+    if(layersSheet.hidden||event.button!==0||handlePointerId!==null)return;
+    handlePointerId=event.pointerId;
+    handleStart=event.clientY;
+    handleHeight=layersSheet.getBoundingClientRect().height;
+    layersSheet.dataset.dragging='true';
     layerHandle.setPointerCapture(event.pointerId);
+    event.preventDefault();
   });
   layerHandle.addEventListener('pointermove',event=>{
-    if(!handleDragging)return;
-    handleLast=event.clientY;const d=handleLast-handleStart;
-    if(Math.abs(d)>8)handleMoved=true;
-    layersSheet.style.setProperty('--nt-offset',Math.max(-90,Math.min(d,200))+'px');
+    if(handlePointerId!==event.pointerId)return;
+    resizeLayers(handleHeight+handleStart-event.clientY);
   });
   function finishLayerDrag(event){
-    if(!handleDragging)return;
-    handleDragging=false;delete layersSheet.dataset.dragging;
-    layersSheet.style.removeProperty('--nt-offset');
-    const d=handleLast-handleStart;
-    if(handleMoved){
-      suppressHandleClick=true;
-      if(d>125&&layersSheet.classList.contains('is-collapsed'))closeLayers();
-      else if(d>55)setLayersCollapsed(true);
-      else if(d< -55)setLayersCollapsed(false);
-    }
+    if(handlePointerId!==event.pointerId)return;
+    if(event.type==='pointerup')resizeLayers(handleHeight+handleStart-event.clientY);
+    handlePointerId=null;
+    delete layersSheet.dataset.dragging;
     if(layerHandle.hasPointerCapture(event.pointerId))layerHandle.releasePointerCapture(event.pointerId);
   }
   layerHandle.addEventListener('pointerup',finishLayerDrag);
   layerHandle.addEventListener('pointercancel',finishLayerDrag);
-  layerHandle.addEventListener('click',()=>{
-    if(suppressHandleClick){suppressHandleClick=false;return;}
-    if(!layersSheet.hidden)setLayersCollapsed(!layersSheet.classList.contains('is-collapsed'));
+  // Clicking the grip alone does nothing. Arrow keys allow resizing without a pointer.
+  layerHandle.addEventListener('click',event=>event.preventDefault());
+  layerHandle.addEventListener('keydown',event=>{
+    if(layersSheet.hidden)return;
+    const direction=event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0;
+    if(!direction)return;
+    event.preventDefault();
+    resizeLayers(layersSheet.getBoundingClientRect().height+direction*64);
   });
   document.addEventListener('keydown',event=>{
     if(layersSheet.hidden)return;

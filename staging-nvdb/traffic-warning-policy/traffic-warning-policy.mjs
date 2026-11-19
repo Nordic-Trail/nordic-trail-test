@@ -53,11 +53,11 @@ export function evaluateTrafficWarning({nvdb=null, osmWays=[], geometryMatch="un
   if(geometryMatch!=="verified"&&osmSegments.length)flags.push("osm_geometry_not_verified");
   if(hasNvdb)flags.push("stfs_text_not_verified");
   let title="Dostępność drogi niezweryfikowana";
-  if(isTransit)title="Możliwe ograniczenie tranzytu"+(roadCategory?" — "+roadCategory:"");
+  if(isTransit)title="Zakaz przejazdu tranzytowego";
   else if(hasNvdb)title="Możliwe ograniczenie ruchu"+(roadCategory?" — "+roadCategory:"");
   else if(hasRestrictedOsm||conditional)title="Możliwe ograniczenie dostępu samochodów (OSM)";
   let explanation="Nie ma wystarczających podstaw do potwierdzenia prawa przejazdu.";
-  if(isTransit)explanation="Wpis NVDB dotyczy tranzytu. Sprawdź pełny przepis, wyjątki i oznakowanie.";
+  if(isTransit)explanation="Wskazanie NVDB. Dokładny zasięg, aktualność przepisu i wyjątki wymagają potwierdzenia w STFS.";
   else if(hasNvdb)explanation="Wpis NVDB wymaga sprawdzenia pełnego przepisu, wyjątków i oznakowania.";
   else if(hasRestrictedOsm||conditional)explanation="Tagi OSM wskazują możliwe ograniczenia, ale nie zastępują przepisów ani znaków.";
   return {
