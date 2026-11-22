@@ -36,6 +36,14 @@ button .ui-icon{margin-right:5px}.stage-buttons{display:grid;grid-template-colum
 #clear-routes{margin-top:8px}.small-note{font-size:12px;color:#c0cdc0;text-align:center;margin:5px 0 0}
 #advanced-route{margin:8px 0;font-size:13px}#advanced-route summary{cursor:pointer;padding:5px}
 button.active{outline:2px solid var(--accent)}
+.edit-primary{width:100%;min-height:49px;background:#c8dba4;color:#192d1f;border:2px solid #ecf2d8}
+.export-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px;align-items:start}
+.export-actions>button,.export-stack button{width:100%;min-height:48px}
+.export-stack{display:flex;flex-direction:column;gap:0}
+.export-stack .small-note{text-align:left;margin:6px 2px 0}
+.stage-buttons button{min-height:62px}
+.stage-buttons .ui-icon{width:32px;height:32px}
+h3{font-size:15px;margin:13px 0 6px}
 </style></head>
 <body><svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
 <symbol id="nt-car" viewBox="0 0 64 64"><path fill="currentColor" d="M17 13h30l7 15v22h-6v6h-9v-6H25v6h-9v-6h-6V28l7-15Zm4 7-4 10h30l-4-10H21ZM13 35v11h38V35H13Z"/><circle cx="21" cy="40" r="4" fill="#1c3325"/><circle cx="43" cy="40" r="4" fill="#1c3325"/><path d="M28 36v8m4-8v8m4-8v8" stroke="#1c3325" stroke-width="2.7" stroke-linecap="round"/></symbol>
@@ -50,8 +58,9 @@ button.active{outline:2px solid var(--accent)}
 <div class="panel">
 <section class="card"><h1>Zaplanuj wyprawę</h1>
 <label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
-<div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt początkowy</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj wybór punktu</button></div>
-<div class="stage-buttons"><button id="add-drive-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg>Dodaj etap samochodowy</button><button id="add-walk-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg>Dodaj etap pieszy</button></div>
+<div class="stage-buttons"><button id="add-drive-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg>Etap samochodowy</button><button id="add-walk-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg>Etap pieszy</button></div>
+ <div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt początkowy</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj wybór punktu</button></div>
+ <div class="buttons"><button id="toggle-trip-editor" type="button" class="edit-primary" aria-controls="trip-edit-section" aria-expanded="false" disabled>✎ Edycja trasy</button></div>
 <p id="notice" role="status" aria-live="polite">Wybierz punkt początkowy, a następnie dodaj etap samochodowy lub pieszy.</p>
 <div class="stat"><span>Punkty:</span><b id="count">0</b></div>
 <div id="route-results" hidden><div class="stat"><span>Samochód (OSM / szkic):</span><b id="drive-km">0 km</b></div><div class="stat"><span>Pieszo (OSM / szkic):</span><b id="walk-km">0 km</b></div><p class="hint">Dystanse obliczone z dróg OSM lub po linii prostej dla nieobliczonych szkiców.</p></div></section>
@@ -61,18 +70,18 @@ button.active{outline:2px solid var(--accent)}
 <div id="travel-row"><label for="point-mode">Dojazd od poprzedniego punktu</label><select id="point-mode"><option value="drive">🚙 Samochód</option><option value="walk">🥾 Pieszo</option></select></div>
 <div class="buttons"><button id="save-point" type="button">Zapisz punkt</button><button id="close-editor" type="button" class="secondary">Zamknij</button></div></section>
 <section class="card"><h2>Warstwy</h2><label class="layer"><input id="visible-drive" type="checkbox" checked> Samochód</label><label class="layer"><input id="visible-walk" type="checkbox" checked> Pieszo</label><p class="hint">Ukrywanie odcinków nie usuwa punktów.</p></section>
-<section class="card"><h2>Kolejność punktów</h2><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p></section>
+<section class="card" id="trip-edit-section" hidden><h2>Edycja trasy</h2><p class="hint">Zmiana kolejności wpływa na przebieg wyprawy. Punkty możesz edytować, przesuwać i usuwać.</p><h3>Kolejność punktów</h3><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p>
+ <details id="advanced-route"><summary>Przywróć szkic trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details></section>
 <section class="card"><h2>Wyznaczanie trasy OSM</h2>
 <p class="warning">Wynik nie jest nawigacją. OSM nie gwarantuje legalnego przejazdu samochodem, otwartego szlabanu ani możliwości biwakowania.</p>
 <label class="layer"><input id="route-consent" type="checkbox"> Zgadzam się wysłać współrzędne punktów i typ podróży na publiczny demonstracyjny serwer Valhalla/FOSSGIS. Nie wysyłamy nazw ani danych konta.</label>
 <div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg>Wyznacz trasę</button></div>
 <div class="buttons"><button type="button" id="undo-step" class="secondary" disabled><svg class="ui-icon" aria-hidden="true"><use href="#nt-undo"/></svg>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
-<details id="advanced-route"><summary>Opcje edycji trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details>
 <p id="routing-status" role="status" aria-live="polite">Nie obliczono jeszcze trasy po OSM.</p>
 <p class="hint">Maksymalnie 4 odcinki i 6 zapytań na sesję. Brak automatycznych ponowień.</p></section>
 <section class="card"><h2>Zapis i eksport</h2>
-<div class="buttons"><button id="save-local" type="button">Zapisz lokalnie</button><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div>
-<p class="small-note">Plik GPX — do wykorzystania w innych aplikacjach i urządzeniach.</p><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+<div class="export-actions"><button id="save-local" type="button">Zapisz</button><div class="export-stack"><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><p class="small-note">Plik GPX — do wykorzystania w innych aplikacjach i urządzeniach.</p></div></div>
+ <div class="buttons"><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
 <p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></section>
 <section class="card"><h2>Ważne ograniczenia</h2><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></section>
 </div></main>
@@ -197,6 +206,8 @@ function refresh(){
  el('count').textContent=String(trip.waypoints.length);
  el('route-results').hidden=!showResults;
  el('start-pick').hidden=trip.waypoints.length>0;
+ el('toggle-trip-editor').disabled=busy||trip.waypoints.length===0;
+ if(!trip.waypoints.length){el('trip-edit-section').hidden=true;el('toggle-trip-editor').setAttribute('aria-expanded','false');el('toggle-trip-editor').textContent='✎ Edycja trasy';}
  for(const id of ['add-drive-stage','add-walk-stage'])el(id).disabled=busy||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
  el('undo-step').disabled=busy||!history.length;
  el('export-gpx').disabled=busy||trip.waypoints.length<2;
@@ -295,6 +306,13 @@ el('fit-trip').addEventListener('click',()=>{
  else message('notice','Mapa obejmuje całą wyprawę.');
 });
 el('compute-routes').addEventListener('click',calculate);
+el('toggle-trip-editor').addEventListener('click',()=>{
+ if(busy||!trip.waypoints.length)return;
+ const panel=el('trip-edit-section');panel.hidden=!panel.hidden;
+ el('toggle-trip-editor').setAttribute('aria-expanded',String(!panel.hidden));
+ el('toggle-trip-editor').textContent=panel.hidden?'✎ Edycja trasy':'✎ Zamknij edycję';
+ if(!panel.hidden)panel.scrollIntoView({behavior:'smooth',block:'start'});
+});
 el('clear-routes').addEventListener('click',()=>{
  if(busy)return;
  if(!Object.keys(routes).length){message('routing-status','Trasa jest już szkicem.');return;}
