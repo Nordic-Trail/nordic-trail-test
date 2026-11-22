@@ -33,6 +33,16 @@ W gałęzi zintegrowano z `staging-app/` tryb wyprawy:
 - [ ] Zweryfikować, że tryb planowania nie powoduje utworzenia punktu w bazie przy zalogowanym użytkowniku.
 - [ ] Ocenić dostępność UI/UX na urządzeniu i dopiero wtedy zatwierdzić zamknięcie etapu.
 
+### Test ręczny na macOS Safari — 22 listopada 2026
+- PASS: Otwieranie planera na tej samej mapie oraz ręczne dodanie 3 punktów.
+- PASS: 1 odcinek samochodowy i 1 pieszy, rozdzielone wizualnie, zgodne wartości dystansu po zaokrągleniu.
+- PASS: Lokalny zapis i przywrócenie 3 punktów po odświeżeniu strony.
+- PASS: Faktyczny pobrany GPX 1.1 sprawdzony jako XML: 3 waypointy, 2 tracks, kolejno `draft-drive` i `draft-walk`, wspólny punkt przesiadki, komunikat „nie używać do nawigacji”. Dystanse według pliku: ~1,5795 km i ~1,0614 km.
+- UWAGA UI: potwierdzenie zapisu było poniżej widocznego obszaru panelu; wprowadzono zmianę tekstu przycisku na „✓ Zapisano” (wymaga weryfikacji urządzenia po aktualizacji pobranego kodu).
+- UWAGA UI: mapa po odświeżeniu wraca do widoku Szwecji, a panel przykrywa część szkicu; zaplanować dopasowanie mapy do zapisanej wyprawy.
+- NIE SPRAWDZONO: test całego planera na Samsungu, poprawki potwierdzenia zapisu na urządzeniu, realny routing z nowego panelu, bezpieczeństwo kont po integracji.
+- **Iteracja 1 nadal otwarta** do zamknięcia testów regresyjnych na urządzeniu i akceptacji.
+
 ## Iteracja 2 — geometra tras OSM i stabilizacja (nieukończona)
 1. Włączyć do wspólnego panelu istniejący mechanizm routingu z wyraźną zgodą na wysłanie współrzędnych; zachować limity demonstracyjnego serwera.
 2. Przetestować przeliczenie po zmianie punktu, porównanie przebiegu i klasyfikację odcinków.
