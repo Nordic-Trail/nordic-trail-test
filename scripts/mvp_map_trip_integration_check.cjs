@@ -32,6 +32,14 @@ test('trip editor stays locally stored and keeps GPX safety messaging',()=>{
   assert.ok(panel.includes('Nie wszystkie odcinki')&&panel.includes('GPX'));
   assert.ok(app.includes('bez zapisu w Supabase'));
 });
+test('save confirmation is visible without scrolling and failure is not a success',()=>{
+  assert.ok(panel.includes("saveButton.textContent='✓ Zapisano'"));
+  assert.ok(panel.includes("saveButton.textContent='Ponów zapis'"));
+  assert.ok(panel.includes("saveFeedback('saved')"));
+  assert.ok(panel.includes("saveFeedback('error')"));
+  assert.ok(panel.includes("saveFeedback('dirty')"));
+  assert.ok(panel.indexOf("saveFeedback('saved')")<panel.indexOf("}catch(_error){saveFeedback('error')"));
+});
 test('JavaScript scripts parse',()=>{
   new vm.Script(panel,{filename:'trip-panel.js'});
   const inline=[...app.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(s=>s.trim());
