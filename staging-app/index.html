@@ -722,7 +722,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   });
   let tripPanel=null;
   if(map)map.on('click',event=>{
-    if(tripPanel&&tripPanel.handleMapClick(event))return;
+    if(typeof tripPanel!=='undefined'&&tripPanel&&tripPanel.handleMapClick(event))return;
     // Dismissing OSM evidence must never create an authenticated draft.
     if(!el('nt-osm-detail-sheet').hidden){
       el('nt-osm-detail-sheet').hidden=true;
