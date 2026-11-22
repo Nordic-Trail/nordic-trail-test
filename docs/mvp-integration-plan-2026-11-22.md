@@ -43,6 +43,13 @@ W gałęzi zintegrowano z `staging-app/` tryb wyprawy:
 - NIE SPRAWDZONO: test całego planera na Samsungu, poprawki potwierdzenia zapisu na urządzeniu, realny routing z nowego panelu, bezpieczeństwo kont po integracji.
 - **Iteracja 1 nadal otwarta** do zamknięcia testów regresyjnych na urządzeniu i akceptacji.
 
+### Wyniki dodatkowych testów Safari — 22 listopada 2026, godz. ~18:11 CET
+- PASS: po ponownym otwarciu planera mapa automatycznie dopasowuje widok do zapisanych 3 punktów w rejonie Tullinge.
+- PASS: po przesunięciu przycisków „Zapisz lokalnie” i „Eksport GPX” nad listę punktów są widoczne bez przewijania.
+- PASS: po kliknięciu „Zapisz lokalnie” przycisk pokazuje „✓ Zapisano”, a obok widoczny jest komunikat o lokalnym zapisie.
+- ZAMKNIĘTE: problem niewidocznego potwierdzenia zapisu w Safari.
+- NADAL OTWARTE: test na Samsungu i wspólny routing po sieci dróg OSM. Nie scalać PR do main bez akceptacji.
+
 ## Iteracja 2 — geometra tras OSM i stabilizacja (nieukończona)
 1. Włączyć do wspólnego panelu istniejący mechanizm routingu z wyraźną zgodą na wysłanie współrzędnych; zachować limity demonstracyjnego serwera.
 2. Przetestować przeliczenie po zmianie punktu, porównanie przebiegu i klasyfikację odcinków.
