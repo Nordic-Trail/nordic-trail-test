@@ -1,0 +1,27 @@
+name: NORDIC TRAIL - MVP Map and Trip Integration
+on:
+  pull_request:
+    paths:
+      - 'staging-app/**'
+      - 'staging-trips/**'
+      - 'staging-trips-integrated/**'
+      - 'scripts/mvp_map_trip_integration_check.cjs'
+      - '.github/workflows/mvp-map-trip-integration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'staging-app/**'
+      - 'staging-trips/**'
+      - 'staging-trips-integrated/**'
+      - 'scripts/mvp_map_trip_integration_check.cjs'
+      - '.github/workflows/mvp-map-trip-integration.yml'
+permissions:
+  contents: read
+jobs:
+  integration-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Offline model, syntax, structure and persistence checks
+        run: node scripts/mvp_map_trip_integration_check.cjs
