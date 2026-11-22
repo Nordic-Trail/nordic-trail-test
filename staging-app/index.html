@@ -295,6 +295,24 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-osm-meta strong,.nt-osm-tags strong{font-size:13px;text-align:right;color:#fffef4;overflow-wrap:anywhere}
 .nt-osm-detail-sheet a{color:#f7ffe8;text-decoration:underline}
 .nt-osm-warning{border-left:3px solid #f5d68e;border-radius:9px;background:rgba(58,68,32,.76);padding:12px;font-size:14px;line-height:1.55;color:#fffef4}
+/* MVP integrated trip editor — separate from authenticated map points and OSM observation layers. */
+.nt-trip-panel{position:fixed;right:12px;top:calc(74px + env(safe-area-inset-top));bottom:calc(12px + env(safe-area-inset-bottom));z-index:1080;width:min(385px,calc(100vw - 24px));overflow:auto;overscroll-behavior:contain;border:1px solid rgba(218,239,206,.80);border-radius:18px;padding:15px;background:rgba(19,42,29,.94);color:var(--ink);box-shadow:0 10px 35px #07160da8;backdrop-filter:blur(8px)}
+.nt-trip-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.nt-trip-heading h2{margin:0}
+.nt-trip-heading button{width:44px;min-width:44px;min-height:44px;margin:0;background:#31483a;color:#fff}
+.nt-trip-help,.nt-trip-warning{font-size:12px;line-height:1.5;color:#e1ecdc}
+.nt-trip-warning{border-left:3px solid #dfcb76;padding:8px 10px;background:#2a3d2b}
+.nt-trip-warning a{color:#f6ffec;text-decoration:underline}
+.nt-trip-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nt-trip-options label{margin-top:5px}
+.nt-trip-points{list-style:none;padding:0;display:grid;gap:7px}
+.nt-trip-points li{display:flex;gap:5px;align-items:center;flex-wrap:wrap;border:1px solid #66826a;border-radius:10px;padding:7px}
+.nt-trip-point-label{flex:1 1 100%;font-size:13px;overflow-wrap:anywhere}
+.nt-trip-mini{flex:0 0 48px;min-width:48px;width:auto;min-height:42px;margin:0;padding:7px;background:#334e3d;color:#fff;border:1px solid #64866b}
+.nt-trip-summary{font-weight:700;font-size:13px}
+.nt-trip-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nt-trip-actions button{margin:0;min-height:48px}
+#nt-trip-new{grid-column:1 / -1}
+@media(max-width:779px){.nt-trip-panel{left:8px;right:8px;top:auto;bottom:0;width:auto;max-height:min(77dvh,640px);border-radius:18px 18px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom))}}
 </style>
 </head>
 <body>
@@ -307,9 +325,25 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <button type="button" id="open-workspace-btn" aria-label="Otwórz panel użytkownika, logowania i moderacji">☰ Panel</button></div>
 <p class="status" id="map-action-status" role="status" aria-live="polite" hidden></p>
 <div class="map-toolbar">
-<a class="nt-planner-link" href="../staging-trips-integrated/" aria-label="Otwórz testowy planer wypraw NORDIC TRAIL">▤ Trasa</a>
+<button type="button" class="nt-planner-link" id="nt-open-trip" aria-label="Otwórz planer wypraw" aria-expanded="false" aria-controls="nt-trip-panel">▤ Trasa</button>
 <button type="button" id="add-point-btn" aria-label="Dodaj punkt do mapy">＋ Punkt</button>
 </div>
+</section>
+<section id="nt-trip-panel" class="nt-trip-panel" aria-label="Planer wypraw" hidden>
+  <div class="nt-trip-heading"><h2>Planowanie wyprawy</h2><button type="button" id="nt-trip-close" aria-label="Zamknij planer">×</button></div>
+  <p class="nt-trip-help">Samochód: ciemnoniebieski · pieszo: ciemnozielony. Przerywane linie to szkice po prostej.</p>
+  <label for="nt-trip-name">Nazwa wyprawy</label><input id="nt-trip-name" maxlength="100" value="Nowa wyprawa">
+  <div class="nt-trip-options">
+    <div><label for="nt-trip-next-kind">Kolejny punkt</label><select id="nt-trip-next-kind"><option value="start">Start</option><option value="parking">Parking</option><option value="stop" selected>Postój</option><option value="view">Widok</option><option value="camp">Biwak</option><option value="finish">Meta</option></select></div>
+    <div><label for="nt-trip-next-mode">Odcinek</label><select id="nt-trip-next-mode"><option value="drive">Samochód</option><option value="walk">Pieszo</option></select></div>
+  </div>
+  <button type="button" id="nt-trip-pick">＋ Wskaż punkt trasy na mapie</button>
+  <p class="nt-trip-summary" id="nt-trip-summary"></p>
+  <p class="nt-trip-help" id="nt-trip-draft-count"></p>
+  <ol id="nt-trip-points" class="nt-trip-points"></ol>
+  <div class="nt-trip-actions"><button type="button" id="nt-trip-save">Zapisz lokalnie</button><button type="button" id="nt-trip-export" class="secondary">Eksport GPX</button><button type="button" id="nt-trip-new" class="secondary">Nowa wyprawa</button></div>
+  <p id="nt-trip-status" class="status" role="status" aria-live="polite">Plan pozostaje w przeglądarce, bez zapisu w Supabase.</p>
+  <p class="nt-trip-warning">Wersja testowa: linie proste nie służą do nawigacji. OSM/NVDB nie gwarantuje prawa przejazdu ani możliwości biwakowania. Do wyznaczania przebiegu po drogach służy <a href="../staging-trips-integrated/">osobny, dotychczasowy planer OSM</a>.</p>
 </section>
 <div id="map-layers-backdrop" hidden></div>
 <section id="map-layers-sheet" class="nt-layers-sheet" role="dialog" aria-modal="true" aria-labelledby="nt-layer-title" hidden>
@@ -466,6 +500,10 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 </main>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="../staging-trips/route-model.js"></script>
+<script src="../staging-trips/routing-core.js"></script>
+<script src="../staging-trips-integrated/integration-model.js"></script>
+<script src="trip-panel.js"></script>
 <script>
 'use strict';
 (function(){
@@ -682,7 +720,9 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'&&!el('point-sheet').hidden&&!writingDraft)clearSelection();
   });
+  let tripPanel=null;
   if(map)map.on('click',event=>{
+    if(tripPanel&&tripPanel.handleMapClick(event))return;
     // Dismissing OSM evidence must never create an authenticated draft.
     if(!el('nt-osm-detail-sheet').hidden){
       el('nt-osm-detail-sheet').hidden=true;
@@ -1519,6 +1559,11 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     syncVisualViewport();
   });
   syncVisualViewport();
+  try{
+    if(map&&window.NordicTripPanel){
+      tripPanel=window.NordicTripPanel.mount({map,Leaflet:L,button:el('nt-open-trip'),notice:text=>message('map-action-status',text)});
+    }else if(map){message('map-action-status','Planer nie został załadowany. Spróbuj odświeżyć stronę.',true);}
+  }catch(_error){message('map-action-status','Nie udało się uruchomić planera wypraw. Pozostałe funkcje mapy działają niezależnie.',true);}
   let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
   if(saved&&validKey(saved))connect(saved);
 })();
