@@ -123,6 +123,7 @@ details[open]>summary::before{content:'▾'}
 (()=>{
 const M=window.NordicTripV3,$=id=>document.getElementById(id),KEY='nt-v31-preview-isolated-20261122';
 let trip=M.initial(),history=[],mode='drive',selected=null,pending=null,map,lines,pins;
+const draftStarts={drive:null,walk:null};
 const color=m=>m==='drive'?'#245eaf':'#248a50';
 function notice(t){$('info').textContent=t||'';$('info').hidden=!t;}
 function remember(){history.push(JSON.stringify(trip));if(history.length>30)history.shift();}
@@ -139,7 +140,7 @@ function showMapPrompt(t){
 }
 function setMode(m){
  if(!['drive','walk'].includes(m))return;
- mode=m;selected=[...trip.itinerary].reverse().find(id=>trip.legs[id].mode===m)||null;
+ mode=m;selected=draftStarts[m]?null:([...trip.itinerary].reverse().find(id=>trip.legs[id].mode===m)||null);
  pending=null;render();
  if(!trip.visible[m])notice('Ta warstwa jest ukryta. Włącz ją w „Warstwy i informacje”, aby zobaczyć edytowany odcinek.');
  else notice('');
@@ -152,7 +153,15 @@ function beginNew(){
 function choosePoint(role){
  if(!trip.visible[mode]){notice('Wybrana warstwa jest ukryta. Włącz ją w menu warstw.');return;}
  const leg=current();
- if(!leg){if(role==='start')beginNew();else notice('Najpierw wskaż punkt początkowy.');return;}
+ if(!leg){
+  if(role==='start'){beginNew();return;}
+  const draft=draftStarts[mode];
+  if(!draft){notice('Najpierw wskaż punkt początkowy.');return;}
+  pending={type:'create-end',mode,start:draft};
+  notice('Wskaż cel na mapie.');
+  showMapPrompt('Dotknij mapy: cel etapu');
+  return;
+ }
  pending={type:'move',id:leg.id,role};
  notice('Dotknij mapy, aby wskazać nowe położenie punktu.');
  showMapPrompt(role==='start'?'Dotknij mapy: nowy start':'Dotknij mapy: nowy cel');
@@ -164,6 +173,12 @@ function chooseVia(){
 }
 function redraw(){
  if(!map)return;lines.clearLayers();pins.clearLayers();
+ for(const m of ['drive','walk']){
+  const p=draftStarts[m];
+  if(!p||!trip.visible[m])continue;
+  const icon=L.divIcon({className:'',html:'<span style="display:grid;place-items:center;width:28px;height:28px;border:2px solid white;border-radius:50%;color:white;background:'+color(m)+';font-weight:700">S</span>',iconSize:[28,28],iconAnchor:[14,14]});
+  L.marker([p.lat,p.lon],{icon,interactive:false}).addTo(pins);
+ }
  for(const id of trip.itinerary){
   const leg=trip.legs[id];if(!trip.visible[leg.mode])continue;
   L.polyline(leg.points.map(p=>[p.lat,p.lon]),{color:color(leg.mode),weight:5,dashArray:leg.mode==='walk'?'7 7':null,opacity:id===selected?1:0.76,interactive:!pending}).addTo(lines).on('click',()=>{
@@ -181,12 +196,12 @@ function redraw(){
 function render(){
  $('trip-name').value=trip.name;
  for(const m of ['drive','walk'])$('mode-'+m).setAttribute('aria-pressed',String(mode===m));
- const leg=current(),ready=!!leg,visible=trip.visible[mode];
+ const leg=current(),ready=!!leg,visible=trip.visible[mode],draft=draftStarts[mode];
  $('point-start').disabled=!visible;
- $('point-finish').disabled=!ready||!visible;
+ $('point-finish').disabled=!(ready||draft)||!visible;
  $('point-via').disabled=!ready||!visible;
- $('start-name').textContent=ready?leg.points[0].name:'Wskaż na mapie';
- $('finish-name').textContent=ready?leg.points.at(-1).name:'Najpierw dodaj start';
+ $('start-name').textContent=ready?leg.points[0].name:(draft?'Start ustawiony':'Wskaż na mapie');
+ $('finish-name').textContent=ready?leg.points.at(-1).name:(draft?'Wskaż na mapie':'Najpierw dodaj start');
  $('undo').disabled=!history.length;
  $('route').disabled=true;
  $('trip-summary').textContent='Cała wyprawa · '+trip.itinerary.length+' '+(trip.itinerary.length===1?'etap':trip.itinerary.length>=2&&trip.itinerary.length<=4?'etapy':'etapów');
@@ -212,11 +227,21 @@ function render(){
 }
 function selectMapAction(action,point){
  if(action.type==='create-start'){
-  pending={type:'create-end',mode:action.mode,start:point};notice('Wskaż teraz cel etapu na mapie.');showMapPrompt('Dotknij mapy: cel etapu');return;
+  // Start must be visible immediately; choosing a goal requires an explicit click on "Cel".
+  draftStarts[action.mode]=point;
+  pending=null;render();
+  notice('Start zaznaczony na mapie. Naciśnij „Cel”, aby wybrać miejsce docelowe.');
+  $('point-finish').scrollIntoView({behavior:'smooth',block:'center'});
+  return;
  }
  if(action.type==='create-end'){
   const oldIds=new Set(trip.itinerary);
-  if(update(()=>M.addLeg(trip,action.mode,{...action.start,name:'Start'}, {...point,name:'Cel'})))selected=trip.itinerary.find(id=>!oldIds.has(id))||null;
+  if(update(()=>M.addLeg(trip,action.mode,{...action.start,name:'Start'}, {...point,name:'Cel'}))){
+   selected=trip.itinerary.find(id=>!oldIds.has(id))||null;
+   draftStarts[action.mode]=null;
+  }else{
+   pending=null;render();return;
+  }
  }else if(action.type==='via'){
   update(()=>M.addVia(trip,action.id,{...point,name:'Punkt pośredni'}));
  }else if(action.type==='move'){
@@ -241,8 +266,8 @@ $('new-stage').addEventListener('click',beginNew);
 for(const m of ['drive','walk'])$('show-'+m).addEventListener('change',e=>update(()=>M.toggle(trip,m,e.target.checked)));
 $('trip-name').addEventListener('change',e=>{const v=e.target.value;update(()=>{const t=M.check(trip);t.name=v.trim().slice(0,100)||'Nowa wyprawa';return t;});});
 $('undo').addEventListener('click',()=>{if(!history.length)return;trip=M.check(JSON.parse(history.pop()));pending=null;selected=null;render();notice('Cofnięto ostatnią zmianę.');});
-$('save').addEventListener('click',()=>{try{const t=M.check(trip);localStorage.setItem(KEY,JSON.stringify(t));notice('Zapisano w tym podglądzie testowym.');}catch(e){notice('Nie udało się zapisać: '+e.message);}});
-$('reset').addEventListener('click',()=>{if(!confirm('Utworzyć pustą wyprawę? Niezapisane zmiany znikną.'))return;remember();trip=M.initial();mode='drive';selected=null;pending=null;render();notice('Nowa, pusta wyprawa. Zapisany projekt nie został nadpisany.');});
+$('save').addEventListener('click',()=>{try{const t=M.check(trip);localStorage.setItem(KEY,JSON.stringify(t));notice('Zapisano ukończone etapy w tym podglądzie testowym.'+((draftStarts.drive||draftStarts.walk)?' Niedokończony punkt startowy nie został zapisany.':''));}catch(e){notice('Nie udało się zapisać: '+e.message);}});
+$('reset').addEventListener('click',()=>{if(!confirm('Utworzyć pustą wyprawę? Niezapisane zmiany znikną.'))return;remember();trip=M.initial();mode='drive';selected=null;pending=null;draftStarts.drive=null;draftStarts.walk=null;render();notice('Nowa, pusta wyprawa. Zapisany projekt nie został nadpisany.');});
 $('gpx').addEventListener('click',()=>{
  if(!trip.itinerary.length){notice('Najpierw dodaj etap.');return;}
  if(!confirm('Plik GPX zawiera tylko szkic po linii prostej. Nie służy do nawigacji. Pobrać?'))return;
