@@ -126,7 +126,11 @@ let trip=M.initial(),history=[],mode='drive',selected=null,pending=null,map,line
 const draftStarts={drive:null,walk:null};
 const color=m=>m==='drive'?'#245eaf':'#248a50';
 function notice(t){$('info').textContent=t||'';$('info').hidden=!t;}
-function remember(){history.push(JSON.stringify(trip));if(history.length>30)history.shift();}
+function remember(){
+ // Snapshot both completed stages and UI editing context. A pending start is a separate undo step.
+ history.push(JSON.stringify({trip,draftStarts,mode,selected}));
+ if(history.length>30)history.shift();
+}
 function update(fn){
  try{const result=fn();remember();trip=result;render();return true;}
  catch(e){notice('Nie udało się: '+String(e.message||e));return false;}
@@ -227,7 +231,8 @@ function render(){
 }
 function selectMapAction(action,point){
  if(action.type==='create-start'){
-  // Start must be visible immediately; choosing a goal requires an explicit click on "Cel".
+  // A start marker is a full, separately undoable user action.
+  remember();
   draftStarts[action.mode]=point;
   pending=null;render();
   notice('Start zaznaczony na mapie. Naciśnij „Cel”, aby wybrać miejsce docelowe.');
@@ -265,7 +270,20 @@ $('trip-overview').addEventListener('toggle',()=>{$('edit-btn').setAttribute('ar
 $('new-stage').addEventListener('click',beginNew);
 for(const m of ['drive','walk'])$('show-'+m).addEventListener('change',e=>update(()=>M.toggle(trip,m,e.target.checked)));
 $('trip-name').addEventListener('change',e=>{const v=e.target.value;update(()=>{const t=M.check(trip);t.name=v.trim().slice(0,100)||'Nowa wyprawa';return t;});});
-$('undo').addEventListener('click',()=>{if(!history.length)return;trip=M.check(JSON.parse(history.pop()));pending=null;selected=null;render();notice('Cofnięto ostatnią zmianę.');});
+$('undo').addEventListener('click',()=>{
+ if(!history.length)return;
+ const previous=JSON.parse(history.at(-1));
+ const restored=M.check(previous.trip);
+ history.pop();
+ trip=restored;
+ draftStarts.drive=previous.draftStarts&&previous.draftStarts.drive||null;
+ draftStarts.walk=previous.draftStarts&&previous.draftStarts.walk||null;
+ mode=['drive','walk'].includes(previous.mode)?previous.mode:'drive';
+ selected=previous.selected&&trip.legs[previous.selected]?previous.selected:null;
+ pending=null;
+ render();
+ notice(draftStarts[mode]&&!current()?'Cofnięto ostatnią zmianę. Start pozostał na mapie — możesz ponownie wybrać cel.':'Cofnięto ostatnią zmianę.');
+});
 $('save').addEventListener('click',()=>{try{const t=M.check(trip);localStorage.setItem(KEY,JSON.stringify(t));notice('Zapisano ukończone etapy w tym podglądzie testowym.'+((draftStarts.drive||draftStarts.walk)?' Niedokończony punkt startowy nie został zapisany.':''));}catch(e){notice('Nie udało się zapisać: '+e.message);}});
 $('reset').addEventListener('click',()=>{if(!confirm('Utworzyć pustą wyprawę? Niezapisane zmiany znikną.'))return;remember();trip=M.initial();mode='drive';selected=null;pending=null;draftStarts.drive=null;draftStarts.walk=null;render();notice('Nowa, pusta wyprawa. Zapisany projekt nie został nadpisany.');});
 $('gpx').addEventListener('click',()=>{
