@@ -309,6 +309,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-trip-point-label{flex:1 1 100%;font-size:13px;overflow-wrap:anywhere}
 .nt-trip-mini{flex:0 0 48px;min-width:48px;width:auto;min-height:42px;margin:0;padding:7px;background:#334e3d;color:#fff;border:1px solid #64866b}
 .nt-trip-summary{font-weight:700;font-size:13px}
+.nt-trip-fit{margin:0 0 8px;min-height:42px}
 .nt-trip-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .nt-trip-actions button{margin:0;min-height:48px}
 #nt-trip-new{grid-column:1 / -1}
@@ -339,6 +340,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   </div>
   <button type="button" id="nt-trip-pick">＋ Wskaż punkt trasy na mapie</button>
   <p class="nt-trip-summary" id="nt-trip-summary"></p>
+  <button type="button" id="nt-trip-fit" class="secondary nt-trip-fit">◎ Pokaż całą wyprawę</button>
   <p class="nt-trip-help" id="nt-trip-draft-count"></p>
   <ol id="nt-trip-points" class="nt-trip-points"></ol>
   <div class="nt-trip-actions"><button type="button" id="nt-trip-save">Zapisz lokalnie</button><button type="button" id="nt-trip-export" class="secondary">Eksport GPX</button><button type="button" id="nt-trip-new" class="secondary">Nowa wyprawa</button></div>
@@ -1561,7 +1563,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   syncVisualViewport();
   try{
     if(map&&window.NordicTripPanel){
-      tripPanel=window.NordicTripPanel.mount({map,Leaflet:L,button:el('nt-open-trip'),notice:text=>message('map-action-status',text)});
+      tripPanel=window.NordicTripPanel.mount({map,Leaflet:L,button:el('nt-open-trip'),notice:text=>message('map-action-status',text),onOpen:()=>{revealMapViewport();if(!layersSheet.hidden)closeLayers();}});
     }else if(map){message('map-action-status','Planer nie został załadowany. Spróbuj odświeżyć stronę.',true);}
   }catch(_error){message('map-action-status','Nie udało się uruchomić planera wypraw. Pozostałe funkcje mapy działają niezależnie.',true);}
   let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
