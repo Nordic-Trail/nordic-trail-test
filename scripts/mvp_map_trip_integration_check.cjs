@@ -28,7 +28,7 @@ test('existing staging map keeps core features',()=>{
   assert.ok(app.includes("db.from('map_points')"));
 });
 test('trip editor stays locally stored and keeps GPX safety messaging',()=>{
-  for(const marker of ['I.load(root.localStorage)','I.save(root.localStorage,trip,routes)','I.gpx(trip,routes)','handleMapClick(event)','active=true','active=false','event.originalEvent'])assert.ok(panel.includes(marker),marker);
+  for(const marker of ['I.load(root.localStorage)','I.save(root.localStorage,trip,routes)','I.gpx(trip,routes)','handleMapClick(event)','active=true','active=false','e.originalEvent'])assert.ok(panel.includes(marker),marker);
   assert.ok(panel.includes('Nie wszystkie odcinki')&&panel.includes('GPX'));
   assert.ok(app.includes('bez zapisu w Supabase'));
 });
