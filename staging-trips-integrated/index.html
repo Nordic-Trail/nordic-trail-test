@@ -88,7 +88,9 @@ const M=window.NordicTripModel,R=window.NordicRoutingCore,I=window.NordicIntegra
 const el=id=>document.getElementById(id);
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null;
-let busy=false,calls=0,lastRequestTime=0;
+let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',showResults=false;
+const history=[];
+function remember(){history.push({trip:JSON.parse(JSON.stringify(trip)),routes:JSON.parse(JSON.stringify(routes)),showResults});if(history.length>25)history.shift();}
 function message(id,text,error=false){
  const node=el(id);node.textContent=text;node.classList.toggle('error',error);node.hidden=false;
 }
@@ -99,16 +101,18 @@ function button(name,callback,disabled=false){
  b.className='secondary';b.disabled=disabled;b.addEventListener('click',callback);return b;
 }
 function pick(yes){
- picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt na mapie';
+ picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt początkowy';
+ el('add-drive-stage').classList.toggle('active',yes&&pendingMode==='drive');
+ el('add-walk-stage').classList.toggle('active',yes&&pendingMode==='walk');
  el('cancel-pick').hidden=!yes;
  if(map)map.getContainer().style.cursor=yes?'crosshair':'';
 }
 function setBusy(value){
  busy=value;
- for(const id of ['start-pick','cancel-pick','save-point','save-local','export-gpx','new-trip','compute-routes','clear-routes']){
+ for(const id of ['start-pick','cancel-pick','save-point','save-local','export-gpx','new-trip','compute-routes','clear-routes','add-drive-stage','add-walk-stage','undo-step','cancel-planning']){
   el(id).disabled=value;
  }
- if(!value)el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;
+ if(!value){el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;el('undo-step').disabled=!history.length;}
 }
 function closeEditor(){selected=null;el('editor').hidden=true;}
 function dataSegments(){return I.pack(trip,routes).routes;}
@@ -190,6 +194,10 @@ function refresh(){
     km(list.filter(s=>s.status==='draft').reduce((n,s)=>n+s.km,0))+' szkic';
  }
  el('count').textContent=String(trip.waypoints.length);
+ el('route-results').hidden=!showResults;
+ el('start-pick').hidden=trip.waypoints.length>0;
+ for(const id of ['add-drive-stage','add-walk-stage'])el(id).disabled=busy||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
+ el('undo-step').disabled=busy||!history.length;
  el('drive-km').textContent=stat('drive');el('walk-km').textContent=stat('walk');
  el('start-pick').disabled=busy||trip.waypoints.length>=M.MAX_POINTS;
  el('empty').hidden=trip.waypoints.length>0;
@@ -216,7 +224,7 @@ function refresh(){
 }
 function modify(fn){
  if(busy){message('notice','Trwa obliczanie tras. Zmiana niedostępna.',true);return false;}
- try{trip=fn();routes=I.routesFor(trip,routes);clearStatus();refresh();return true;}
+ try{const next=fn(),nextRoutes=I.routesFor(next,routes);remember();trip=next;routes=nextRoutes;clearStatus();refresh();return true;}
  catch(error){message('notice',String(error.message||error),true);return false;}
 }
 function edit(id){
@@ -260,7 +268,7 @@ async function calculate(){
  if(missing.length>MAX_SEGMENTS||missing.length>MAX_CALLS-calls){
   message('routing-status','Limit testu: 4 odcinki i 6 zapytań na sesję.',true);return;
  }
- setBusy(true);
+ remember();showResults=true;setBusy(true);
  let done=0,errors=0,reason='';
  try{
   for(let i=0;i<missing.length;i++){
@@ -286,12 +294,25 @@ el('fit-trip').addEventListener('click',()=>{
 });
 el('compute-routes').addEventListener('click',calculate);
 el('clear-routes').addEventListener('click',()=>{
- if(busy)return;routes=Object.create(null);refresh();fit();
- message('routing-status','Pokazano tylko szkic. Zapis lokalny nie został zmieniony.');
+ if(busy)return;
+ if(!Object.keys(routes).length){message('routing-status','Trasa jest już szkicem.');return;}
+ if(!confirm('Przywrócić szkic? Wyznaczone odcinki znikną z bieżącej edycji.'))return;
+ remember();routes=Object.create(null);showResults=false;refresh();fit();
+ message('routing-status','Przywrócono szkic. Zapis lokalny nie został zmieniony.');
 });
-el('start-pick').addEventListener('click',()=>{
- if(busy)return;closeEditor();pick(true);message('notice','Dotknij pustego miejsca na mapie.');
+el('undo-step').addEventListener('click',()=>{if(busy||!history.length)return;const prev=history.pop();trip=prev.trip;routes=prev.routes;showResults=prev.showResults;closeEditor();pick(false);refresh();fit();message('notice','Cofnięto ostatnią zmianę.');});
+el('cancel-planning').addEventListener('click',()=>{
+ if(busy)return;
+ if(picking){pick(false);message('notice','Anulowano wybór punktu.');return;}
+ if(selected){closeEditor();refresh();message('notice','Anulowano edycję.');return;}
+ if(!confirm('Przywrócić ostatnią zapisaną wyprawę? Niezapisane zmiany zostaną utracone.'))return;
+ try{const saved=I.load(localStorage);trip=saved.trip;routes=saved.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');refresh();fit();message('notice','Przywrócono zapis lokalny.');}
+ catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
+el('start-pick').addEventListener('click',()=>{if(busy)return;pendingMode='drive';closeEditor();pick(true);message('notice','Wskaż punkt początkowy na mapie.');});
+for(const [id,mode] of [['add-drive-stage','drive'],['add-walk-stage','walk']]){
+ el(id).addEventListener('click',()=>{if(busy||!trip.waypoints.length)return;pendingMode=mode;closeEditor();pick(true);message('notice','Wskaż następny punkt etapu '+(mode==='walk'?'pieszego.':'samochodowego.'));});
+}
 el('cancel-pick').addEventListener('click',()=>{if(!busy){pick(false);message('notice','Anulowano.');}});
 el('save-point').addEventListener('click',()=>{
  if(!selected||busy)return;
@@ -328,7 +349,7 @@ el('export-gpx').addEventListener('click',()=>{
 });
 el('new-trip').addEventListener('click',()=>{
  if(busy||!confirm('Utworzyć pustą wyprawę? Niezapisane zmiany znikną.'))return;
- trip=M.emptyTrip();routes=Object.create(null);
+ remember();trip=M.emptyTrip();routes=Object.create(null);showResults=false;
  closeEditor();pick(false);refresh();
  message('action-status','Nowa wyprawa. Poprzedni zapis v1/v2 nie został usunięty.');
 });
@@ -336,6 +357,7 @@ try{
  const loaded=I.load(localStorage);trip=loaded.trip;routes=loaded.routes;
  if(loaded.from==='v1')message('notice','Wczytano starszą wyprawę v1 bez jej zmiany.');
  if(loaded.from==='v2'){
+  showResults=segments().some(x=>x.status==='routed');
   message('notice','Przywrócono wyprawę v2 i obliczone trasy.');
   const saved=segments().filter(s=>s.status==='routed').length;
   message('routing-status',saved
@@ -358,7 +380,7 @@ try{
   const n=trip.waypoints.length;
   const added=modify(()=>M.add(trip,{lat:Number(event.latlng.lat.toFixed(6)),
    lon:Number(event.latlng.lng.toFixed(6)),name:n===0?'Start':'Punkt '+(n+1),
-   kind:n===0?'start':'stop',mode:n===0?'none':'drive'}));
+   kind:n===0?'start':'stop',mode:n===0?'none':pendingMode}));
   pick(false);
   if(added){
    fit();edit(trip.waypoints[trip.waypoints.length-1].id);
