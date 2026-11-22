@@ -72,13 +72,11 @@ h3{font-size:15px;margin:13px 0 6px}
 <section class="card"><h2>Warstwy</h2><label class="layer"><input id="visible-drive" type="checkbox" checked> Samochód</label><label class="layer"><input id="visible-walk" type="checkbox" checked> Pieszo</label><p class="hint">Ukrywanie odcinków nie usuwa punktów.</p></section>
 <section class="card" id="trip-edit-section" hidden><h2>Edycja trasy</h2><p class="hint">Zmiana kolejności wpływa na przebieg wyprawy. Punkty możesz edytować, przesuwać i usuwać.</p><h3>Kolejność punktów</h3><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p>
  <details id="advanced-route"><summary>Przywróć szkic trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details></section>
-<section class="card"><h2>Wyznaczanie trasy OSM</h2>
-<p class="warning">Wynik nie jest nawigacją. OSM nie gwarantuje legalnego przejazdu samochodem, otwartego szlabanu ani możliwości biwakowania.</p>
+<section class="card" aria-label="Wyznaczanie trasy">
 <label class="layer"><input id="route-consent" type="checkbox"> Zgadzam się wysłać współrzędne punktów i typ podróży na publiczny demonstracyjny serwer Valhalla/FOSSGIS. Nie wysyłamy nazw ani danych konta.</label>
 <div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg>Wyznacz trasę</button></div>
 <div class="buttons"><button type="button" id="undo-step" class="secondary" disabled><svg class="ui-icon" aria-hidden="true"><use href="#nt-undo"/></svg>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
-<p id="routing-status" role="status" aria-live="polite">Nie obliczono jeszcze trasy po OSM.</p>
-<p class="hint">Maksymalnie 4 odcinki i 6 zapytań na sesję. Brak automatycznych ponowień.</p></section>
+<p id="routing-status" role="status" aria-live="polite" hidden></p></section>
 <section class="card"><h2>Zapis i eksport</h2>
 <div class="export-actions"><button id="save-local" type="button">Zapisz</button><div class="export-stack"><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><p class="small-note">Plik GPX — do wykorzystania w innych aplikacjach i urządzeniach.</p></div></div>
  <div class="buttons"><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
@@ -370,6 +368,7 @@ el('export-gpx').addEventListener('click',()=>{
 el('new-trip').addEventListener('click',()=>{
  if(busy||!confirm('Utworzyć pustą wyprawę? Niezapisane zmiany znikną.'))return;
  remember();trip=M.emptyTrip();routes=Object.create(null);showResults=false;
+ el('routing-status').hidden=true;el('routing-status').textContent='';
  closeEditor();pick(false);refresh();
  message('action-status','Nowa wyprawa. Poprzedni zapis v1/v2 nie został usunięty.');
 });
@@ -380,9 +379,7 @@ try{
   showResults=segments().some(x=>x.status==='routed');
   message('notice','Przywrócono wyprawę v2 i obliczone trasy.');
   const saved=segments().filter(s=>s.status==='routed').length;
-  message('routing-status',saved
-   ?'✓ Przywrócono '+saved+' obliczonych odcinków OSM. Nie trzeba ponownie wysyłać współrzędnych. Dostępność dróg pozostaje niezweryfikowana.'
-   :'Wczytano wyprawę v2. Nie ma zapisanych obliczonych odcinków OSM.');
+  if(saved)message('routing-status','✓ Przywrócono '+saved+' wyznaczonych odcinków OSM. Dostępność dróg pozostaje niezweryfikowana.');
  }
 }catch(_){trip=M.emptyTrip();routes=Object.create(null);
  message('notice','Nie udało się odczytać zapisu; stare dane pozostają nietknięte.',true);
