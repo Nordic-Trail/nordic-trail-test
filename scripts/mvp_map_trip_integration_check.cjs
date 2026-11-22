@@ -40,6 +40,15 @@ test('save confirmation is visible without scrolling and failure is not a succes
   assert.ok(panel.includes("saveFeedback('dirty')"));
   assert.ok(panel.indexOf("saveFeedback('saved')")<panel.indexOf("}catch(_error){saveFeedback('error')"));
 });
+test('saved trips automatically fit within the unobscured map',()=>{
+  assert.ok(app.includes('id="nt-trip-fit"'));
+  assert.ok(panel.includes("el('nt-trip-fit').addEventListener('click',focusTrip)"));
+  assert.ok(panel.includes('if(trip.waypoints.length)focusTrip()'));
+  assert.ok(panel.includes('paddingBottomRight:[rightPadding,bottomPadding]'));
+  assert.ok(panel.includes('map.fitBounds(bounds'));
+  assert.ok(panel.includes("typeof options.onOpen==='function'"));
+  assert.ok(app.includes('onOpen:()=>{revealMapViewport();'));
+});
 test('JavaScript scripts parse',()=>{
   new vm.Script(panel,{filename:'trip-panel.js'});
   const inline=[...app.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(s=>s.trim());
