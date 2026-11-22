@@ -52,7 +52,7 @@ button.active{outline:2px solid var(--accent)}
 <label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
 <div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt początkowy</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj wybór punktu</button></div>
 <div class="stage-buttons"><button id="add-drive-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg>Dodaj etap samochodowy</button><button id="add-walk-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg>Dodaj etap pieszy</button></div>
-<p id="notice" role="status" aria-live="polite">Kliknij „Dodaj punkt na mapie”, a następnie wybierz miejsce.</p>
+<p id="notice" role="status" aria-live="polite">Wybierz punkt początkowy, a następnie dodaj etap samochodowy lub pieszy.</p>
 <div class="stat"><span>Punkty:</span><b id="count">0</b></div>
 <div id="route-results" hidden><div class="stat"><span>Samochód (OSM / szkic):</span><b id="drive-km">0 km</b></div><div class="stat"><span>Pieszo (OSM / szkic):</span><b id="walk-km">0 km</b></div><p class="hint">Dystanse obliczone z dróg OSM lub po linii prostej dla nieobliczonych szkiców.</p></div></section>
 <section class="card" id="editor" hidden><h2>Edytuj punkt</h2><p id="coords" class="hint"></p>
@@ -198,6 +198,7 @@ function refresh(){
  el('start-pick').hidden=trip.waypoints.length>0;
  for(const id of ['add-drive-stage','add-walk-stage'])el(id).disabled=busy||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
  el('undo-step').disabled=busy||!history.length;
+ el('export-gpx').disabled=busy||trip.waypoints.length<2;
  el('drive-km').textContent=stat('drive');el('walk-km').textContent=stat('walk');
  el('start-pick').disabled=busy||trip.waypoints.length>=M.MAX_POINTS;
  el('empty').hidden=trip.waypoints.length>0;
@@ -338,7 +339,7 @@ el('save-local').addEventListener('click',()=>{
  }catch(_){message('action-status','Nie udało się zapisać wyprawy v2.',true);}
 });
 el('export-gpx').addEventListener('click',()=>{
- if(busy)return;
+ if(busy||trip.waypoints.length<2)return;
  try{
   trip=M.renameTrip(trip,el('trip-name').value);
   const s=segments(),draft=s.filter(x=>x.status==='draft').length;
