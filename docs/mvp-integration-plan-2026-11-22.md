@@ -14,24 +14,30 @@ Jedna zrozumiała aplikacja dla pierwszych testerów **20–22 grudnia 2026**: m
 - `index.html` w katalogu głównym: starsza aplikacja używająca **innego projektu Supabase**. **Nie kopiować jej konfiguracji ani uwierzytelniania** do staging.
 - Lokalne prototypy Grödinge v5.2 / Botkyrka v6.2: wymagają osobnego importu po weryfikacji źródeł; nieobecność w repozytorium nie jest dowodem braku ich na komputerze.
 
-## Iteracja 1 — połączenie nawigacji (w tej gałęzi)
-Dodano wyłącznie link `Trasa` z `staging-app` do istniejącego `staging-trips-integrated`.
-Planer już ma link zwrotny do mapy.
-To **przejście między dwoma ekranami**, a nie jeszcze wspólny interfejs lub zapis do konta.
-Nie zmieniano Supabase, kluczy, RLS, danych, routingu, eksportu ani plików aplikacji głównej w `main`.
+## Iteracja 1 — wspólny tryb planowania na mapie (kod gotowy do testów urządzeń)
+W gałęzi zintegrowano z `staging-app/` tryb wyprawy:
+- Przycisk **Trasa** otwiera panel na **tej samej mapie Leaflet**, bez przeładowania strony.
+- W trybie wyboru można dodawać punkty, określać samochód/pieszo i zmieniać wybrane punkty.
+- Odcinki szkicowe są przerywane; samochodowe ciemnoniebieskie, piesze ciemnozielone.
+- Wspólny model danych `route-model.js` / `integration-model.js` zapisuje i odczytuje wyprawę **lokalnie**, pod istniejącym kluczem v2.
+- Eksport GPX wyraźnie informuje o szkicach po linii prostej, z osobnym potwierdzeniem.
+- Dodawanie punktów wyprawy nie korzysta z Supabase; kliknięcie w mapę w trybie planowania jest odseparowane od tworzenia punktów użytkownika.
+- Dotychczasowy planer z obliczaniem tras OSM nadal jest dostępny przez link w panelu. **Nie przenieśliśmy jeszcze wyznaczania geometrii po drogach do nowego panelu.**
+- Skrypt regresji `scripts/mvp_map_trip_integration_check.cjs` i workflow `mvp-map-trip-integration.yml` zostały dodane.
+- GitHub Actions: 4 najnowsze zestawy testów PASS w dniu 22 listopada: MVP Integration, OSM Click Isolation, OSM Layers i Mobile Map. **Brak jeszcze rzeczywistego testu Safari/Samsung.**
 
 ### Warunki zamknięcia iteracji 1
-- Link `Trasa` otwiera istniejący planer i powrót działa na telefonie i komputerze.
-- Dodawanie punktu z głównej mapy nadal działa, a kliknięcie w link nie dodaje punktu.
-- Planer zapisuje lokalnie i otwiera istniejącą wyprawę; GPX zachowuje dotychczasowy format.
-- Brak wysyłania danych wyprawy do Supabase; brak wpływu na sesję logowania w staging.
-- Automatyczne testy GitHub Actions PASS i test manualny Safari/Samsung PASS.
+- [x] Model lokalny i GPX zachowane według automatycznych testów.
+- [x] Istniejące testy OSM, izolacji kliknięć i mobilnej mapy — PASS.
+- [ ] Zweryfikować w Safari i na Samsungu jedną mapę + otwieranie panelu, wybieranie punktów, zapis, ponowne otwarcie i GPX.
+- [ ] Zweryfikować, że tryb planowania nie powoduje utworzenia punktu w bazie przy zalogowanym użytkowniku.
+- [ ] Ocenić dostępność UI/UX na urządzeniu i dopiero wtedy zatwierdzić zamknięcie etapu.
 
-## Iteracja 2 — właściwe scalanie (nie rozpoczęto)
-1. Uzgodnić jeden model wyprawy, zachowując czytelne rozdzielenie danych konta i danych lokalnych.
-2. Włączyć planer do wspólnego interfejsu mapy; jedna mapa i nawigacja bez dublowania obsługi Leaflet.
-3. Zapewnić bezpieczny zapis/odczyt i GPX; nie migrować danych użytkowników bez testów i decyzji.
-4. Testy regresyjne funkcji punktów, historii moderacji, tras i bezpieczeństwa.
+## Iteracja 2 — geometra tras OSM i stabilizacja (nieukończona)
+1. Włączyć do wspólnego panelu istniejący mechanizm routingu z wyraźną zgodą na wysłanie współrzędnych; zachować limity demonstracyjnego serwera.
+2. Przetestować przeliczenie po zmianie punktu, porównanie przebiegu i klasyfikację odcinków.
+3. Sprawdzić lokalny zapis i eksport GPX przed oraz po obliczeniu trasy; nie migrować danych użytkownika bez decyzji.
+4. Testy Safari/Samsung, bezpieczeństwa regresji oraz zgodności z modułem kont i moderacji.
 
 ## Ryzyka blokujące wydanie
 - Zewnętrzny demonstracyjny routing Valhalla/FOSSGIS nie jest gwarantowanym serwisem dla produkcji.
