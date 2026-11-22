@@ -29,18 +29,32 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .group-menu{display:grid;gap:6px;min-width:190px;color:#1c3023}
 .group-menu button{display:block;width:100%;text-align:left;font-size:13px;min-height:38px}
 @media(max-width:800px){main{display:block;padding:8px}#map{height:47dvh;min-height:260px}.panel{margin-top:10px}header{padding:9px;font-size:13px}}
+.ui-icon{width:22px;height:22px;fill:currentColor;flex:none;vertical-align:middle}
+button .ui-icon{margin-right:5px}.stage-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.stage-buttons button{min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;line-height:1.15}
+.stage-buttons .ui-icon{width:25px;height:25px;margin-right:0}
+#clear-routes{margin-top:8px}.small-note{font-size:12px;color:#c0cdc0;text-align:center;margin:5px 0 0}
+#advanced-route{margin:8px 0;font-size:13px}#advanced-route summary{cursor:pointer;padding:5px}
+button.active{outline:2px solid var(--accent)}
 </style></head>
-<body><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a href="../staging-app/">Powrót do mapy</a></header>
+<body><svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+<symbol id="nt-car" viewBox="0 0 64 64"><path fill="currentColor" d="M17 13h30l7 15v22h-6v6h-9v-6H25v6h-9v-6h-6V28l7-15Zm4 7-4 10h30l-4-10H21ZM13 35v11h38V35H13Z"/><circle cx="21" cy="40" r="4" fill="#1c3325"/><circle cx="43" cy="40" r="4" fill="#1c3325"/><path d="M28 36v8m4-8v8m4-8v8" stroke="#1c3325" stroke-width="2.7" stroke-linecap="round"/></symbol>
+<symbol id="nt-walker" viewBox="0 0 64 64"><circle fill="currentColor" cx="32" cy="9" r="5"/><path fill="currentColor" d="M25 17c-3 1-5 4-7 9l-5 12c-.8 2 .2 4 2.2 4.8 2 .8 4-.2 4.8-2.2l5-10 4 5-7 19a4 4 0 0 0 7.5 2.8l6-15 9 16a4 4 0 1 0 7-4l-11-21-3-10 8 8 10 4a3.6 3.6 0 0 0 2.7-6.7l-10-4-10-11c-3-3-9-3-13-1Z"/></symbol>
+<symbol id="nt-trail" viewBox="0 0 64 64"><path fill="currentColor" d="M14 5 3 23h5L1 35h10v8h7v-8h10l-7-12h5L14 5Zm20 11-8 13h4l-5 9h7v6h5v-6h7l-5-9h4L34 16Z"/><path d="M6 55c12-10 19-2 30-9 11-6-1-12 12-15" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="5 7"/><path fill="currentColor" fill-rule="evenodd" d="M52 4a10 10 0 0 0-10 10c0 7 10 18 10 18s10-11 10-18A10 10 0 0 0 52 4Zm0 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></symbol>
+<symbol id="nt-route" viewBox="0 0 64 64"><path d="M13 50c10-2 10-14 23-16 9-2 9-11 14-17" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="4 7"/><path fill="currentColor" fill-rule="evenodd" d="M13 33a10 10 0 0 0-10 10c0 7 10 18 10 18s10-11 10-18a10 10 0 0 0-10-10Zm0 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM50 2a10 10 0 0 0-10 10c0 7 10 18 10 18s10-11 10-18A10 10 0 0 0 50 2Zm0 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></symbol>
+<symbol id="nt-undo" viewBox="0 0 64 64"><path d="m25 15-15 14 15 14M12 29h29c13 0 15 17 2 20" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="nt-cancel" viewBox="0 0 64 64"><path d="m17 17 30 30M47 17 17 47" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></symbol>
+<symbol id="nt-download" viewBox="0 0 64 64"><path d="M32 7v34m-12-12 12 12 12-12M12 43v13h40V43" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a href="../staging-app/">Powrót do mapy</a></header>
 <main><section aria-label="Mapa planowania"><div id="map"></div><div class="buttons"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
 <div class="panel">
 <section class="card"><h1>Zaplanuj wyprawę</h1>
 <label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
-<div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt na mapie</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj</button></div>
+<div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt początkowy</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj wybór punktu</button></div>
+<div class="stage-buttons"><button id="add-drive-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg>Dodaj etap samochodowy</button><button id="add-walk-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg>Dodaj etap pieszy</button></div>
 <p id="notice" role="status" aria-live="polite">Kliknij „Dodaj punkt na mapie”, a następnie wybierz miejsce.</p>
 <div class="stat"><span>Punkty:</span><b id="count">0</b></div>
-<div class="stat"><span>Samochód (OSM / szkic):</span><b id="drive-km">0 km</b></div>
-<div class="stat"><span>Pieszo (OSM / szkic):</span><b id="walk-km">0 km</b></div>
-<p class="hint">Dystanse obliczone z dróg OSM lub po linii prostej dla nieobliczonych szkiców.</p></section>
+<div id="route-results" hidden><div class="stat"><span>Samochód (OSM / szkic):</span><b id="drive-km">0 km</b></div><div class="stat"><span>Pieszo (OSM / szkic):</span><b id="walk-km">0 km</b></div><p class="hint">Dystanse obliczone z dróg OSM lub po linii prostej dla nieobliczonych szkiców.</p></div></section>
 <section class="card" id="editor" hidden><h2>Edytuj punkt</h2><p id="coords" class="hint"></p>
 <label for="point-name">Nazwa</label><input id="point-name" maxlength="80">
 <label for="point-kind">Rodzaj</label><select id="point-kind"><option value="start">Start</option><option value="parking">Parking</option><option value="stop">Postój</option><option value="view">Widok</option><option value="camp">Biwak</option><option value="finish">Meta</option></select>
@@ -51,12 +65,14 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 <section class="card"><h2>Wyznaczanie trasy OSM</h2>
 <p class="warning">Wynik nie jest nawigacją. OSM nie gwarantuje legalnego przejazdu samochodem, otwartego szlabanu ani możliwości biwakowania.</p>
 <label class="layer"><input id="route-consent" type="checkbox"> Zgadzam się wysłać współrzędne punktów i typ podróży na publiczny demonstracyjny serwer Valhalla/FOSSGIS. Nie wysyłamy nazw ani danych konta.</label>
-<div class="buttons"><button type="button" id="compute-routes">Wyznacz trasę po OSM</button><button type="button" id="clear-routes" class="secondary">Pokaż szkic</button></div>
+<div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg>Wyznacz trasę</button></div>
+<div class="buttons"><button type="button" id="undo-step" class="secondary" disabled><svg class="ui-icon" aria-hidden="true"><use href="#nt-undo"/></svg>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
+<details id="advanced-route"><summary>Opcje edycji trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details>
 <p id="routing-status" role="status" aria-live="polite">Nie obliczono jeszcze trasy po OSM.</p>
 <p class="hint">Maksymalnie 4 odcinki i 6 zapytań na sesję. Brak automatycznych ponowień.</p></section>
 <section class="card"><h2>Zapis i eksport</h2>
-<div class="buttons"><button id="save-local" type="button">Zapisz lokalnie</button><button id="export-gpx" type="button" class="secondary">Eksport GPX</button><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div>
-<p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+<div class="buttons"><button id="save-local" type="button">Zapisz lokalnie</button><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div>
+<p class="small-note">Plik GPX — do wykorzystania w innych aplikacjach i urządzeniach.</p><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
 <p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></section>
 <section class="card"><h2>Ważne ograniczenia</h2><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></section>
 </div></main>
