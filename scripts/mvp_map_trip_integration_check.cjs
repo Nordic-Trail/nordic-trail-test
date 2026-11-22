@@ -49,6 +49,13 @@ test('saved trips automatically fit within the unobscured map',()=>{
   assert.ok(panel.includes("typeof options.onOpen==='function'"));
   assert.ok(app.includes('onOpen:()=>{revealMapViewport();'));
 });
+test('save and export stay ahead of the scrollable waypoint list',()=>{
+  const ids=['nt-trip-save','nt-trip-export','nt-trip-status','nt-trip-points'];
+  const positions=ids.map(id=>app.indexOf('id="'+id+'"'));
+  assert.ok(positions.every(p=>p>=0), 'all actions and waypoint list exist');
+  assert.ok(positions.every((p,i)=>i===0||positions[i-1]<p), 'actions must precede the growing list');
+  assert.ok(app.includes('.nt-trip-actions{position:sticky;bottom:0;'));
+});
 test('JavaScript scripts parse',()=>{
   new vm.Script(panel,{filename:'trip-panel.js'});
   const inline=[...app.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(s=>s.trim());
