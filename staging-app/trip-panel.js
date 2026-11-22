@@ -10,6 +10,7 @@ function mount(options){
   const el=id=>root.document.getElementById(id);
   const panel=el('nt-trip-panel'),list=el('nt-trip-points'),status=el('nt-trip-status');
   const name=el('nt-trip-name'),mode=el('nt-trip-next-mode'),kind=el('nt-trip-next-kind');
+  const saveButton=el('nt-trip-save');
   const mapContainer=map.getContainer(),layers=L.layerGroup();
   let active=false,picking=false,trip=M.emptyTrip(),routes=Object.create(null),dirty=false;
   let oldCursor='';
@@ -29,7 +30,19 @@ function mount(options){
     picking=false;
   }
   function distanceLabel(v){return Number(v).toLocaleString('pl-PL',{maximumFractionDigits:1,minimumFractionDigits:1})+' km';}
-  function invalidateRoutes(){routes=I.routesFor(trip,routes);dirty=true;}
+  function saveFeedback(state){
+    if(state==='saved'){
+      saveButton.textContent='✓ Zapisano';
+      saveButton.title='Wyprawa zapisana lokalnie w tej przeglądarce';
+    }else if(state==='error'){
+      saveButton.textContent='Ponów zapis';
+      saveButton.title='Zapis nie powiódł się — spróbuj ponownie';
+    }else{
+      saveButton.textContent='Zapisz lokalnie';
+      saveButton.removeAttribute('title');
+    }
+  }
+  function invalidateRoutes(){routes=I.routesFor(trip,routes);dirty=true;saveFeedback('dirty');}
   function render(){
     name.value=trip.name;
     list.replaceChildren();layers.clearLayers();
@@ -122,8 +135,8 @@ function mount(options){
     try{
       trip=M.renameTrip(trip,name.value);
       I.save(root.localStorage,trip,routes);
-      dirty=false;render();tell('Zapisano wyprawę lokalnie w tej przeglądarce.');
-    }catch(_error){tell('Zapis lokalny nie powiódł się. Sprawdź dostępność pamięci.',true);}
+      dirty=false;render();saveFeedback('saved');tell('Zapisano wyprawę lokalnie w tej przeglądarce.');
+    }catch(_error){saveFeedback('error');tell('Zapis lokalny nie powiódł się. Sprawdź dostępność pamięci.',true);}
   }
   function exportGpx(){
     try{
@@ -143,9 +156,10 @@ function mount(options){
   }
   function newTrip(){
     if(trip.waypoints.length&&!root.confirm('Rozpocząć nowy szkic? Niezapisane zmiany zostaną utracone.'))return;
-    trip=M.emptyTrip();routes=Object.create(null);dirty=true;render();
+    trip=M.emptyTrip();routes=Object.create(null);dirty=true;saveFeedback('dirty');render();
     tell('Nowa wyprawa. Wcześniejszy zapis w przeglądarce pozostaje bez zmian do naciśnięcia „Zapisz lokalnie”.');
   }
+  name.addEventListener('input',()=>{dirty=true;saveFeedback('dirty');});
   button.addEventListener('click',open);
   el('nt-trip-close').addEventListener('click',close);
   el('nt-trip-pick').addEventListener('click',startPick);
