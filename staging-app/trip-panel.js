@@ -42,6 +42,38 @@ function mount(options){
       saveButton.removeAttribute('title');
     }
   }
+  function focusTrip(){
+    const points=trip.waypoints;
+    if(!points.length){
+      tell('Dodaj punkt, aby pokazać wyprawę na mapie.');
+      return false;
+    }
+    try{
+      map.invalidateSize({pan:false});
+      const size=map.getSize(),mapRect=mapContainer.getBoundingClientRect();
+      const visible=active&&!panel.hidden;
+      let rightPadding=20,bottomPadding=20;
+      if(visible){
+        const rect=panel.getBoundingClientRect();
+        if(root.innerWidth<=779){
+          // Keep markers in the upper, uncovered part of the map on a phone.
+          bottomPadding=Math.max(20,Math.min(
+            Math.ceil(mapRect.bottom-rect.top+20),Math.floor(size.y*.57)));
+        }else{
+          // Keep the route to the left of the desktop drawer.
+          rightPadding=Math.max(20,Math.min(
+            Math.ceil(mapRect.right-rect.left+20),Math.floor(size.x*.55)));
+        }
+      }
+      const bounds=L.latLngBounds(points.map(p=>[p.lat,p.lon]));
+      map.fitBounds(bounds,{animate:false,maxZoom:15,paddingTopLeft:[20,20],
+        paddingBottomRight:[rightPadding,bottomPadding]});
+      return true;
+    }catch(_error){
+      tell('Nie udało się dopasować mapy do wyprawy.',true);
+      return false;
+    }
+  }
   function invalidateRoutes(){routes=I.routesFor(trip,routes);dirty=true;saveFeedback('dirty');}
   function render(){
     name.value=trip.name;
@@ -96,7 +128,9 @@ function mount(options){
     if(!el('point-sheet').hidden){
       notice('Najpierw zamknij edytor punktu, aby otworzyć planer.');return;
     }
+    if(typeof options.onOpen==='function')options.onOpen();
     active=true;panel.hidden=false;map.addLayer(layers);syncButton();render();
+    if(trip.waypoints.length)focusTrip();
     tell(dirty?'Niezapisane zmiany w wyprawie.':'Szkic lokalny. Plan nie trafia do Supabase.');
   }
   function close(){
@@ -164,6 +198,7 @@ function mount(options){
   el('nt-trip-close').addEventListener('click',close);
   el('nt-trip-pick').addEventListener('click',startPick);
   el('nt-trip-save').addEventListener('click',save);
+  el('nt-trip-fit').addEventListener('click',focusTrip);
   el('nt-trip-export').addEventListener('click',exportGpx);
   el('nt-trip-new').addEventListener('click',newTrip);
   root.document.addEventListener('keydown',event=>{
