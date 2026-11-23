@@ -1426,7 +1426,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     if(osmLoadPromise)return osmLoadPromise;
     osmStatus('Wczytywanie statycznej paczki OSM Tumba–Lida…');
     osmLoadPromise=(async()=>{
-      const response=await fetch('data/tumba-lida.json',{method:'GET',credentials:'omit',cache:'no-store'});
+      const response=await fetch('../staging-app/data/tumba-lida.json',{method:'GET',credentials:'omit',cache:'no-store'});
       if(!response.ok)throw Error('Invalid snapshot status');
       const contents=await response.text();
       if(contents.length>120000)throw Error('OSM snapshot exceeds size limit');
