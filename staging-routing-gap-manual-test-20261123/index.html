@@ -293,6 +293,21 @@ function renderEndpointAudit(segs){
   else{
    const a=Math.round(item.start),b=Math.round(item.end);
    li.textContent='Odcinek '+item.index+'–'+(item.index+1)+': od punktu '+item.index+' — '+a+' m; do punktu '+(item.index+1)+' — '+b+' m'+(item.warning?' · WYMAGA SPRAWDZENIA':' · w progu testowym');
+   const seg=segs[item.index-1];
+   if(seg.mode==='walk'){
+    for(const [side,metres,num] of [['start',item.start,item.index],['end',item.end,item.index+1]]){
+     if(metres<=GAP_WARNING_METERS)continue;
+     const key=seg.key+'|'+side;
+     const control=document.createElement('button');control.type='button';
+     control.textContent=(manualGapDrafts[key]?'Popraw szkic':'Narysuj szkic')+' do punktu '+num+' ('+Math.round(metres)+' m)';
+     control.disabled=busy;control.addEventListener('click',()=>startManualGapSketch(seg.key,side));
+     li.appendChild(control);
+     if(manualGapDrafts[key]){
+      const tip=document.createElement('small');tip.textContent='Fioletowa linia to szkic, nie potwierdzone dojście; nie zostanie dodana do GPX.';
+      li.appendChild(tip);
+     }
+    }
+   }
   }
   list.appendChild(li);
  }
@@ -326,6 +341,8 @@ function redraw(){
    for(const [waypoint,snapped] of [[s.from,s.points[0]],[s.to,s.points[s.points.length-1]]]){
     const dist=distanceMeters(waypoint,snapped);
     if(dist<=GAP_WARNING_METERS)continue;
+    const side=waypoint===s.from?'start':'end';
+    if(manualGapDrafts[s.key+'|'+side]||activeGapDraft&&activeGapDraft.key===s.key+'|'+side)continue;
     const key=[waypoint.lat,waypoint.lon,snapped.lat,snapped.lon].map(v=>Number(v).toFixed(5)).join(':');
     if(drawnGaps.has(key))continue;
     drawnGaps.add(key);
@@ -337,6 +354,7 @@ function redraw(){
    }
   }
  });
+ renderManualGapLines();
  drawMarkers();
 }
 function drawMarkers(){
@@ -465,12 +483,14 @@ function download(filename,data){
  document.body.appendChild(link);link.click();link.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
-async function requestRoute(s){
+async function requestRoute(s,strictRadius=null){
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),14000);
  try{
+  const payload=R.request(s.from,s.to,s.mode);
+  if(strictRadius!==null)payload.locations=payload.locations.map(p=>({...p,radius:strictRadius}));
   const response=await fetch(ROUTER,{
    method:'POST',mode:'cors',headers:{'Content-Type':'application/json','X-Client-Id':'nordic-trail.github.io'},
-   body:JSON.stringify(R.request(s.from,s.to,s.mode)),signal:ctrl.signal,credentials:'omit',
+   body:JSON.stringify(payload),signal:ctrl.signal,credentials:'omit',
    cache:'no-store',referrerPolicy:'no-referrer'
   });
   if(response.status===429)throw Error('HTTP 429 — limit serwera demonstracyjnego.');
@@ -736,9 +756,14 @@ try{
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:19,attribution:'© OpenStreetMap contributors'
  }).addTo(map);
- lines=L.layerGroup().addTo(map);gapLines=L.layerGroup().addTo(map);pins=L.layerGroup().addTo(map);
+ lines=L.layerGroup().addTo(map);gapLines=L.layerGroup().addTo(map);manualGapLines=L.layerGroup().addTo(map);pins=L.layerGroup().addTo(map);
  map.on('zoomend moveend',drawMarkers);
  map.on('click',event=>{
+  if(activeGapDraft){
+   if(activeGapDraft.via.length>=20){showToast('Maksymalnie 20 załamań szkicu.',true);return;}
+   activeGapDraft.via.push(R.coord({lat:Number(event.latlng.lat.toFixed(6)),lon:Number(event.latlng.lng.toFixed(6))}));
+   redraw();updateGapSketchHint();return;
+  }
   if(!picking||busy)return;
   const n=trip.waypoints.length;
   const added=modify(()=>M.add(trip,{lat:Number(event.latlng.lat.toFixed(6)),
