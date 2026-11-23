@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://bairmdubhnodwplioxld.supabase.co; img-src 'self' data: https://tile.openstreetmap.org https://cdn.jsdelivr.net; base-uri 'none'; object-src 'none'; form-action 'none'; frame-src 'self'">
+<title>NORDIC TRAIL | STAGING — mapa i planer (integracja testowa)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{color-scheme:dark;--bg:#101b17;--card:#1b2b22;--line:#3d5547;--accent:#c8d49c;--ink:#f2f1e8;--muted:#b9c7bb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Arial,sans-serif}
+header{position:absolute;top:calc(10px + env(safe-area-inset-top));left:10px;z-index:900;pointer-events:none;padding:7px 9px;background:transparent;border:0;border-radius:0;box-shadow:none}
+header strong{font-size:14px;letter-spacing:.045em;text-shadow:0 1px 3px #06130ee8,0 0 7px #06130eb8}
+header small{display:block;color:#f4f6db;font-size:10px;letter-spacing:.07em;margin-top:1px;text-shadow:0 1px 3px #06130ef2,0 0 7px #06130ed9}
+main{margin:0;padding:0;max-width:none}
+.workspace{max-width:900px;margin:auto;padding:0 14px 52px}
+.workspace-nav{position:sticky;top:0;z-index:1100;display:flex;align-items:center;justify-content:flex-start;gap:10px;margin:0 -14px 12px;padding:10px 14px;background:#102019f4;border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.workspace-nav button{width:auto;min-width:106px;min-height:44px;margin:0;padding:8px 15px;border-radius:22px;font-size:14px}
+.card{border:1px solid var(--line);background:var(--card);border-radius:13px;padding:16px;margin:14px 0}
+h2{font-size:17px;margin:0 0 10px}
+p{line-height:1.5}
+.hint{color:var(--muted);font-size:13px}
+label{display:block;margin:10px 0 5px;font-weight:600;font-size:13px}
+input,button,select{width:100%;min-height:44px;border-radius:9px;font:inherit;padding:10px 12px}
+input,select{border:1px solid #66806b;background:#102019;color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{border:0;background:var(--accent);color:#172219;font-weight:750;cursor:pointer;margin-top:10px}
+button.secondary{background:#31463a;border:1px solid #5e7765;color:var(--ink)}
+button:disabled{opacity:.5;cursor:wait}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1 1 150px}
+.status{border-radius:8px;background:#293f31;padding:10px 12px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.status.error{background:#55302e;color:#ffdfd9}
+#map-section{position:relative;width:100%;height:100vh;height:100dvh;min-height:340px;margin:0;padding:0;border:0;border-radius:0;background:#203026;overflow:hidden}
+#map{height:100%;width:100%;min-height:0;max-height:none;border:0;border-radius:0;background:#203026}
+.map-top-actions{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:900}
+.map-top-actions button{margin:0;width:auto;min-width:52px;min-height:49px;padding:8px 12px;border-radius:13px;background:#203a2ff0;border:1px solid #607d66;color:var(--ink);box-shadow:0 3px 14px #1420178a}
+.map-toolbar{position:absolute;bottom:calc(38px + env(safe-area-inset-bottom));left:12px;right:12px;z-index:900;display:flex;justify-content:flex-end;align-items:center;gap:9px;pointer-events:none}
+.map-toolbar>button{width:auto;flex:0 1 auto;margin:0;padding:9px 14px;min-width:48px;min-height:48px;font-size:14px;background:#254b37eb;border:1px solid #85a586;color:var(--ink);border-radius:24px;box-shadow:0 4px 16px #1420179a;pointer-events:auto}
+.map-toolbar #add-point-btn{background:#96b47c;color:#102015;padding:10px 18px}
+#map-action-status{position:absolute;left:12px;right:12px;bottom:calc(100px + env(safe-area-inset-bottom));z-index:850;margin:0;background:#172720f2;border:1px solid #637e66}
+#map-status{margin-top:12px}
+#public-list-details{margin-top:12px}#public-list-details summary{cursor:pointer;color:var(--accent);font-weight:600;padding:8px 0;min-height:44px}
+@media(max-width:380px){.map-toolbar>button{font-size:12px;padding:9px 10px}.map-top-actions button{font-size:13px}}
+@media(min-width:780px){.map-toolbar{left:auto;right:22px;bottom:48px}.map-top-actions{right:22px}}
+#my-points{list-style:none;margin:12px 0;padding:0;display:grid;gap:9px}
+#my-points li{background:#263c30;border:1px solid #486451;border-radius:12px;padding:12px;line-height:1.5;overflow-wrap:anywhere}
+#my-points li span{display:block}
+.point-sheet{position:fixed;left:50%;bottom:var(--nt-visual-bottom,0px);z-index:1200;transform:translateX(-50%);width:min(100%,550px);max-height:min(85dvh,calc(var(--nt-visible-height,100dvh) - 110px));overflow-y:auto;overscroll-behavior:contain;background:#1b2b22;border:1px solid #718873;border-radius:22px 22px 0 0;padding:12px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -15px 45px #0009;animation:sheet-enter .2s ease-out}
+@keyframes sheet-enter{from{transform:translate(-50%,18px);opacity:.5}to{transform:translate(-50%,0);opacity:1}}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.sheet-header h2{margin:0;font-size:20px}
+.sheet-close{width:44px;min-height:44px;flex:0 0 44px;margin:0;padding:0;border-radius:50%;background:#31463a;color:var(--ink);border:1px solid #5e7765}
+.point-sheet #selected-coords{font-size:12px;margin:6px 0 10px;background:#243b2f;padding:8px 10px}
+.point-sheet .sheet-header{gap:10px}
+.sheet-controls{display:flex;align-items:center;gap:6px}
+.sheet-controls button{flex:0 0 44px;min-width:44px;width:44px;height:44px;margin:0;padding:0;background:#31463a;color:var(--ink);border:1px solid #5e7765;border-radius:50%;font-size:22px}
+.sheet-controls #toggle-sheet-btn{flex:0 0 auto;min-width:82px;width:auto;border-radius:22px;padding:0 12px;font-size:13px;font-weight:700}
+.sheet-coords summary,.note-details summary{cursor:pointer;color:var(--muted);font-size:13px;min-height:36px;padding:9px 0}
+.note-details{margin:6px 0}.note-details label{margin-top:4px}
+.point-sheet.is-collapsed{height:auto;max-height:none;overflow:hidden;padding-bottom:calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 25px #0008}
+.point-sheet.is-collapsed .sheet-header h2{font-size:16px}
+.point-sheet.is-collapsed .sheet-body{display:none!important}
+.sheet-body{padding-top:6px}
+#kind-picker>p{margin:3px 0 10px}
+#change-location-btn{min-height:44px;font-size:13px;margin-top:8px}
+.point-sheet .sheet-header h2{min-width:0;flex:1}
+@media(max-height:650px){.point-sheet{max-height:78dvh}}
+@media(max-width:779px) and (orientation:portrait){.point-sheet{max-height:min(76dvh,calc(var(--nt-visible-height,100dvh) - var(--nt-map-clearance,220px)))}}
+
+.kind-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 12px}
+.kind-option{margin:0;min-height:70px;padding:8px 5px;background:#30483b;border:1px solid #65836c;color:var(--ink);font-size:13px;line-height:1.2}
+.kind-option .kind-icon{display:block;font-size:23px;margin-bottom:5px}
+.sheet-kind-header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:10px}
+.sheet-kind-header button{width:auto;margin:0;min-height:44px;font-size:13px}
+#change-location-btn{margin-top:10px}
+@media(prefers-reduced-motion:reduce){.point-sheet{animation:none}}
+#points{font-size:13px;color:var(--muted);padding:0;margin:12px 0 0;list-style:none}
+#points li{padding:9px;border-bottom:1px solid var(--line)}
+#admin-queue-list{list-style:none;padding:0;margin:12px 0 0;font-size:13px}
+#admin-queue-list li{padding:10px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.note{border-left:3px solid var(--accent);padding-left:12px;color:var(--muted)}
+[hidden]{display:none!important}
+
+/* Approved minimal map design: transparent UI, accessible controls, no data changes. */
+:root{--nt-glass:rgba(20,42,30,.80);--nt-glass-icon:rgba(18,42,29,.28)}
+.map-top-actions{display:flex;align-items:center;gap:9px}
+.map-top-actions button{background:rgba(18,42,29,.44);border-color:rgba(233,245,224,.85);color:#fffef4;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.map-top-actions #open-layers-btn{display:grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;padding:0;background:var(--nt-glass-icon);border:1.5px solid rgba(241,249,228,.90);backdrop-filter:none;-webkit-backdrop-filter:none}
+#open-layers-btn svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px #06140de6)}
+#open-layers-btn[aria-expanded="true"]{background:rgba(33,62,42,.44)}
+.map-toolbar>button{background:rgba(18,42,29,.50);border-color:rgba(233,245,224,.85);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.map-toolbar #add-point-btn{background:rgba(150,180,124,.88);color:#102015}
+#map-action-status{background:rgba(20,42,30,.76);border-color:rgba(226,244,211,.78);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.point-sheet{background:var(--nt-glass);border-color:rgba(203,232,197,.77);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.sheet-close,.sheet-controls button{background:rgba(42,73,49,.56);color:#fffef4;border-color:rgba(225,241,215,.72)}
+.point-sheet #selected-coords{background:rgba(32,62,42,.64)}
+.kind-option{background:rgba(39,74,51,.65);border-color:rgba(188,222,182,.75)}
+.point-sheet .status{background:rgba(42,75,52,.70)}
+.leaflet-control-zoom.leaflet-bar{border:1px solid rgba(221,237,214,.75);border-radius:12px;overflow:hidden}
+.leaflet-control-zoom a,.leaflet-control-zoom a:focus{display:block;width:46px;height:46px;line-height:46px;color:#f5f8ee;background:rgba(18,42,29,.42);font-size:25px;font-weight:700;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.leaflet-control-zoom a:hover{color:#fff;background:rgba(32,61,40,.76)}
+.leaflet-control-zoom a.leaflet-disabled{color:#bcc5b6;background:rgba(26,43,33,.55)}
+.leaflet-control-attribution{font-size:10px!important;background:rgba(246,249,240,.74)!important;color:#14251c!important}
+.leaflet-control-attribution a{color:#143e61!important}
+html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}
+#map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16);touch-action:none}
+.nt-layers-sheet{--nt-offset:0px;position:fixed;left:50%;bottom:0;z-index:1180;transform:translate(-50%,var(--nt-offset));width:min(100%,550px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
+.nt-layers-sheet[data-dragging="true"]{transition:none}
+.nt-layers-sheet.is-collapsed{max-height:min(135px,28dvh);overflow:hidden}
+.nt-layers-sheet.is-collapsed .nt-layer-body{display:none}
+.nt-layer-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;min-height:38px;margin:-18px 0 8px;padding:0;background:transparent;border:0;border-radius:8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.nt-layer-handle::before{content:"";width:54px;height:6px;border-radius:9px;background:#b6cbb3}
+.nt-layer-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nt-layer-header h2{margin:0;font-size:22px}
+.nt-layer-close{width:48px;min-width:48px;min-height:48px;margin:0;padding:0;background:rgba(46,75,52,.62);border:1px solid rgba(218,237,209,.65);border-radius:12px;color:#fffef4;font-size:23px}
+.nt-layer-body{font-size:16px}
+.nt-layer-intro{font-size:14px;color:var(--muted);line-height:1.5;margin:10px 0}
+.nt-layer-option{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;min-height:70px;border-bottom:1px solid rgba(188,215,182,.34);font-weight:600;font-size:17px}
+.nt-layer-option small{display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:3px}
+.nt-layer-option input{width:26px;min-width:26px;height:26px;min-height:26px;margin:0;accent-color:#afc987}
+.nt-layer-note{font-size:13px;line-height:1.45;background:rgba(50,59,39,.70);border-left:3px solid #f3d98a;border-radius:7px;padding:11px;margin:14px 0 0}
+@media(prefers-reduced-motion:reduce){.nt-layers-sheet{transition:none}}
+@media(forced-colors:active){.nt-layers-sheet,.point-sheet,.map-top-actions button,.map-toolbar button,.leaflet-control-zoom a{backdrop-filter:none;-webkit-backdrop-filter:none}}
+
+/* Unified translucent design. The map tile layer and underlying page remain intact.
+   Same 28% foreground surface opacity as the approved Layers icon.
+   Contrast is preserved through borders, text, and soft background blur. */
+:root{
+ --nt-glass-icon:rgba(18,42,29,.28);
+ --nt-glass:rgba(18,42,29,.28);
+ --nt-glass-edge:rgba(231,245,219,.82);
+}
+.map-top-actions button:not(#open-layers-btn),
+.map-toolbar>button,
+.map-toolbar #add-point-btn,
+#map-action-status,
+.point-sheet,
+.nt-layers-sheet,
+.nt-layer-close,
+.sheet-close,
+.sheet-controls button,
+.kind-option,
+.point-sheet #selected-coords,
+.point-sheet .status,
+.nt-layer-note{
+ background:var(--nt-glass-icon);
+ border-color:var(--nt-glass-edge);
+ color:#f5f8ee;
+ backdrop-filter:blur(5px);
+ -webkit-backdrop-filter:blur(5px);
+ text-shadow:0 1px 2px rgba(5,18,11,.85);
+}
+.map-top-actions button:not(#open-layers-btn),
+.map-toolbar>button,
+.map-toolbar #add-point-btn,
+.nt-layer-close,
+.sheet-close,
+.sheet-controls button,
+.kind-option{
+ box-shadow:0 2px 10px rgba(5,18,11,.48);
+}
+#open-layers-btn{
+ background:var(--nt-glass-icon);
+ border-color:var(--nt-glass-edge);
+}
+#open-layers-btn[aria-expanded="true"]{background:rgba(18,42,29,.36)}
+.point-sheet,.nt-layers-sheet{
+ background:var(--nt-glass-icon);
+ border-color:var(--nt-glass-edge);
+ backdrop-filter:blur(7px) saturate(1.1);
+ -webkit-backdrop-filter:blur(7px) saturate(1.1);
+ box-shadow:0 -12px 36px rgba(4,16,10,.58);
+}
+.nt-layer-note{border-left:3px solid #f3d98a}
+/* Workspace surfaces do not sit over the map; retain a dark page backing,
+   while cards and controls follow the shared semi-transparent design. */
+.workspace-nav,
+.workspace .card,
+#my-points li,
+#admin-queue-list li,
+.workspace input:not([type="checkbox"]),
+.workspace select,
+.workspace button,
+.workspace .status,
+.workspace button.secondary{
+ background:var(--nt-glass-icon);
+ border:1px solid rgba(194,220,185,.70);
+ color:#f1f4ec;
+ box-shadow:0 1px 8px rgba(3,15,9,.28);
+}
+.workspace-nav{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.workspace .card{backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.workspace button:focus-visible,.workspace input:focus-visible,
+.map-top-actions button:focus-visible,.nt-layer-close:focus-visible{
+ outline:3px solid #f4f7db;outline-offset:3px;
+}
+.workspace .status.error,.point-sheet .status.error,#map-action-status.error{
+ background:rgba(105,32,28,.65);border-color:#f4b4a8;color:#fff0e7;
+}
+/* Strong visual differentiation for the principal action, without a solid tile. */
+.map-toolbar #add-point-btn{
+ border:2px solid #d3e6b9;
+ font-weight:800;
+}
+@media(forced-colors:active){
+ .point-sheet,.nt-layers-sheet,.workspace-nav,.workspace .card{
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+ }
+}
+/* Approved refinements: brighter microtext, Mapa aligned to the RIGHT,
+   and a slightly more transparent workspace header and cards. */
+:root{--muted:#e1ecd9}
+.workspace-nav{justify-content:flex-end;background:rgba(18,42,29,.20)}
+.workspace-nav #back-to-map-btn{margin-left:auto;min-width:106px;text-align:center}
+.workspace .card,#my-points li{background:rgba(18,42,29,.22)}
+.nt-layer-intro,.nt-layer-option small,.nt-layer-note,
+.workspace .hint,.workspace .note,.workspace .status,
+.point-sheet .hint,.point-sheet .note,
+.sheet-coords summary,.note-details summary{
+ color:#f1f6e9;text-shadow:0 1px 2px rgba(4,18,10,.90);
+}
+.nt-layer-intro,.nt-layer-option small,.workspace .hint,
+.point-sheet .hint,.sheet-coords summary,.note-details summary{
+ font-size:14px;
+}
+.nt-layer-note{font-size:14px;line-height:1.5}
+.workspace .card h2,.nt-layer-header h2{color:#fffef5}
+
+/* True glass: keep the existing OSM map visible behind the workspace. */
+#map-section{position:sticky;top:0;z-index:0}
+.workspace{
+ position:relative;z-index:1;background:rgba(9,24,17,.43);
+ backdrop-filter:blur(2.5px) saturate(.90);
+ -webkit-backdrop-filter:blur(2.5px) saturate(.90);
+ border-left:1px solid rgba(193,224,183,.48);
+ border-right:1px solid rgba(193,224,183,.48);
+}
+.workspace .card,#my-points li{background:rgba(18,42,29,.30);border-color:rgba(225,241,215,.82)}
+.workspace-nav{background:rgba(18,42,29,.32);border-color:rgba(213,235,206,.78)}
+.workspace-nav #back-to-map-btn{margin-left:auto}
+
+/* Read-only OSM trial: approved translucent controls; no interaction with Supabase. */
+.nt-osm-group{margin-top:14px;border-top:1px solid rgba(231,245,219,.56)}
+.nt-osm-area-btn{margin:12px 0 0;min-height:48px;background:rgba(18,42,29,.28);color:#fffef4;border:1px solid rgba(231,245,219,.82);border-radius:14px;font-weight:750;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.nt-osm-status{font-size:14px;line-height:1.55;color:#f1f6e9;margin:10px 0 0;text-shadow:0 1px 2px rgba(4,18,10,.86)}
+
+/* Read-only legend: native NT circles and the actual static OSM SVG glyphs. */
+.nt-map-legend{margin:12px 0 14px;border:1px solid rgba(203,232,197,.72);border-radius:13px;background:rgba(18,42,29,.25)}
+.nt-map-legend>summary{min-height:48px;padding:12px 12px;cursor:pointer;font-size:16px;font-weight:700;color:#fffef4}
+.nt-map-legend>summary:focus-visible{outline:3px solid #efd78c;outline-offset:2px;border-radius:10px}
+.nt-legend-body{padding:0 12px 12px}
+.nt-legend-body h3{font-size:14px;letter-spacing:.02em;color:#f5f8e8;margin:10px 0 6px}
+.nt-legend-body p{font-size:12px;line-height:1.5;color:#f0f5eb;margin:6px 0 9px}
+.nt-legend-list{list-style:none;padding:0;margin:0}
+.nt-legend-entry{display:flex;align-items:center;gap:11px;min-height:46px;padding:5px 0;border-bottom:1px solid rgba(213,237,207,.24)}
+.nt-legend-entry:last-child{border-bottom:0}
+.nt-legend-copy{flex:1;min-width:0}
+.nt-legend-copy strong{font-size:13px;display:block;line-height:1.3;font-weight:700}
+.nt-legend-copy small{font-size:11px;display:block;color:#e1ecd9;line-height:1.35;margin-top:2px}
+.nt-legend-pin{display:block;width:34px;height:34px;flex:0 0 34px;position:relative;overflow:visible}
+.nt-legend-pin .nt-osm-pin{transform:scale(.77);transform-origin:top left}
+.nt-legend-dot{width:18px;height:18px;flex:0 0 18px;margin:0 8px;background:var(--nt-legend-color);border:3px solid var(--nt-legend-color);border-radius:50%;opacity:.85;box-shadow:0 1px 2px rgba(5,18,10,.55)}
+.nt-legend-dot.gate{--nt-legend-color:#e5b65c}
+.nt-legend-dot.closed{--nt-legend-color:#ef7168}
+.nt-legend-dot.place{--nt-legend-color:#a8c68a}
+/* Tip of every single-location pin coincides with its recorded coordinate. */
+.nt-osm-pin{position:relative;width:42px;height:44px;filter:drop-shadow(0 2px 3px #06130ebb);pointer-events:none}
+.nt-osm-pin::before{content:"";position:absolute;left:7px;top:3px;width:28px;height:28px;box-sizing:border-box;background:var(--nt-pin-color);border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+.nt-osm-pin span{position:absolute;left:7px;top:2px;width:28px;height:28px;display:grid;place-items:center;color:#fff;font-size:18px;font-weight:800;text-shadow:0 1px 3px #06130e}
+.nt-osm-symbol{width:20px;height:20px;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;fill:none;filter:drop-shadow(0 1px 1px #071d28)}
+.nt-osm-pin.bike .nt-osm-symbol{width:19px;height:19px;stroke-width:2.65}
+.nt-osm-pin.barrier{--nt-pin-color:#95612d}
+.nt-osm-pin.road{--nt-pin-color:#793d24}
+.nt-osm-pin.path{--nt-pin-color:#295c7d}
+.nt-osm-pin.walk{--nt-pin-color:#245777}
+.nt-osm-pin.bike{--nt-pin-color:#15557d;opacity:.93}
+.nt-osm-pin.trail{--nt-pin-color:#295c7d}
+.nt-osm-cluster{display:grid;place-items:center;min-width:42px;height:42px;padding:0 6px;box-sizing:border-box;background:rgba(18,42,29,.42);color:#fffef4;border:2px solid rgba(241,249,228,.94);border-radius:50%;font-size:15px;font-weight:800;text-shadow:0 1px 3px #06130e;box-shadow:0 2px 8px #06130e80;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+/* Glass panel at user-selected 40% opacity; maintain readable metadata overlays. */
+.nt-osm-detail-sheet{position:fixed;z-index:1230;left:50%;bottom:0;transform:translateX(-50%);width:min(100%,550px);max-height:min(76dvh,680px);overflow-y:auto;overscroll-behavior:contain;background:rgba(18,42,29,.40);border:1.5px solid rgba(231,245,219,.82);border-radius:20px 20px 0 0;padding:20px 18px calc(23px + env(safe-area-inset-bottom));color:#f5f8ee;backdrop-filter:blur(9px) saturate(1.08);-webkit-backdrop-filter:blur(9px) saturate(1.08);box-shadow:0 -12px 38px #06130e99}
+.nt-osm-detail-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.nt-osm-detail-heading h2{font-size:21px;margin:0}
+#nt-osm-detail-close{width:48px;min-width:48px;min-height:48px;margin:0;padding:0;font-size:24px;background:rgba(9,29,19,.73);color:#fff;border:1px solid rgba(231,245,219,.82);border-radius:12px}
+.nt-osm-detail-sheet h3{font-size:16px;color:#fffef4;margin:18px 0 8px}
+.nt-osm-micro{font-size:14px;line-height:1.55;color:#f1f6e9}
+.nt-osm-meta,.nt-osm-tags{border:1px solid rgba(231,245,219,.62);border-radius:12px;background:rgba(8,27,18,.50);padding:0 12px}
+.nt-osm-meta>div,.nt-osm-tags>div{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid rgba(231,245,219,.27)}
+.nt-osm-meta>div:last-child,.nt-osm-tags>div:last-child{border-bottom:0}
+.nt-osm-meta span,.nt-osm-tags span{font-size:13px;color:#f1f6e9}
+.nt-osm-meta strong,.nt-osm-tags strong{font-size:13px;text-align:right;color:#fffef4;overflow-wrap:anywhere}
+.nt-osm-detail-sheet a{color:#f7ffe8;text-decoration:underline}
+.nt-osm-warning{border-left:3px solid #f5d68e;border-radius:9px;background:rgba(58,68,32,.76);padding:12px;font-size:14px;line-height:1.55;color:#fffef4}
+
+/* Isolated planner bridge, scoped to the integration preview only. */
+#nt-open-planner-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+#nt-open-planner-btn svg{width:22px;height:22px;flex:none}
+#nt-integrated-route-overlay[hidden]{display:none!important}
+#nt-integrated-route-overlay{position:fixed;inset:0;z-index:2500;display:flex;flex-direction:column;background:#101e16;color:#f4f6ec;overscroll-behavior:contain}
+.nt-integrated-route-head{display:flex;align-items:center;gap:12px;min-height:56px;padding:calc(4px + env(safe-area-inset-top)) 12px 7px;flex:0 0 auto;background:#153524;border-bottom:1px solid #749475;box-shadow:0 2px 9px #0a1b10aa}
+.nt-integrated-route-head strong{font-size:15px;line-height:1.3;font-weight:750}
+.nt-integrated-route-head small{display:block;font-size:11px;font-weight:400;color:#d2dfcc}
+.nt-integrated-route-head button{flex:0 0 auto;min-width:105px;width:auto;min-height:46px;margin:0;background:#c8d49c;color:#16271c;border:0;border-radius:11px;padding:8px 12px}
+#nt-integrated-route-iframe{flex:1;display:block;width:100%;height:100%;border:0;background:#203727}
+</style>
+</head>
+<body>
+<header><strong>NORDIC TRAIL</strong><small>STAGING</small></header>
+<main>
+<section id="map-section" aria-label="Pełnoekranowa mapa NORDIC TRAIL">
+<div id="map" aria-label="Mapa interaktywna; dotknij wolnego miejsca, aby dodać punkt"></div>
+<div class="map-top-actions"><button type="button" id="open-layers-btn" aria-label="Warstwy mapy" aria-expanded="false" aria-controls="map-layers-sheet" title="Warstwy mapy">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></button>
+<button type="button" id="open-workspace-btn" aria-label="Otwórz panel użytkownika, logowania i moderacji">☰ Panel</button></div>
+<p class="status" id="map-action-status" role="status" aria-live="polite" hidden></p>
+<div class="map-toolbar">
+<button type="button" id="nt-open-planner-btn" class="secondary" aria-label="Otwórz planer tras" aria-controls="nt-integrated-route-overlay" aria-expanded="false"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M32,45.2 L30.4,44.1 L26.5,51.2 L29.8,51.2 Z M7.8,38.6 L5.1,41.3 L4,44.1 L4,46.8 L6.2,51.2 L17.2,51.2 L19.4,47.9 L18.8,41.3 L16.1,38.6 L13.3,37.5 Z M10.6,41.3 L13.9,41.3 L16.1,43.5 L16.1,46.8 L12.8,49.6 L10,49 L7.8,46.8 L7.8,44.1 Z M39.7,36.4 L36.9,36.9 L33.1,40.8 L34.7,42.4 L37.5,39.7 L40.2,38.6 Z M50.1,35.8 L49,33.6 L44.1,34.7 L44.1,36.9 Z M49.6,12.2 L45.7,15 L44.6,17.2 L44.6,22.1 L49,30.4 L52.3,34.2 L58.9,23.2 L59.5,17.7 L56.7,13.3 L54.5,12.2 Z M50.7,15.5 L53.4,15.5 L56.2,18.3 L56.2,21 L53.4,23.8 L50.7,23.8 L47.9,21 L47.9,18.3 Z"/></svg><span>Trasy</span></button>
+<button type="button" id="add-point-btn" aria-label="Dodaj punkt do mapy">＋ Punkt</button>
+</div>
+</section>
+<div id="map-layers-backdrop" hidden></div>
+<section id="map-layers-sheet" class="nt-layers-sheet" role="dialog" aria-modal="true" aria-labelledby="nt-layer-title" hidden>
+<button type="button" id="nt-layer-handle" class="nt-layer-handle" aria-label="Zwiń lub rozwiń warstwy" title="Przeciągnij w górę lub w dół" aria-controls="nt-layer-body" aria-expanded="true"></button>
+<div class="nt-layer-header"><h2 id="nt-layer-title">Warstwy</h2><button type="button" id="nt-layer-close" class="nt-layer-close" aria-label="Zamknij warstwy">×</button></div>
+<div class="nt-layer-body" id="nt-layer-body"><p class="nt-layer-intro">Wyświetlaj tylko potrzebne informacje.</p>
+<label class="nt-layer-option" for="nt-public-points-layer"><span>Punkty publiczne<small>Zatwierdzone punkty NORDIC TRAIL</small></span>
+<input type="checkbox" id="nt-public-points-layer" checked></label>
+<div class="nt-osm-group" aria-label="Obserwacje OpenStreetMap z obszaru Tumba–Lida">
+<p class="nt-layer-intro"><strong>OSM — Tumba–Lida (pilotaż)</strong></p>
+<label class="nt-layer-option" for="nt-osm-barriers-layer"><span>Szlabany i przeszkody<small>29 oznaczeń społeczności OSM</small></span><input type="checkbox" id="nt-osm-barriers-layer"></label>
+<label class="nt-layer-option" for="nt-osm-roads-layer"><span>Drogi — tagi ograniczeń<small>26 odcinków, środki orientacyjne</small></span><input type="checkbox" id="nt-osm-roads-layer"></label>
+<label class="nt-layer-option" for="nt-osm-paths-layer"><span>Ścieżki piesze i rowerowe<small>11 odcinków, oddzielonych od dróg</small></span><input type="checkbox" id="nt-osm-paths-layer"></label>
+<button type="button" id="nt-osm-area-btn" class="nt-osm-area-btn">Pokaż Tumba–Lida na mapie</button>
+<p id="nt-osm-status" class="nt-osm-status" role="status" aria-live="polite">Warstwy OSM są wyłączone. Dane wczytamy po włączeniu jednej z nich; nie wymagają logowania.</p>
+<p class="nt-layer-intro">Z daleka oznaczenia OSM są grupowane. Przy dużym zbliżeniu dotknij grupy nakładających się pinezek, aby je rozsunąć; cienkie linie wskazują ich zapisane położenie. Dla dróg i ścieżek są to jedynie przybliżone środki odcinków.</p>
+</div>
+<details class="nt-map-legend" id="nt-map-legend">
+<summary>Legenda oznaczeń mapy</summary>
+<div class="nt-legend-body">
+<h3>OpenStreetMap — dane źródłowe</h3>
+<ul class="nt-legend-list">
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin barrier"><span>!</span></span></span><span class="nt-legend-copy"><strong>Szlaban lub przeszkoda</strong><small>Wpis OSM; stan niezweryfikowany</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin road"><span>?</span></span></span><span class="nt-legend-copy"><strong>Oznaczenie na drodze</strong><small>Tag OSM; pinezka w środku odcinka</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin walk"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11.5" cy="3.7" r="1.9" fill="white" stroke="none"/><path d="M10.5 7L8.8 12l3.3 2.4L10 20.5M9.2 12l-3 7.8M11.2 8l3.2 2.4 2.6 1M7.8 8.4l-2.3-.7-1.2 4.1 2.4 1.1M17 10.7l2.7 10.2"/></svg></span></span></span><span class="nt-legend-copy"><strong>Ścieżka piesza</strong><small>OSM footway; symbol wędrowca</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin bike"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M5.5 17.5l4.2-9h4.5l4.3 9h-6.8L9.7 8.5M8.7 6h3M15.5 6.5H18"/></svg></span></span></span><span class="nt-legend-copy"><strong>Trasa rowerowa</strong><small>OSM cycleway; symbol roweru</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-pin" aria-hidden="true"><span class="nt-osm-pin trail"><span><svg class="nt-osm-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3C14 4 19 6 18 9S6 12 6 16s5 3 8 5" stroke-width="3.7"/></svg></span></span></span><span class="nt-legend-copy"><strong>Kręta ścieżka</strong><small>OSM path — rodzaj nieustalony, niekoniecznie oznakowany szlak</small></span></li>
+</ul>
+<h3>NORDIC TRAIL — punkty zatwierdzone</h3>
+<ul class="nt-legend-list">
+<li class="nt-legend-entry"><span class="nt-legend-dot gate" aria-hidden="true"></span><span class="nt-legend-copy"><strong>Szlaban</strong><small>Status w karcie punktu NT</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-dot closed" aria-hidden="true"></span><span class="nt-legend-copy"><strong>Droga / ograniczenie</strong><small>Status w karcie punktu NT</small></span></li>
+<li class="nt-legend-entry"><span class="nt-legend-dot place" aria-hidden="true"></span><span class="nt-legend-copy"><strong>Miejsce</strong><small>Status w karcie punktu NT</small></span></li>
+</ul>
+<p>Kolor kółka NT oznacza rodzaj punktu, nie jego aktualny status. Zatwierdzenie przez moderatora nie oznacza kontroli terenowej.</p>
+<p>Symbole OSM nie potwierdzają prawa wstępu, przejazdu ani tego, że ścieżka jest oznakowanym szlakiem hikingowym.</p>
+</div>
+</details>
+<p class="nt-layer-note">Dostępność dróg pozostaje niezweryfikowana. Warstwy NVDB i STFS dodamy po sprawdzeniu źródeł. Routing nie oznacza prawa przejazdu.</p>
+</div></section>
+<section id="nt-osm-detail-sheet" class="nt-osm-detail-sheet" role="dialog" aria-modal="false" aria-labelledby="nt-osm-detail-title" hidden>
+<div class="nt-osm-detail-heading"><h2 id="nt-osm-detail-title">Obserwacja OSM</h2><button type="button" id="nt-osm-detail-close" aria-label="Zamknij kartę OSM">×</button></div>
+<p id="nt-osm-detail-kind" class="nt-osm-micro">Dane niezweryfikowane</p>
+<div id="nt-osm-detail-meta" class="nt-osm-meta"></div>
+<h3 id="nt-osm-detail-surface-title" hidden>Nawierzchnia według OSM</h3>
+<div id="nt-osm-detail-surface" class="nt-osm-meta" hidden></div>
+<h3>Oznaczenia zapisane w OSM</h3><div id="nt-osm-detail-tags" class="nt-osm-tags"></div>
+<p><a id="nt-osm-original" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">Otwórz oryginalny wpis OSM</a></p>
+<p id="nt-osm-private-access" class="nt-osm-warning" hidden><strong>Uwaga — ograniczony dostęp według OSM (access=private).</strong> Ten tag nie przesądza sam o prawie przejścia pieszego w Szwecji (allemansrätten). Sprawdź oznakowanie, lokalne warunki i obowiązujące przepisy.</p>
+<p class="nt-osm-warning"><strong>Dostępność prawna: niezweryfikowana.</strong> Tagi OSM nie zastępują oznakowania ani obowiązujących przepisów. Środki odcinków nie określają prawnego zasięgu ograniczenia.</p>
+</section>
+<div class="workspace" id="workspace">
+<nav class="workspace-nav" aria-label="Nawigacja panelu">
+<button type="button" id="jump-mine-btn" class="secondary" hidden>Moje punkty</button>
+<button type="button" id="back-to-map-btn" class="secondary">← Mapa</button>
+</nav>
+<p class="note">Odizolowana wersja testowa podłączona wyłącznie do projektu Nordic-Trail-Staging. Zalogowany użytkownik może zapisać prywatny szkic i osobno wysłać go do moderacji. Zgłaszanie zmian przy publicznych szlabanach i drogach jest dostępne w osobnym panelu STAGING. Zgłoszenia wymagają moderacji i nie zmieniają automatycznie punktów. Twórz wyłącznie fikcyjne punkty testowe, nigdy lokalizacje domów ani prywatne dane.</p>
+<section class="card" id="public-points-panel">
+<h2>Punkty publiczne</h2>
+<button type="button" id="refresh-btn" class="secondary">Odśwież punkty publiczne</button>
+<p class="status" id="map-status" role="status">Najpierw połącz ze STAGING.</p>
+<details id="public-list-details"><summary>Lista publicznych punktów</summary><ul id="points"></ul></details>
+<p class="hint"><a href="../staging-reports/">Zgłoszenia zmian i historia — otwórz panel STAGING</a></p>
+<p class="hint">Dotknij pustego miejsca na mapie, aby dodać testowy punkt. Publiczne są tylko zatwierdzone punkty; nowe zapisywane są jako prywatne szkice.</p>
+</section>
+<section class="card" id="setup-card">
+<h2>Połączenie STAGING</h2>
+<p class="hint">Wykorzystuje publiczny klucz zapisany wcześniej na stronie STAGING Login w tej samej przeglądarce. Jeśli go nie ma, wklej klucz <code>sb_publishable_...</code> z projektu Nordic-Trail-Staging.</p>
+<form id="setup-form" autocomplete="off">
+<label for="public-key">Klucz publiczny STAGING</label>
+<input id="public-key" type="password" autocomplete="off" spellcheck="false" required placeholder="sb_publishable_...">
+<button id="setup-btn" type="submit">Połącz ze STAGING</button>
+</form>
+<p class="status" id="setup-status" role="status" hidden></p>
+</section>
+<section class="card" id="login-card" hidden>
+<h2>Logowanie hasłem</h2>
+<form id="login-form">
+<label for="email">E-mail konta STAGING</label><input id="email" type="email" autocomplete="username" required maxlength="254">
+<label for="password">Hasło</label><input id="password" type="password" autocomplete="current-password" required>
+<button id="login-btn" type="submit">Zaloguj</button>
+</form>
+<p class="status" id="login-status" role="status">Nie jesteś zalogowany.</p>
+</section>
+<section class="card" id="account-card" hidden>
+<h2>Aktualna sesja</h2>
+<p id="account-email"></p>
+<p class="status" id="role-status" role="status">Sprawdzanie uprawnień...</p>
+<div class="row">
+<button id="role-btn" type="button" class="secondary">Sprawdź rolę</button>
+<button id="logout-btn" type="button" class="secondary">Wyloguj tę kartę</button>
+</div>
+<p class="status" id="moderation-result" role="status" aria-live="polite" hidden></p>
+</section>
+<section class="card" id="admin-queue-card" hidden>
+<h2>Kolejka moderacji</h2>
+<p class="hint">Prywatne punkty oczekujące na decyzję administratora. Lista pochodzi wyłącznie z zabezpieczonej funkcji RPC. Zatwierdzanie i odrzucanie wymagają oddzielnego potwierdzenia.</p>
+<button id="refresh-admin-queue-btn" type="button" class="secondary">Odśwież kolejkę</button>
+<p class="status" id="admin-queue-status" role="status">Wczytywanie kolejki...</p>
+<ul id="admin-queue-list"></ul>
+</section>
+<section class="card" id="draft-card" hidden>
+<h2>Moje punkty — statusy i historia decyzji</h2>
+<p class="status" id="draft-status" role="status">Twoje punkty zostaną odczytane po zalogowaniu.</p>
+<button type="button" class="secondary" id="refresh-mine-btn">Odśwież moje punkty</button>
+<ul id="my-points"></ul>
+<p class="hint">Wyświetlane są Twoje szkice, punkty w moderacji oraz decyzje „Zatwierdzony” i „Odrzucony”. Zatwierdzone punkty są publiczne, odrzucone pozostają prywatne. Tylko własne prywatne szkice można edytować i wysyłać do weryfikacji.</p>
+</section>
+
+<p class="hint">STAGING • INSERT tworzy wyłącznie prywatne szkice; zgłoszenie do moderacji odbywa się przez zabezpieczoną funkcję RPC. Brak bezpośrednich operacji UPDATE i DELETE. Korzystaj wyłącznie z kont testowych, nie udostępniaj haseł ani kluczy tajnych.</p>
+</div>
+<section class="point-sheet" id="point-sheet" role="dialog" aria-modal="false" aria-labelledby="point-sheet-title" hidden>
+<div class="sheet-header">
+<h2 id="point-sheet-title">Dodaj punkt</h2>
+<div class="sheet-controls">
+<button type="button" id="toggle-sheet-btn" aria-expanded="true" aria-controls="sheet-body" aria-label="Zwiń panel">Zwiń</button>
+<button type="button" id="close-sheet-btn" class="sheet-close" aria-label="Anuluj dodawanie punktu">✕</button>
+</div>
+</div>
+<div class="sheet-body" id="sheet-body">
+<details class="sheet-coords" id="point-coords-details">
+<summary>Położenie punktu · szczegóły</summary>
+<p class="status" id="selected-coords" role="status">Nie wybrano współrzędnych.</p>
+</details>
+<div id="kind-picker">
+<p class="hint">Jaki punkt chcesz dodać?</p>
+<div class="kind-options" role="group" aria-label="Wybierz rodzaj punktu">
+<button type="button" class="kind-option" data-kind="gate"><span class="kind-icon" aria-hidden="true">🚧</span>Szlaban</button>
+<button type="button" class="kind-option" data-kind="closed"><span class="kind-icon" aria-hidden="true">⛔</span>Droga zamknięta</button>
+<button type="button" class="kind-option" data-kind="place"><span class="kind-icon" aria-hidden="true">📍</span>Miejsce</button>
+</div></div>
+<div id="sheet-fields" hidden>
+<div class="sheet-kind-header">
+<strong id="chosen-kind-label"></strong>
+<button type="button" class="secondary" id="change-kind-btn">Zmień rodzaj</button>
+</div>
+<form id="draft-form">
+<input type="hidden" id="point-kind" value="">
+<label for="point-status">Status punktu</label>
+<select id="point-status" required></select>
+<details class="note-details" id="note-details">
+<summary>＋ Dodaj opis (opcjonalnie)</summary>
+<label for="point-note">Opis (maks. 120 znaków)</label>
+<input id="point-note" maxlength="120" autocomplete="off" placeholder="np. TEST STAGING — szlaban">
+</details>
+<button id="save-draft-btn" type="submit" disabled>Zapisz prywatny szkic</button>
+</form>
+<p class="hint">Szkic będzie prywatny do czasu zatwierdzenia przez administratora.</p>
+</div>
+<p class="status" id="point-sheet-status" role="status" aria-live="polite" hidden></p>
+<button type="button" class="secondary" id="change-location-btn">⌖ Zmień lokalizację</button>
+</div>
+</section>
+</main>
+<!-- Only for integration testing: original map/auth remain unchanged. -->
+<section id="nt-integrated-route-overlay" role="dialog" aria-modal="true" aria-label="Planowanie trasy NORDIC TRAIL" hidden>
+<div class="nt-integrated-route-head"><button type="button" id="nt-close-planner-btn" aria-label="Zamknij planer i wróć do mapy">← Mapa</button><div><strong>Planowanie trasy</strong><small>Test integracyjny · zapis lokalny · dostępność niepotwierdzona</small></div></div>
+<iframe id="nt-integrated-route-iframe" title="Planer tras NORDIC TRAIL" data-src="./planner.html" referrerpolicy="same-origin"></iframe>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script>
+'use strict';
+(function(){
+  const STAGING_URL='https://bairmdubhnodwplioxld.supabase.co';
+  const CONFIG_KEY='nt-staging-publishable-v1';
+  const SESSION_KEY='nt-integration-map-auth-session-20261123-v1';
+  const el=id=>document.getElementById(id);
+  const show=(id,visible)=>{el(id).hidden=!visible;};
+  // Map hints and success notices disappear automatically; errors stay visible.
+  let mapNoticeTimer=null;
+  function dismissMapNotice(){
+    if(mapNoticeTimer!==null){window.clearTimeout(mapNoticeTimer);mapNoticeTimer=null;}
+    el('map-action-status').hidden=true;
+  }
+  function message(id,value,isError=false){
+    const n=el(id);
+    if(id==='map-action-status'&&mapNoticeTimer!==null){
+      window.clearTimeout(mapNoticeTimer);
+      mapNoticeTimer=null;
+    }
+    n.textContent=value;
+    n.classList.toggle('error',!!isError);
+    n.hidden=false;
+    if(id==='map-action-status'&&!isError){
+      const timerId=window.setTimeout(()=>{
+        // A cancelled/obsolete callback must never clear a newer timer.
+        if(mapNoticeTimer!==timerId)return;
+        mapNoticeTimer=null;
+        if(n.textContent===value&&!n.classList.contains('error'))n.hidden=true;
+      },5000);
+      mapNoticeTimer=timerId;
+    }
+  }
+  const validKey=k=>/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(k);
+  let db=null,seq=0,loggingIn=false;
+  let markers=null,map=null;
+  let activeUser=null,selectedPoint=null,selectionMarker=null,writingDraft=false,submittingDraft=false,movingPoint=false,editingDraft=null;
+  let moderationBusy=false,adminVerifiedUserId=null;
+  const pointStatuses={gate:['Otwarty','Zamknięty','Nieznany'],closed:['Przejezdna','Nieprzejezdna','Do sprawdzenia'],place:['Dostępne','Niedostępne']};
+  const colours={gate:'#e5b65c',closed:'#ef7168',place:'#a8c68a'};
+  function addReportLink(container,p){
+    if(!['gate','closed'].includes(p.kind)||!(/^[1-9][0-9]*$/.test(String(p.id))))return;
+    const link=document.createElement('a');
+    link.href='../staging-reports/?point='+encodeURIComponent(String(p.id));
+    link.textContent=p.kind==='gate'?'Zgłoś zmianę: Szlabanu już nie ma':'Zgłoś zmianę: Droga odblokowana';
+    link.style.display='block';
+    link.style.padding='8px 0';
+    container.appendChild(link);
+  }
+  try{
+    if(!window.L)throw Error('Leaflet unavailable');
+    map=L.map('map',{zoomControl:false}).setView([62.2,15.2],5);
+    L.control.zoom({position:'bottomleft'}).addTo(map);
+    map.attributionControl.setPrefix('');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+    markers=L.layerGroup().addTo(map);
+  }catch(_error){message('map-status','Nie udało się uruchomić mapy. Sprawdź połączenie z Internetem.',true);}
+  async function publicPoints(){
+    if(!db){message('map-status','Najpierw połącz ze STAGING.');return;}
+    el('refresh-btn').disabled=true;
+    message('map-status','Wczytywanie publicznych punktów STAGING...');
+    try{
+      const result=await db.from('map_points').select('id,kind,status,note,lat,lon').eq('visibility','public').eq('review_status','approved').order('id',{ascending:true}).limit(500);
+      if(result.error)throw result.error;
+      const rows=result.data||[];
+      if(markers)markers.clearLayers();
+      el('points').replaceChildren();
+      for(const p of rows){
+        const title=(p.kind||'point')+' — '+(p.status||'brak statusu');
+        const item=document.createElement('li');
+        item.textContent=title+(p.note?' • '+p.note:'');
+        addReportLink(item,p);
+        el('points').appendChild(item);
+        const lat=Number(p.lat),lon=Number(p.lon);
+        if(markers&&Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180){
+          const popup=document.createElement('div');
+          const head=document.createElement('strong');head.textContent=title;popup.appendChild(head);
+          if(p.note){const note=document.createElement('p');note.textContent=p.note;popup.appendChild(note);}
+          addReportLink(popup,p);
+          L.circleMarker([lat,lon],{radius:8,color:colours[p.kind]||'#c8d49c',weight:3,fillOpacity:.85,bubblingMouseEvents:false}).bindPopup(popup).addTo(markers);
+        }
+      }
+      message('map-status','Wczytano publiczne, zatwierdzone punkty: '+rows.length+(rows.length===500?' (limit widoku: 500)':'')+'.');
+    }catch(_error){message('map-status','Odczyt punktów nie powiódł się. Sprawdź konfigurację i uprawnienia STAGING.',true);}
+    finally{el('refresh-btn').disabled=false;}
+  }
+  function refreshStatusOptions(){
+    const kind=el('point-kind').value;
+    const select=el('point-status');select.replaceChildren();
+    const prompt=document.createElement('option');
+    prompt.value='';prompt.textContent='Wybierz status';prompt.disabled=true;prompt.selected=true;
+    select.appendChild(prompt);
+    for(const value of pointStatuses[kind]||[]){
+      const option=document.createElement('option');option.value=value;option.textContent=value;select.appendChild(option);
+    }
+  }
+  const kindLabels={gate:'🚧 Szlaban',closed:'⛔ Droga zamknięta',place:'📍 Miejsce'};
+  function keepSelectionVisible(){
+    if(!map||!selectedPoint||el('point-sheet').hidden)return;
+    const mapRect=el('map').getBoundingClientRect();
+    const sheetRect=el('point-sheet').getBoundingClientRect();
+    const brandRect=document.querySelector('header').getBoundingClientRect();
+    const viewportBottom=window.visualViewport?
+      window.visualViewport.offsetTop+window.visualViewport.height:window.innerHeight;
+    const top=Math.max(mapRect.top+12,brandRect.bottom+16);
+    const bottom=Math.min(mapRect.bottom,sheetRect.top,viewportBottom)-16;
+    if(bottom-top<65)return;
+    // Center over the *uncovered map*, not the map container hidden by the sheet.
+    const targetX=mapRect.width/2;
+    const targetY=top+(bottom-top)*0.55-mapRect.top;
+    const marker=map.latLngToContainerPoint([selectedPoint.lat,selectedPoint.lon]);
+    const dx=Math.round(marker.x-targetX),dy=Math.round(marker.y-targetY);
+    if(Math.abs(dx)>2||Math.abs(dy)>2)map.panBy([dx,dy],{animate:false});
+  }
+  // Align on actual layout changes rather than fixed browser-specific timeouts.
+  let mapAlignmentFrame=0;
+  function adjustMapToPanel(){
+    if(!map||!selectedPoint||el('point-sheet').hidden)return;
+    if(mapAlignmentFrame)window.cancelAnimationFrame(mapAlignmentFrame);
+    mapAlignmentFrame=window.requestAnimationFrame(()=>{
+      mapAlignmentFrame=0;
+      keepSelectionVisible();
+    });
+  }
+  function syncVisualViewport(){
+    const vv=window.visualViewport;
+    if(vv){
+      const sheet=el('point-sheet');
+      const height=Math.max(0,Math.round(vv.height));
+      const inset=Math.max(0,Math.round(window.innerHeight-vv.offsetTop-vv.height));
+      const keyboardVisible=vv.scale<=1.05&&inset>120;
+      sheet.style.setProperty('--nt-visible-height',height+'px');
+      sheet.style.setProperty('--nt-visual-bottom',(keyboardVisible?inset:0)+'px');
+      sheet.style.setProperty('--nt-map-clearance',keyboardVisible?'110px':'220px');
+    }
+    adjustMapToPanel();
+  }
+  if(window.ResizeObserver){
+    const sheetObserver=new ResizeObserver(()=>adjustMapToPanel());
+    sheetObserver.observe(el('point-sheet'));
+  }
+  el('point-sheet').addEventListener('animationend',adjustMapToPanel);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize',syncVisualViewport);
+    window.visualViewport.addEventListener('scroll',syncVisualViewport);
+  }
+  function setSheetCollapsed(collapsed){
+    const sheet=el('point-sheet');
+    const body=el('sheet-body');
+    body.hidden=collapsed;
+    sheet.classList.toggle('is-collapsed',collapsed);
+    const toggle=el('toggle-sheet-btn');
+    toggle.textContent=collapsed?'Rozwiń':'Zwiń';
+    toggle.setAttribute('aria-expanded',String(!collapsed));
+    toggle.setAttribute('aria-label',collapsed?'Rozwiń panel':'Zwiń panel');
+    if(!sheet.hidden)adjustMapToPanel();
+  }
+  function closePointSheet(){show('point-sheet',false);el('point-sheet-status').hidden=true;}
+  el('toggle-sheet-btn').addEventListener('click',()=>{if(!writingDraft)setSheetCollapsed(!el('point-sheet').classList.contains('is-collapsed'));});
+  for(const detailsId of ['point-coords-details','note-details']){
+    el(detailsId).addEventListener('toggle',()=>{
+      if(!el('point-sheet').hidden)adjustMapToPanel();
+    });
+  }
+  function updatePointAction(){
+    el('add-point-btn').textContent=!selectedPoint?'＋ Punkt':movingPoint?'↩ Wróć do formularza':editingDraft?'✎ Wróć do szkicu':'✎ Edytuj punkt';
+    el('add-point-btn').setAttribute('aria-label',selectedPoint?'Wróć do formularza wybranego punktu':'Dodaj punkt do mapy');
+  }
+  function clearSelection(){
+    selectedPoint=null;movingPoint=false;editingDraft=null;
+    updatePointAction();
+    setSheetCollapsed(false);
+    el('point-sheet-title').textContent='Dodaj punkt';
+    el('note-details').open=false;
+    el('point-coords-details').open=false;
+    if(selectionMarker&&map){map.removeLayer(selectionMarker);selectionMarker=null;}
+    closePointSheet();
+    el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
+    el('selected-coords').textContent='Nie wybrano współrzędnych.';
+    el('save-draft-btn').disabled=true;
+    el('save-draft-btn').textContent='Zapisz prywatny szkic';
+    show('kind-picker',true);show('sheet-fields',false);
+  }
+  refreshStatusOptions();
+  el('close-sheet-btn').addEventListener('click',()=>{if(!writingDraft)clearSelection();});
+  el('change-location-btn').addEventListener('click',()=>{
+    if(writingDraft)return;
+    movingPoint=true;
+    updatePointAction();
+    closePointSheet();
+    message('map-action-status','Dotknij raz nowego miejsca na mapie. Rodzaj, status i opis pozostaną bez zmian. Aby anulować wybór, kliknij „Wróć do formularza”.');
+  });
+  el('change-kind-btn').addEventListener('click',()=>{
+    if(writingDraft)return;
+    el('point-kind').value='';el('save-draft-btn').disabled=true;
+    el('point-sheet-title').textContent='Dodaj punkt';
+    show('kind-picker',true);show('sheet-fields',false);
+  });
+  document.querySelectorAll('.kind-option').forEach(button=>{
+    button.addEventListener('click',()=>{
+      if(writingDraft||!selectedPoint||!activeUser)return;
+      const kind=button.dataset.kind;
+      if(!Object.prototype.hasOwnProperty.call(pointStatuses,kind))return;
+      el('point-kind').value=kind;
+      el('point-sheet-title').textContent=kindLabels[kind];
+      el('chosen-kind-label').textContent=kindLabels[kind];
+      refreshStatusOptions();
+      show('kind-picker',false);show('sheet-fields',true);
+      adjustMapToPanel();
+      el('save-draft-btn').disabled=false;
+      el('point-status').focus({preventScroll:true});
+    });
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!el('point-sheet').hidden&&!writingDraft)clearSelection();
+  });
+  if(map)map.on('click',event=>{
+    // Dismissing OSM evidence must never create an authenticated draft.
+    if(!el('nt-osm-detail-sheet').hidden){
+      el('nt-osm-detail-sheet').hidden=true;
+      activeOsmKind=null;
+      syncOverlayPageScroll();
+      return;
+    }
+    // Dismissing spread-out OSM pins must never start drawing a draft.
+    if(activeSpiderMarker){
+      closeOsmSpiderfy();
+      return;
+    }
+    if(writingDraft)return;
+    if(!el('point-sheet').hidden){
+      // An incidental map tap must never close a form with unsaved changes.
+      message('point-sheet-status','Aby zmienić lokalizację, użyj przycisku „Zmień lokalizację”.');
+      return;
+    }
+    if(!activeUser||!db){
+      message('map-action-status','Aby dodać punkt, połącz się ze STAGING i zaloguj na konto testowe.',true);
+      return;
+    }
+    const lat=Number(event.latlng.lat.toFixed(6)),lon=Number(event.latlng.lng.toFixed(6));
+    if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
+    const hadPoint=!!selectedPoint;
+    selectedPoint={lat,lon};
+    if(selectionMarker)map.removeLayer(selectionMarker);
+    selectionMarker=L.circleMarker([lat,lon],{radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false}).addTo(map);
+    el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
+    if(!hadPoint&&!movingPoint){
+      el('point-kind').value='';el('point-note').value='';refreshStatusOptions();
+      el('point-sheet-title').textContent='Dodaj punkt';
+      el('note-details').open=false;el('point-coords-details').open=false;
+      el('save-draft-btn').disabled=true;
+      show('kind-picker',true);show('sheet-fields',false);
+    }
+    movingPoint=false;
+    updatePointAction();
+    setSheetCollapsed(false);
+    dismissMapNotice();el('point-sheet-status').hidden=true;
+    show('point-sheet',true);
+    adjustMapToPanel();
+  });
+
+  async function loadMyPoints(user=activeUser,request=seq){
+    const list=el('my-points');
+    if(!db||!user){list.replaceChildren();return;}
+    message('draft-status','Odczytywanie Twoich punktów i historii decyzji...');
+    try{
+      const result=await db.from('map_points')
+        .select('id,kind,status,note,lat,lon,review_status,visibility')
+        .eq('user_id',user.id)
+        .in('review_status',['draft','pending','approved','rejected'])
+        .order('id',{ascending:false}).limit(100);
+      if(request!==seq||activeUser?.id!==user.id)return;
+      if(result.error)throw result.error;
+      list.replaceChildren();
+      const points=result.data||[];
+      for(const p of points){
+        const item=document.createElement('li');
+        const desc=document.createElement('span');
+        const statusLabel={
+          draft:'Szkic prywatny',
+          pending:'Oczekuje na moderację',
+          approved:'Zatwierdzony',
+          rejected:'Odrzucony'
+        }[p.review_status]||'Status nieznany';
+        const visibilityLabel=p.visibility==='public'?'publiczny':p.visibility==='private'?'prywatny':'widoczność nieznana';
+        desc.textContent='#'+p.id+' • '+p.kind+' — '+p.status+' • '+statusLabel+' • '+visibilityLabel+(p.note?' • '+p.note:'');
+        item.appendChild(desc);
+        if(p.review_status==='draft'){
+          const edit=document.createElement('button');
+          edit.type='button';edit.className='secondary';edit.textContent='✎ Edytuj szkic #'+p.id;
+          edit.addEventListener('click',()=>{void openDraftEditor(p.id,user.id);});
+          item.appendChild(edit);
+          const send=document.createElement('button');
+          send.type='button';send.className='secondary';send.textContent='Wyślij szkic #'+p.id+' do weryfikacji';
+          send.addEventListener('click',()=>{void submitDraft(p,send,user.id);});
+          item.appendChild(send);
+        }
+        list.appendChild(item);
+      }
+      message('draft-status',points.length?'Odczytano Twoje punkty (w tym historię decyzji): '+points.length+(points.length===100?' — wyświetlono maksymalnie 100':'')+'.':'Nie masz jeszcze punktów.');
+    }catch(_error){if(request===seq)message('draft-status','Nie udało się odczytać Twoich punktów. Sprawdź polityki SELECT w STAGING.',true);}
+  }
+
+  async function openDraftEditor(id,ownerId){
+    if(!db||!activeUser||activeUser.id!==ownerId||writingDraft||submittingDraft)return;
+    if(!/^[1-9][0-9]*$/.test(String(id))){
+      message('draft-status','Nieprawidłowy identyfikator szkicu.',true);return;
+    }
+    message('draft-status','Wczytywanie szkicu do edycji...');
+    try{
+      const auth=await db.auth.getUser();
+      if(auth.error||auth.data?.user?.id!==ownerId||activeUser?.id!==ownerId)throw Error('Session mismatch');
+      const result=await db.from('map_points')
+        .select('id,user_id,kind,status,note,lat,lon,review_status,visibility')
+        .eq('id',id).eq('user_id',ownerId)
+        .eq('review_status','draft').eq('visibility','private').single();
+      if(result.error||!result.data)throw Error('Draft unavailable');
+      if(activeUser?.id!==ownerId)return;
+      const p=result.data;
+      const lat=Number(p.lat),lon=Number(p.lon);
+      if(!pointStatuses[p.kind]?.includes(p.status)||!Number.isFinite(lat)||!Number.isFinite(lon)
+        ||Math.abs(lat)>90||Math.abs(lon)>180)throw Error('Invalid draft');
+      clearSelection();
+      editingDraft={id:p.id,ownerId};
+      selectedPoint={lat,lon};
+      updatePointAction();
+      el('point-kind').value=p.kind;
+      refreshStatusOptions();
+      el('point-status').value=p.status;
+      el('point-note').value=p.note||'';
+      el('note-details').open=!!p.note;
+      el('point-sheet-title').textContent='Edytuj prywatny szkic #'+p.id;
+      el('chosen-kind-label').textContent=kindLabels[p.kind];
+      el('save-draft-btn').textContent='Zapisz zmiany szkicu';
+      el('save-draft-btn').disabled=false;
+      el('selected-coords').textContent='Wybrano: '+lat.toFixed(6)+', '+lon.toFixed(6);
+      if(selectionMarker&&map)map.removeLayer(selectionMarker);
+      if(map){
+        selectionMarker=L.circleMarker([lat,lon],{
+          radius:10,color:'#ffdf82',weight:3,fillColor:'#ffdf82',fillOpacity:.7,bubblingMouseEvents:false
+        }).addTo(map);
+        map.setView([lat,lon],Math.max(map.getZoom(),9),{animate:false});
+      }
+      show('kind-picker',false);show('sheet-fields',true);
+      setSheetCollapsed(false);
+      show('point-sheet',true);
+      revealMapViewport();
+      adjustMapToPanel();
+      message('draft-status','Otworzono szkic #'+p.id+'. Zmiany zostaną zapisane dopiero po zatwierdzeniu w formularzu.');
+    }catch(_error){
+      if(activeUser?.id===ownerId)message('draft-status','Nie udało się otworzyć prywatnego szkicu. Odśwież swoje punkty i sprawdź jego status.',true);
+    }
+  }
+
+  async function submitDraft(p,button,ownerId){
+    if(submittingDraft||writingDraft||editingDraft||!db||!activeUser||activeUser.id!==ownerId||p.review_status!=='draft')return;
+    const id=String(p.id);
+    if(!/^[1-9][0-9]*$/.test(id)){message('draft-status','Nieprawidłowy identyfikator szkicu.',true);return;}
+    if(!confirm('Wysłać prywatny szkic #'+id+' do weryfikacji? Nie będzie już szkicem do dalszego edytowania.'))return;
+    submittingDraft=true;button.disabled=true;
+    message('draft-status','Przesyłanie szkicu #'+id+' do moderacji...');
+    try{
+      const auth=await db.auth.getUser();
+      if(auth.error||auth.data?.user?.id!==ownerId)throw Error('Session mismatch');
+      const result=await db.rpc('submit_map_point_for_review',{p_point_id:id});
+      if(result.error)throw result.error;
+      if(activeUser?.id!==ownerId)return;
+      message('draft-status','Szkic #'+id+' wysłano do moderacji. Będzie publiczny dopiero po zatwierdzeniu.');
+      await loadMyPoints();
+    }catch(_error){if(activeUser?.id===ownerId)message('draft-status','Nie udało się wysłać szkicu. Sprawdź, czy nadal ma status draft i należy do Ciebie.',true);}
+    finally{submittingDraft=false;button.disabled=false;}
+  }
+
+  el('draft-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!db||!activeUser||!selectedPoint||el('point-sheet').hidden||writingDraft||submittingDraft)return;
+    const kind=el('point-kind').value,status=el('point-status').value;
+    const note=el('point-note').value.trim();
+    if(!pointStatuses[kind]?.includes(status)||note.length>120||!Number.isFinite(selectedPoint.lat)||!Number.isFinite(selectedPoint.lon)||Math.abs(selectedPoint.lat)>90||Math.abs(selectedPoint.lon)>180){
+      message('point-sheet-status','Wybierz rodzaj, status i sprawdź długość opisu.',true);return;
+    }
+    writingDraft=true;el('save-draft-btn').disabled=true;
+    const userId=activeUser.id;
+    const draft=editingDraft;
+    message('point-sheet-status',draft?'Zapisywanie zmian prywatnego szkicu...':'Zapisywanie prywatnego szkicu...');
+    try{
+      const auth=await db.auth.getUser();
+      if(auth.error||auth.data?.user?.id!==userId||draft&&draft.ownerId!==userId)throw Error('Session mismatch');
+      let savedId;
+      if(draft){
+        const result=await db.rpc('update_private_map_point',{
+          p_point_id:draft.id,p_kind:kind,p_status:status,p_note:note||null,
+          p_lat:selectedPoint.lat,p_lon:selectedPoint.lon
+        });
+        if(result.error)throw result.error;
+        savedId=draft.id;
+      }else{
+        const values={kind,status,note:note||null,lat:selectedPoint.lat,lon:selectedPoint.lon,review_status:'draft',visibility:'private'};
+        const result=await db.from('map_points').insert(values).select('id').single();
+        if(result.error)throw result.error;
+        savedId=result.data?.id;
+      }
+      if(activeUser?.id!==userId)return;
+      clearSelection();
+      await loadMyPoints();
+      message('map-action-status',draft?
+        'Zapisano zmiany prywatnego szkicu #'+savedId+'. Pozostaje prywatny do czasu moderacji.':
+        'Prywatny szkic #'+savedId+' zapisany. Aby go przesłać do moderacji, otwórz „Moje punkty”.');
+    }catch(_error){
+      if(activeUser?.id===userId)message('point-sheet-status',draft?
+        'Nie udało się potwierdzić zmian szkicu. Odśwież „Moje punkty” przed kolejną próbą.':
+        'Nie udało się zapisać szkicu. Zapis nie został potwierdzony; sprawdź STAGING.',true);
+    }finally{
+      writingDraft=false;
+      el('save-draft-btn').disabled=!selectedPoint||!el('point-kind').value;
+    }
+  });
+  el('refresh-mine-btn').addEventListener('click',()=>{void loadMyPoints();});
+
+  function clearAdminQueue(){
+    adminVerifiedUserId=null;
+    show('admin-queue-card',false);
+    el('admin-queue-list').replaceChildren();
+    el('admin-queue-status').textContent='Kolejka jest dostępna wyłącznie dla administratora.';
+    el('refresh-admin-queue-btn').disabled=moderationBusy;
+  }
+  function displayAdminQueue(rows){
+    const list=el('admin-queue-list');
+    list.replaceChildren();
+    const visible=rows.slice(0,100);
+    for(const point of visible){
+      const item=document.createElement('li');
+      const desc=document.createElement('strong');
+      desc.textContent='Punkt #'+String(point.id)+' — '+String(point.kind||'nieznany')+' / '+String(point.status||'brak statusu');
+      item.appendChild(desc);
+      if(point.note){
+        const note=document.createElement('p');
+        note.textContent=String(point.note);
+        item.appendChild(note);
+      }
+      if(Number.isFinite(point.lat)&&Number.isFinite(point.lon)){
+        const coords=document.createElement('div');
+        coords.textContent='Współrzędne: '+point.lat.toFixed(6)+', '+point.lon.toFixed(6);
+        item.appendChild(coords);
+      }
+      const validId=(typeof point.id==='number'&&Number.isSafeInteger(point.id)&&point.id>0)||
+        (typeof point.id==='string'&&/^[1-9][0-9]*$/.test(point.id));
+      const actions=document.createElement('div');
+      actions.className='row';
+      for(const [decision,label] of [['approved','Zatwierdź'],['rejected','Odrzuć']]){
+        const button=document.createElement('button');
+        button.type='button';
+        button.className=decision==='rejected'?'secondary':'';
+        button.textContent=label+' punkt #'+String(point.id);
+        button.disabled=moderationBusy||!validId;
+        button.addEventListener('click',()=>{void moderateQueuedPoint(point,decision);});
+        actions.appendChild(button);
+      }
+      item.appendChild(actions);
+      list.appendChild(item);
+    }
+    adminVerifiedUserId=activeUser?.id||null;
+    message('admin-queue-status',rows.length===0?'Brak punktów oczekujących na moderację.':'Oczekujące punkty: '+rows.length+(rows.length>100?' (wyświetlono pierwsze 100)':'')+'.');
+    show('admin-queue-card',true);
+  }
+  async function moderateQueuedPoint(point,decision){
+    if(!db||moderationBusy||!activeUser||adminVerifiedUserId!==activeUser.id)return;
+    if(decision!=='approved'&&decision!=='rejected')return;
+    const id=String(point.id);
+    if(!((typeof point.id==='number'&&Number.isSafeInteger(point.id)&&point.id>0)||
+       (typeof point.id==='string'&&/^[1-9][0-9]*$/.test(point.id))))return;
+    const verb=decision==='approved'?'Zatwierdzić':'Odrzucić';
+    if(!confirm(verb+' punkt #'+id+' ('+String(point.kind||'punkt')+' / '+String(point.status||'brak statusu')+')?\n\nDecyzja zostanie zapisana w historii moderacji.'))return;
+    const moderatorId=activeUser.id;
+    const request=seq;
+    moderationBusy=true;
+    el('refresh-admin-queue-btn').disabled=true;
+    el('logout-btn').disabled=true;
+    el('admin-queue-list').querySelectorAll('button').forEach(button=>{button.disabled=true;});
+    message('moderation-result','Zapisywanie decyzji dla punktu #'+id+'...');
+    try{
+      const auth=await db.auth.getUser();
+      if(auth.error||auth.data?.user?.id!==moderatorId||seq!==request||adminVerifiedUserId!==moderatorId){
+        throw new Error('Session changed');
+      }
+      const result=await db.rpc('moderate_map_point',{p_point_id:point.id,p_decision:decision});
+      if(result.error)throw new Error('RPC denied or failed');
+      if(seq!==request||activeUser?.id!==moderatorId)return;
+      message('moderation-result',decision==='approved'?'Zatwierdzono punkt #'+id+'. Decyzja zapisana w STAGING.':'Odrzucono punkt #'+id+'. Decyzja zapisana w STAGING.');
+      await checkRole(activeUser);
+      await publicPoints();
+    }catch(_error){
+      if(seq===request&&activeUser?.id===moderatorId){
+        message('moderation-result','Nie udało się potwierdzić decyzji dla punktu #'+id+'. Przed ponowną próbą odśwież kolejkę i sprawdź status.',true);
+      }
+    }finally{
+      moderationBusy=false;
+      el('logout-btn').disabled=false;
+      el('refresh-admin-queue-btn').disabled=false;
+      el('admin-queue-list').querySelectorAll('button').forEach(button=>{button.disabled=false;});
+    }
+  }
+  async function checkRole(user){
+    if(!db||!user){clearAdminQueue();return;}
+    const request=seq;
+    const userId=user.id;
+    clearAdminQueue();
+    message('role-status','Sprawdzanie uprawnień...');
+    try{
+      const result=await db.rpc('admin_pending_map_points');
+      if(request!==seq||activeUser?.id!==userId)return;
+      if(!result.error && Array.isArray(result.data)){
+        message('role-status','Administrator — potwierdzony przez RPC.');
+        displayAdminQueue(result.data);
+      } else if(result.error?.code==='42501'&&(result.error.message||'').trim()==='Brak uprawnień administratora'){
+        message('role-status','Zwykły użytkownik — odmowa dostępu administratora.');
+      } else {
+        const code=result.error?.code||'';
+        message('role-status','Nie udało się zweryfikować roli. Kod: '+(/^[A-Za-z0-9_-]{3,16}$/.test(code)?code:'brak kodu'),true);
+      }
+    }catch(_error){
+      if(request===seq&&activeUser?.id===userId){
+        clearAdminQueue();
+        message('role-status','Błąd połączenia podczas sprawdzania roli.',true);
+      }
+    }
+  }
+  async function updateSession(){
+    if(!db)return;
+    const request=++seq;
+    try{
+      const response=await db.auth.getUser();
+      if(request!==seq)return;
+      const user=response.data&&response.data.user;
+      if(!user){
+        activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();
+        el('moderation-result').hidden=true;
+        show('draft-card',false);show('jump-mine-btn',false);show('login-card',true);show('account-card',false);
+        message('login-status','Nie jesteś zalogowany.');
+        return;
+      }
+      const changed=activeUser?.id!==user.id;
+      if(changed){clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;}
+      activeUser=user;
+      show('login-card',false);show('account-card',true);show('draft-card',true);show('jump-mine-btn',true);
+      el('account-email').textContent='Zalogowano: '+(user.email||'konto testowe');
+      void loadMyPoints(user,request);
+      await checkRole(user);
+    }catch(_error){
+      if(request===seq){activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;show('draft-card',false);show('jump-mine-btn',false);show('login-card',true);show('account-card',false);message('login-status','Nie udało się sprawdzić sesji.',true);}
+    }
+  }
+  function connect(key){
+    if(!validKey(key)){message('setup-status','Wymagany jest publiczny klucz STAGING zaczynający się od sb_publishable_.',true);return;}
+    if(!window.supabase){message('setup-status','Brak biblioteki Supabase. Sprawdź połączenie.',true);return;}
+    try{
+      db=window.supabase.createClient(STAGING_URL,key,{auth:{storage:window.sessionStorage,storageKey:SESSION_KEY,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+      try{localStorage.setItem(CONFIG_KEY,key);}catch(_error){}
+      el('public-key').value='';
+      show('setup-card',false);
+      show('login-card',true);
+      db.auth.onAuthStateChange(event=>{
+        if(['SIGNED_IN','SIGNED_OUT','USER_UPDATED','INITIAL_SESSION'].includes(event))
+          queueMicrotask(()=>{void updateSession();});
+      });
+      void updateSession();
+      void publicPoints();
+    }catch(_error){message('setup-status','Błąd konfiguracji STAGING. Sprawdź klucz i dostępność pamięci przeglądarki.',true);}
+  }
+  el('setup-form').addEventListener('submit',event=>{event.preventDefault();connect(el('public-key').value.trim());});
+  el('login-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(!db||loggingIn)return;
+    const email=el('email').value.trim(),password=el('password').value;
+    el('password').value='';
+    loggingIn=true;el('login-btn').disabled=true;
+    message('login-status','Logowanie do STAGING...');
+    try{
+      const result=await db.auth.signInWithPassword({email,password});
+      if(result.error)message('login-status','Logowanie nie powiodło się. Sprawdź e-mail i hasło.',true);
+      else await updateSession();
+    }catch(_error){message('login-status','Błąd połączenia podczas logowania.',true);}
+    finally{loggingIn=false;el('login-btn').disabled=false;}
+  });
+  el('refresh-admin-queue-btn').addEventListener('click',()=>{if(db&&activeUser&&!moderationBusy)void checkRole(activeUser);});
+  el('role-btn').addEventListener('click',async()=>{
+    if(!db||moderationBusy)return;const r=await db.auth.getUser();if(r.data&&r.data.user)void checkRole(r.data.user);
+  });
+  el('logout-btn').addEventListener('click',async()=>{
+    if(!db||moderationBusy)return;
+    activeUser=null;clearSelection();el('my-points').replaceChildren();clearAdminQueue();el('moderation-result').hidden=true;show('draft-card',false);show('jump-mine-btn',false);
+    const r=await db.auth.signOut({scope:'local'});
+    if(r.error)message('role-status','Nie udało się potwierdzić wylogowania.',true);
+    await updateSession();
+  });
+  el('refresh-btn').addEventListener('click',()=>{void publicPoints();});
+  el('jump-mine-btn').addEventListener('click',()=>{if(activeUser)el('draft-card').scrollIntoView({behavior:'smooth',block:'start'});});
+
+  // Display-only layer visibility; does not update Supabase or local storage.
+  function setPublicLayerVisible(visible){
+    if(!map||!markers)return false;
+    if(visible&&!map.hasLayer(markers))map.addLayer(markers);
+    if(!visible&&map.hasLayer(markers))map.removeLayer(markers);
+    return true;
+  }
+  const layersSheet=el('map-layers-sheet'),layersBackdrop=el('map-layers-backdrop');
+  const layersButton=el('open-layers-btn'),layerHandle=el('nt-layer-handle');
+  let pageScrollLocked=false,lockedScrollX=0,lockedScrollY=0;
+  function syncOverlayPageScroll(){
+    const shouldLock=!layersSheet.hidden||!el('nt-osm-detail-sheet').hidden;
+    if(shouldLock&&!pageScrollLocked){
+      lockedScrollX=window.scrollX||0;
+      lockedScrollY=window.scrollY||document.scrollingElement?.scrollTop||0;
+      pageScrollLocked=true;
+      document.documentElement.classList.add('nt-page-scroll-locked');
+      document.body.classList.add('nt-page-scroll-locked');
+    }else if(!shouldLock&&pageScrollLocked){
+      document.documentElement.classList.remove('nt-page-scroll-locked');
+      document.body.classList.remove('nt-page-scroll-locked');
+      pageScrollLocked=false;
+      window.scrollTo(lockedScrollX,lockedScrollY);
+    }
+  }
+  window.addEventListener('scroll',()=>{
+    if(pageScrollLocked&&Math.abs((window.scrollY||0)-lockedScrollY)>1){
+      window.scrollTo(lockedScrollX,lockedScrollY);
+    }
+  },{passive:true});
+  function setLayersCollapsed(value){
+    layersSheet.classList.toggle('is-collapsed',value);
+    layerHandle.setAttribute('aria-expanded',value?'false':'true');
+    if(value)layerHandle.focus();
+  }
+  function closeLayers(){
+    if(layersSheet.hidden)return;
+    layersSheet.hidden=true;layersBackdrop.hidden=true;
+    syncOverlayPageScroll();
+    layersSheet.style.removeProperty('--nt-offset');
+    delete layersSheet.dataset.dragging;
+    setLayersCollapsed(false);
+    layersButton.setAttribute('aria-expanded','false');
+    layersButton.focus();
+  }
+  function toggleLayers(){
+    if(!layersSheet.hidden){closeLayers();return;}
+    if(!el('point-sheet').hidden){
+      message('map-action-status','Najpierw zamknij edytor punktu.');return;
+    }
+    closeOsmSpiderfy();
+    // Never stack the layers dialog above a selected OSM detail card.
+    if(!el('nt-osm-detail-sheet').hidden){
+      el('nt-osm-detail-sheet').hidden=true;
+      activeOsmKind=null;
+      syncOverlayPageScroll();
+    }
+    revealMapViewport();
+    setLayersCollapsed(false);
+    layersSheet.hidden=false;layersBackdrop.hidden=false;
+    syncOverlayPageScroll();
+    layersButton.setAttribute('aria-expanded','true');
+    el('nt-layer-close').focus();
+  }
+  layersButton.addEventListener('click',toggleLayers);
+  el('nt-layer-close').addEventListener('click',closeLayers);
+  layersBackdrop.addEventListener('click',closeLayers);
+  el('nt-public-points-layer').addEventListener('change',event=>setPublicLayerVisible(event.target.checked));
+
+  // Read-only OSM observation layers. Separate from authenticated map_points,
+  // moderation, drafts, Supabase sessions, routing and saved user data.
+  const osmBBox=[59.155,17.81,59.203,17.875];
+  const osmChecks={
+    barrier:el('nt-osm-barriers-layer'),
+    road:el('nt-osm-roads-layer'),
+    path:el('nt-osm-paths-layer')
+  };
+  // Native STAGING points are Leaflet circleMarkers in overlayPane (z=400).
+  // OSM evidence uses a lower pane (z=350), so overlapping approved
+  // STAGING markers remain the first clickable target.
+  const osmPane=map&&window.L?map.createPane('ntOsmEvidencePane'):null;
+  if(osmPane)osmPane.style.zIndex='350';
+  const osmLayers=map&&window.L?{
+    barrier:L.layerGroup().addTo(map),
+    road:L.layerGroup().addTo(map),
+    path:L.layerGroup().addTo(map)
+  }:null;
+  let osmPack=null,osmLoadPromise=null,activeOsmKind=null;
+  const osmClusterLayer=map&&window.L?L.layerGroup().addTo(map):null;
+  const osmSpiderLayer=map&&window.L?L.layerGroup().addTo(map):null;
+  let osmMarkers=[],activeSpiderMarker=null;
+  const osmStatus=text=>{el('nt-osm-status').textContent=text;};
+  const osmValidPoint=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)
+    &&p.lat>=osmBBox[0]&&p.lat<=osmBBox[2]&&p.lon>=osmBBox[1]&&p.lon<=osmBBox[3];
+  const osmKinds={barrier:'Szlaban lub przeszkoda',road:'Oznaczenie na drodze',path:'Ścieżka piesza lub rowerowa'};
+  // All symbols are static SVG, never interpolated from untrusted OSM tags.
+  // OSM highway=footway is NOT proof of a hiking trail or legal access.
+  const osmIconHiker="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"11.5\" cy=\"3.7\" r=\"1.9\" fill=\"white\" stroke=\"none\"/><path d=\"M10.5 7L8.8 12l3.3 2.4L10 20.5M9.2 12l-3 7.8M11.2 8l3.2 2.4 2.6 1M7.8 8.4l-2.3-.7-1.2 4.1 2.4 1.1M17 10.7l2.7 10.2\"/></svg>";
+  const osmIconBike="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"5.5\" cy=\"17.5\" r=\"3.2\"/><circle cx=\"18.5\" cy=\"17.5\" r=\"3.2\"/><path d=\"M5.5 17.5l4.2-9h4.5l4.3 9h-6.8L9.7 8.5M8.7 6h3M15.5 6.5H18\"/></svg>";
+  const osmIconTrail="<svg class=\"nt-osm-symbol\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M9 3C14 4 19 6 18 9S6 12 6 16s5 3 8 5\" stroke-width=\"3.7\"/></svg>";
+  function osmIconForEntry(entry){
+    const highway=entry.p.tags.highway;
+    const style=entry.kind==='path'?highway==='footway'?'walk':
+      highway==='cycleway'?'bike':'trail':entry.kind;
+    const symbol=entry.kind==='barrier'?'!':entry.kind==='road'?'?':
+      style==='walk'?osmIconHiker:style==='bike'?osmIconBike:osmIconTrail;
+    return L.divIcon({className:'',html:'<div class="nt-osm-pin '+style+'"><span>'+symbol+'</span></div>',
+      iconSize:[42,44],iconAnchor:[21,37]});
+  }
+  const osmSafeTags=['barrier','highway','motor_vehicle','motorcar','access','locked','name','surface'];
+  function checkOsmPack(pack){
+    if(!pack||pack.schema_version!==1||pack.area!=='tumba-lida'||pack.coverage!=='collected'
+       ||pack.source!=='OpenStreetMap'||pack.licence!=='ODbL'
+       ||JSON.stringify(pack.bbox)!==JSON.stringify(osmBBox)
+       ||!Array.isArray(pack.objects)||pack.objects.length>300
+       ||typeof pack.source_checked_at!=='string'||Number.isNaN(Date.parse(pack.source_checked_at))
+       ||typeof pack.source_as_of!=='string'||Number.isNaN(Date.parse(pack.source_as_of)))return false;
+    const ids=new Set(),counts={barrier:0,road:0,path:0};
+    for(const p of pack.objects){
+      if(!p||!['node','way'].includes(p.osm_type)||!Number.isSafeInteger(p.osm_id)||p.osm_id<=0
+         ||p.legal_access!=='unverified'||!osmValidPoint(p)
+         ||!p.tags||typeof p.tags!=='object'||Array.isArray(p.tags))return false;
+      const kind=p.kind==='barrier'?'barrier':
+        p.kind==='restriction'&&['path','footway','cycleway'].includes(p.tags.highway)?'path':
+        p.kind==='restriction'?'road':null;
+      if(!kind)return false;
+      if((kind==='barrier')!==(p.osm_type==='node')
+         ||p.location_precision!==(kind==='barrier'?'mapped_point':'approximate_way_center')
+         ||Object.entries(p.tags).some(([key,value])=>!osmSafeTags.includes(key)
+             ||typeof value!=='string'||value.length>120||/[\u0000-\u001f<>]/.test(value)))return false;
+      if(kind==='barrier'&&!['gate','lift_gate','swing_gate','bollard'].includes(p.tags.barrier))return false;
+      if(kind!=='barrier'&&(!p.tags.highway||!['no','private'].some(v=>p.tags.access===v||p.tags.motor_vehicle===v)))return false;
+      const id=p.osm_type+':'+p.osm_id;if(ids.has(id))return false;ids.add(id);
+      counts[kind]++;if(counts[kind]>150)return false;
+    }
+    return pack.objects.length===66&&counts.barrier===29&&counts.road===26&&counts.path===11;
+  }
+  // Group only visible OSM observations; never mix with approved NORDIC TRAIL points.
+  // Below zoom 16 the world-pixel grid prevents unnecessary crowding.
+  // At zoom 16+ group only icons whose footprints really overlap, even across grid cells.
+  function clusterOsmEntries(entries,zoom){
+    if(zoom>=16){
+      const pixels=entries.map(entry=>map.project([entry.p.lat,entry.p.lon],zoom));
+      const parents=entries.map((_,i)=>i);
+      function root(i){while(parents[i]!==i){parents[i]=parents[parents[i]];i=parents[i];}return i;}
+      for(let i=0;i<entries.length;i++)for(let j=i+1;j<entries.length;j++){
+        if(Math.abs(pixels[i].x-pixels[j].x)<42&&Math.abs(pixels[i].y-pixels[j].y)<44){
+          const a=root(i),b=root(j);
+          if(a!==b)parents[b]=a;
+        }
+      }
+      const groups=new Map();
+      entries.forEach((entry,i)=>{
+        const key=root(i);
+        if(!groups.has(key))groups.set(key,[]);
+        groups.get(key).push(entry);
+      });
+      return [...groups.values()];
+    }
+    const cells=new Map(),size=64;
+    for(const entry of entries){
+      const px=map.project([entry.p.lat,entry.p.lon],zoom);
+      const key=Math.floor(px.x/size)+':'+Math.floor(px.y/size);
+      if(!cells.has(key))cells.set(key,[]);
+      cells.get(key).push(entry);
+    }
+    return [...cells.values()];
+  }
+  // The displaced pin is a SELECTOR ONLY. Its line/dot leads back to the
+  // exact OSM coordinate (or the approximate way centre in the source).
+  function closeOsmSpiderfy(){
+    if(osmSpiderLayer)osmSpiderLayer.clearLayers();
+    if(activeSpiderMarker&&osmClusterLayer)osmClusterLayer.addLayer(activeSpiderMarker);
+    activeSpiderMarker=null;
+  }
+  function showOsmSpiderfy(entries,clusterMarker,lat,lon){
+    if(!map||!osmSpiderLayer)return;
+    closeOsmSpiderfy();
+    activeSpiderMarker=clusterMarker;
+    osmClusterLayer.removeLayer(clusterMarker);
+    const zoom=map.getZoom(),center=map.project([lat,lon],zoom);
+    const radius=Math.max(68,Math.ceil(entries.length*53/(2*Math.PI)));
+    entries.forEach((entry,i)=>{
+      const angle=-Math.PI/2+i*2*Math.PI/entries.length;
+      const location=map.unproject([center.x+radius*Math.cos(angle),center.y+radius*Math.sin(angle)],zoom);
+      L.polyline([[entry.p.lat,entry.p.lon],location],{pane:'ntOsmEvidencePane',color:'#f4f5e9',
+        weight:1.7,opacity:.78,interactive:false}).addTo(osmSpiderLayer);
+      L.circleMarker([entry.p.lat,entry.p.lon],{pane:'ntOsmEvidencePane',radius:3,
+        color:'#f4f5e9',weight:1,fillColor:'#294635',fillOpacity:1,interactive:false}).addTo(osmSpiderLayer);
+      const icon=osmIconForEntry(entry);
+      L.marker(location,{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
+        title:osmKinds[entry.kind]+' — odsunięta pinezka, linia wskazuje położenie OSM'})
+        .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
+          showOsmDetail(entry.p,entry.kind);})
+        .addTo(osmSpiderLayer);
+    });
+    osmStatus('Rozdzielono '+entries.length+' bliskich wpisów OSM. Linie pokazują ich zapisane położenia; nie oznaczają przejezdności.');
+  }
+  function renderOsmClusters(){
+    if(!map||!osmLayers||!osmClusterLayer||!osmPack)return;
+    closeOsmSpiderfy();
+    for(const layer of Object.values(osmLayers))layer.clearLayers();
+    osmClusterLayer.clearLayers();
+    const visible=osmMarkers.filter(entry=>osmChecks[entry.kind].checked);
+    for(const entries of clusterOsmEntries(visible,map.getZoom())){
+      if(entries.length===1){
+        entries[0].marker.addTo(osmLayers[entries[0].kind]);
+        continue;
+      }
+      const lat=entries.reduce((total,entry)=>total+entry.p.lat,0)/entries.length;
+      const lon=entries.reduce((total,entry)=>total+entry.p.lon,0)/entries.length;
+      const icon=L.divIcon({className:'',html:'<div class="nt-osm-cluster" aria-hidden="true">'+entries.length+'</div>',iconSize:[42,42],iconAnchor:[21,21]});
+      const clusterMarker=L.marker([lat,lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
+        title:map.getZoom()>=16?'Grupa '+entries.length+' nakładających się oznaczeń — dotknij, aby rozdzielić':
+          'Grupa '+entries.length+' oznaczeń OSM — dotknij, aby przybliżyć'});
+      clusterMarker.on('click',event=>{
+        if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
+        closeOsmDetail();
+        if(map.getZoom()>=16)showOsmSpiderfy(entries,clusterMarker,lat,lon);
+        else map.setView([lat,lon],Math.min(map.getZoom()+2,16),{animate:false});
+      }).addTo(osmClusterLayer);
+    }
+  }
+  if(map){
+    map.on('zoomend',renderOsmClusters);
+    map.on('dragstart',closeOsmSpiderfy);
+  }
+  function setOsmVisible(){
+    if(!map||!osmLayers)return;
+    for(const [kind,group] of Object.entries(osmLayers)){
+      if(osmChecks[kind].checked&&!map.hasLayer(group))map.addLayer(group);
+      else if(!osmChecks[kind].checked&&map.hasLayer(group))map.removeLayer(group);
+    }
+    const active=Object.entries(osmChecks).filter(([,input])=>input.checked).map(([kind])=>kind);
+    if(activeOsmKind&&!osmChecks[activeOsmKind].checked){
+      el('nt-osm-detail-sheet').hidden=true;
+      activeOsmKind=null;
+    }
+    if(!active.length){
+      el('nt-osm-detail-sheet').hidden=true;
+      activeOsmKind=null;
+      osmStatus('Warstwy OSM są wyłączone.');
+    }else if(osmPack)osmStatus('OSM: '+active.map(kind=>kind==='barrier'?'29 szlabanów':kind==='road'?'26 dróg':'11 ścieżek').join(', ')+'. Niezweryfikowane.');
+    renderOsmClusters();
+    syncOverlayPageScroll();
+  }
+  function addOsmDetailRow(container,label,value){
+    const row=document.createElement('div'),name=document.createElement('span'),text=document.createElement('strong');
+    name.textContent=label;text.textContent=String(value);row.append(name,text);container.appendChild(row);
+  }
+  // Present the source tag in plain language; never infer surface from highway type.
+  // OSM groups compacted, gravel, earth and clay as unpaved; surface says nothing about access.
+  const osmSurfaceLabels={
+    paved:['Utwardzona (ogólnie)','Utwardzona'],
+    asphalt:['Asfaltowa','Utwardzona'],
+    concrete:['Betonowa','Utwardzona'],
+    paving_stones:['Z kostki brukowej','Utwardzona'],
+    sett:['Kamienna (kostka)','Utwardzona'],
+    cobblestone:['Brukowana','Utwardzona'],
+    unpaved:['Nieutwardzona (ogólnie)','Nieutwardzona'],
+    gravel:['Żwirowa','Nieutwardzona'],
+    fine_gravel:['Drobnożwirowa','Nieutwardzona'],
+    compacted:['Zagęszczona (stabilizowana)','Nieutwardzona'],
+    ground:['Gruntowa','Nieutwardzona'],
+    dirt:['Gruntowa','Nieutwardzona'],
+    earth:['Gruntowa','Nieutwardzona'],
+    clay:['Gliniasta','Nieutwardzona'],
+    sand:['Piaszczysta','Nieutwardzona'],
+    mud:['Błotnista','Nieutwardzona'],
+    grass:['Trawiasta','Nieutwardzona']
+  };
+  function describeOsmSurface(value){
+    if(!value)return {name:'Brak danych w OSM',group:'Nieznana'};
+    const known=Object.hasOwn(osmSurfaceLabels,value)?osmSurfaceLabels[value]:null;
+    return known?{name:known[0],group:known[1]}:
+      {name:'Nieopisany w słowniku — sprawdź tag surface',group:'Nieustalona'};
+  }
+  function isOsmPrivateAccess(tags){
+    return tags.access==='private';
+  }
+  function showOsmDetail(p,kind){
+    if(!el('point-sheet').hidden){message('map-action-status','Najpierw zamknij edytor punktu.');return;}
+    if(!osmPack)return;
+    const sheet=el('nt-osm-detail-sheet'),meta=el('nt-osm-detail-meta'),tags=el('nt-osm-detail-tags');
+    el('nt-osm-private-access').hidden=!isOsmPrivateAccess(p.tags);
+    const surfaceBox=el('nt-osm-detail-surface'),surfaceTitle=el('nt-osm-detail-surface-title');
+    meta.replaceChildren();tags.replaceChildren();surfaceBox.replaceChildren();
+    const showSurface=kind!=='barrier'||Object.hasOwn(p.tags,'surface');
+    surfaceBox.hidden=!showSurface;surfaceTitle.hidden=!showSurface;
+    if(showSurface){
+      const surface=describeOsmSurface(p.tags.surface);
+      addOsmDetailRow(surfaceBox,'Nawierzchnia',surface.name);
+      addOsmDetailRow(surfaceBox,'Klasyfikacja',surface.group);
+    }
+    el('nt-osm-detail-title').textContent=osmKinds[kind];
+    el('nt-osm-detail-kind').textContent=kind==='barrier'
+      ?'Punkt oznaczony w OSM — brak weryfikacji w terenie.'
+      :kind==='road'?'Środek odcinka jest przybliżony, nie stanowi zasięgu ograniczenia.'
+      :'Oznaczenie ścieżki pieszej/rowerowej, nie drogi dla samochodów.';
+    addOsmDetailRow(meta,'Źródło','OpenStreetMap · ODbL');
+    addOsmDetailRow(meta,'Identyfikator',(p.osm_type==='node'?'Węzeł ':'Odcinek OSM ')+'#'+p.osm_id);
+    addOsmDetailRow(meta,'Stan źródła OSM',osmPack.source_as_of.slice(0,16).replace('T',' ')+' UTC');
+    addOsmDetailRow(meta,'Paczka przygotowana',osmPack.source_checked_at.slice(0,16).replace('T',' ')+' UTC');
+    addOsmDetailRow(meta,'Weryfikacja w terenie','Brak');
+    for(const key of osmSafeTags){
+      if(Object.hasOwn(p.tags,key))addOsmDetailRow(tags,key,p.tags[key]);
+    }
+    el('nt-osm-original').href='https://www.openstreetmap.org/'+p.osm_type+'/'+p.osm_id;
+    activeOsmKind=kind;
+    sheet.hidden=false;
+    syncOverlayPageScroll();
+    el('nt-osm-detail-close').focus();
+  }
+  function closeOsmDetail(){
+    el('nt-osm-detail-sheet').hidden=true;
+    activeOsmKind=null;
+    syncOverlayPageScroll();
+  }
+  el('nt-osm-detail-close').addEventListener('click',()=>{closeOsmDetail();layersButton.focus();});
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!el('nt-osm-detail-sheet').hidden){
+      event.preventDefault();closeOsmDetail();layersButton.focus();
+    }
+  });
+  // Opening an approved point's Leaflet popup takes precedence over OSM.
+  if(map)map.on('popupopen',()=>{
+    closeOsmDetail();
+    closeOsmSpiderfy();
+  });
+  function addOsmMarkers(pack){
+    if(!map||!osmLayers)return;
+    for(const group of Object.values(osmLayers))group.clearLayers();
+    osmMarkers=[];
+    for(const p of pack.objects){
+      const kind=p.kind==='barrier'?'barrier':
+        ['path','footway','cycleway'].includes(p.tags.highway)?'path':'road';
+      const entry={p,kind};
+      const icon=osmIconForEntry(entry);
+      const marker=L.marker([p.lat,p.lon],{icon,pane:'ntOsmEvidencePane',bubblingMouseEvents:false,keyboard:true,
+        title:osmKinds[kind]+' · OSM (niezweryfikowane)'})
+        .on('click',event=>{if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);showOsmDetail(p,kind);});
+      osmMarkers.push({...entry,marker});
+    }
+  }
+  async function ensureOsmPack(){
+    if(osmPack)return osmPack;
+    if(osmLoadPromise)return osmLoadPromise;
+    osmStatus('Wczytywanie statycznej paczki OSM Tumba–Lida…');
+    osmLoadPromise=(async()=>{
+      const response=await fetch('data/tumba-lida.json',{method:'GET',credentials:'omit',cache:'no-store'});
+      if(!response.ok)throw Error('Invalid snapshot status');
+      const contents=await response.text();
+      if(contents.length>120000)throw Error('OSM snapshot exceeds size limit');
+      const data=JSON.parse(contents);
+      if(!checkOsmPack(data))throw Error('OSM snapshot failed source/bounds review');
+      addOsmMarkers(data);osmPack=data;
+      return data;
+    })();
+    try{return await osmLoadPromise;}
+    catch(_error){
+      for(const input of Object.values(osmChecks))input.checked=false;
+      setOsmVisible();
+      osmStatus('Nie udało się odczytać paczki OSM. Pozostałe funkcje mapy działają.');
+      return null;
+    }finally{osmLoadPromise=null;}
+  }
+  for(const input of Object.values(osmChecks)){
+    input.addEventListener('change',async()=>{
+      if(input.checked){
+        if(!osmPack){const result=await ensureOsmPack();if(!result)return;}
+      }
+      setOsmVisible();
+    });
+  }
+  el('nt-osm-area-btn').addEventListener('click',()=>{
+    if(!map)return;
+    map.fitBounds([[osmBBox[0],osmBBox[1]],[osmBBox[2],osmBBox[3]]],{padding:[18,18],maxZoom:13});
+    closeLayers();
+  });
+
+  let handleDragging=false,handleStart=0,handleLast=0,handleMoved=false,suppressHandleClick=false;
+  layerHandle.addEventListener('pointerdown',event=>{
+    if(layersSheet.hidden||event.button!==0||!['touch','pen'].includes(event.pointerType))return;
+    handleDragging=true;handleStart=event.clientY;handleLast=event.clientY;
+    handleMoved=false;suppressHandleClick=false;layersSheet.dataset.dragging='true';
+    layerHandle.setPointerCapture(event.pointerId);
+  });
+  layerHandle.addEventListener('pointermove',event=>{
+    if(!handleDragging)return;
+    handleLast=event.clientY;const d=handleLast-handleStart;
+    if(Math.abs(d)>8)handleMoved=true;
+    layersSheet.style.setProperty('--nt-offset',Math.max(-90,Math.min(d,200))+'px');
+  });
+  function finishLayerDrag(event){
+    if(!handleDragging)return;
+    handleDragging=false;delete layersSheet.dataset.dragging;
+    layersSheet.style.removeProperty('--nt-offset');
+    const d=handleLast-handleStart;
+    if(handleMoved){
+      suppressHandleClick=true;
+      if(d>125&&layersSheet.classList.contains('is-collapsed'))closeLayers();
+      else if(d>55)setLayersCollapsed(true);
+      else if(d< -55)setLayersCollapsed(false);
+    }
+    if(layerHandle.hasPointerCapture(event.pointerId))layerHandle.releasePointerCapture(event.pointerId);
+  }
+  layerHandle.addEventListener('pointerup',finishLayerDrag);
+  layerHandle.addEventListener('pointercancel',finishLayerDrag);
+  layerHandle.addEventListener('click',()=>{
+    if(suppressHandleClick){suppressHandleClick=false;return;}
+    if(!layersSheet.hidden)setLayersCollapsed(!layersSheet.classList.contains('is-collapsed'));
+  });
+  document.addEventListener('keydown',event=>{
+    if(layersSheet.hidden)return;
+    if(event.key==='Escape'){event.preventDefault();closeLayers();return;}
+    if(event.key!=='Tab')return;
+    const els=[...layersSheet.querySelectorAll('button:not(:disabled),input:not(:disabled)')];
+    if(!els.length)return;
+    if(event.shiftKey&&document.activeElement===els[0]){els[els.length-1].focus();event.preventDefault();}
+    else if(!event.shiftKey&&document.activeElement===els[els.length-1]){els[0].focus();event.preventDefault();}
+  });
+  // The map stays sticky underneath the workspace. scrollIntoView() on a
+  // sticky element can be a no-op because it is already at viewport top,
+  // even while the workspace visually covers it. Move the document scroll.
+  function revealMapViewport(){
+    const root=document.scrollingElement;
+    if(root)root.scrollTop=0;
+    window.scrollTo(0,0);
+    if(map)window.requestAnimationFrame(()=>map.invalidateSize({pan:false}));
+  }
+  el('open-workspace-btn').addEventListener('click',()=>{el('workspace').scrollIntoView({behavior:'smooth',block:'start'});});
+  el('back-to-map-btn').addEventListener('click',revealMapViewport);
+  el('add-point-btn').addEventListener('click',()=>{
+    if(!db||!activeUser){
+      message('map-action-status','Aby dodać punkt, najpierw zaloguj się w panelu STAGING.');
+      el('workspace').scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
+    if(writingDraft)return;
+    if(selectedPoint){
+      movingPoint=false;
+      updatePointAction();
+      dismissMapNotice();
+      setSheetCollapsed(false);
+      show('point-sheet',true);
+      adjustMapToPanel();
+      return;
+    }
+    message('map-action-status','Dotknij wybranego miejsca na mapie, aby rozpocząć dodawanie punktu.');
+  });
+  window.addEventListener('resize',()=>{
+    if(map)map.invalidateSize({pan:false});
+    syncVisualViewport();
+  });
+  syncVisualViewport();
+  let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
+  if(saved&&validKey(saved))connect(saved);
+})();
+</script>
+<script>
+(function(){
+ 'use strict';
+ const open=document.getElementById('nt-open-planner-btn'),close=document.getElementById('nt-close-planner-btn');
+ const overlay=document.getElementById('nt-integrated-route-overlay'),frame=document.getElementById('nt-integrated-route-iframe');
+ let wasFocused=null,oldOverflow='';
+ function showPlanner(){
+  if(!overlay.hidden)return;
+  wasFocused=document.activeElement;oldOverflow=document.body.style.overflow;
+  overlay.hidden=false;document.body.style.overflow='hidden';open.setAttribute('aria-expanded','true');
+  if(!frame.src||frame.src==='about:blank')frame.src=frame.dataset.src;
+  close.focus();
+ }
+ function hidePlanner(){
+  if(overlay.hidden)return;
+  overlay.hidden=true;open.setAttribute('aria-expanded','false');
+  document.body.style.overflow=oldOverflow;
+  if(wasFocused&&typeof wasFocused.focus==='function')wasFocused.focus();else open.focus();
+ }
+ open.addEventListener('click',showPlanner);close.addEventListener('click',hidePlanner);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden){e.preventDefault();hidePlanner();}});
+ window.addEventListener('message',e=>{
+  if(e.origin!==window.location.origin||e.source!==frame.contentWindow)return;
+  if(!e.data||e.data.kind!=='nt:planner:close'||e.data.version!==1)return;
+  hidePlanner();
+ });
+})();</script>
+</body>
+</html>
