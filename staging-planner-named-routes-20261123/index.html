@@ -433,7 +433,10 @@ el('cancel-planning').addEventListener('click',()=>{
  if(picking){pick(false);message('notice','Anulowano wybór punktu.');return;}
  if(selected){closeEditor();refresh();message('notice','Anulowano edycję.');return;}
  if(!confirm('Przywrócić ostatnią zapisaną wyprawę? Niezapisane zmiany zostaną utracone.'))return;
- try{const saved=I.load(TEST_STORAGE);trip=saved.trip;routes=saved.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');refresh();fit();message('notice','Przywrócono zapis lokalny.');}
+ try{const archive=readArchive(),active=archive.items.find(x=>x.id===archive.activeId);
+ const saved=active?I.unpack(active.data):I.load(OLD_TEST_STORAGE);
+ trip=saved.trip;routes=saved.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');refresh();fit();
+ message('notice','Przywrócono ostatnią zapisaną trasę.');}
  catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
 el('start-pick').addEventListener('click',()=>{if(busy)return;pendingMode=activeMode||'drive';pendingKind='start';closeEditor();pick(true);message('notice','Wskaż punkt początkowy na mapie.');});
@@ -449,7 +452,71 @@ for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-g
  });
 }
 el('quick-undo').addEventListener('click',()=>el('undo-step').click());
-/* Named route saving implemented below. */
+
+function readArchive(){
+ const raw=localStorage.getItem(ARCHIVE_KEY);
+ if(!raw)return {version:1,activeId:null,items:[]};
+ const d=JSON.parse(raw);
+ if(!d||d.version!==1||!Array.isArray(d.items)||d.items.length>30)throw Error('Uszkodzone archiwum tras.');
+ return d;
+}
+function showSaveDialog(){
+ if(busy||trip.waypoints.length<2)return;
+ if(selected){showToast('Najpierw zamknij edycję punktu.',true);return;}
+ const n=el('trip-name').value.trim();
+ el('save-route-name').value=n==='Nowa wyprawa'?'':n;
+ el('save-route-error').hidden=true;
+ el('save-dialog').showModal();
+ el('save-route-name').focus();
+}
+function commitNamedRoute(){
+ const name=el('save-route-name').value.trim().slice(0,100),err=el('save-route-error');
+ if(!name){err.textContent='Podaj nazwę trasy.';err.hidden=false;return;}
+ try{
+  const archive=readArchive();
+  if(archive.items.length>=30)throw Error('Limit 30 tras; wyeksportuj GPX przed dodaniem kolejnej.');
+  if(archive.items.some(x=>x.name.toLowerCase()===name.toLowerCase())&&!confirm('Nazwa jest już używana. Zapisać nową kopię, bez zastępowania poprzedniej?'))return;
+  const data=I.pack(M.renameTrip(trip,name),routes);
+  const id='t-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+  localStorage.setItem(ARCHIVE_KEY,JSON.stringify({version:1,activeId:id,items:[{id,name,createdAt:new Date().toISOString(),data},...archive.items]}));
+  trip=data.trip;routes=data.routes;history.length=0;
+  el('save-dialog').close();pick(false);closeEditor();activeMode=null;pendingKind='stop';setSheet('closed');refresh();
+  message('action-status','✓ Zapisano trasę: '+name);
+  showToast('✓ Trasa zapisana: '+name);
+ }catch(e){err.textContent='Nie udało się zapisać: '+String(e.message||e);err.hidden=false;}
+}
+function loadNamedRoute(id){
+ try{
+  const archive=readArchive(),item=archive.items.find(x=>x.id===id);
+  if(!item)throw Error('Nie znaleziono trasy.');
+  if(history.length&&!confirm('Otworzyć trasę? Niezapisane zmiany zostaną utracone.'))return;
+  const data=I.unpack(item.data);
+  localStorage.setItem(ARCHIVE_KEY,JSON.stringify({...archive,activeId:id}));
+  trip=data.trip;routes=data.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');
+  closeEditor();pick(false);activeMode=null;setSheet('closed');refresh();fit();
+  el('trips-dialog').close();showToast('Otwarta trasa: '+item.name);
+ }catch(e){showToast('Nie udało się otworzyć: '+String(e.message||e),true);}
+}
+function showMyRoutes(){
+ try{
+  const archive=readArchive(),ul=el('named-routes-list');
+  ul.replaceChildren();
+  if(!archive.items.length){const li=document.createElement('li');li.textContent='Brak nazwanych tras.';ul.appendChild(li);}
+  for(const item of archive.items){
+   const li=document.createElement('li'),detail=document.createElement('div'),name=document.createElement('strong'),date=document.createElement('small'),btn=document.createElement('button');
+   name.textContent=item.name;date.textContent=new Date(item.createdAt).toLocaleString('pl-PL')+(archive.activeId===item.id?' · aktualna':'');
+   detail.append(name,date);btn.type='button';btn.className='secondary';btn.textContent='Otwórz';btn.onclick=()=>loadNamedRoute(item.id);
+   li.append(detail,btn);ul.appendChild(li);
+  }
+  el('trips-dialog').showModal();
+ }catch(e){showToast('Nie udało się odczytać tras: '+String(e.message||e),true);}
+}
+el('quick-done').addEventListener('click',showSaveDialog);
+el('save-route-back').addEventListener('click',()=>el('save-dialog').close());
+el('save-route-form').addEventListener('submit',e=>{e.preventDefault();commitNamedRoute();});
+el('open-my-trips').addEventListener('click',showMyRoutes);
+el('close-trips-dialog').addEventListener('click',()=>el('trips-dialog').close());
+
 (function initSheetHandle(){
  const handle=el('sheet-handle'),sheet=el('planner-sheet');
  let drag=false,start=0,last=0,moved=false,suppressClick=false;
@@ -513,16 +580,18 @@ el('new-trip').addEventListener('click',()=>{
  message('action-status','Nowa wyprawa. Poprzedni zapis v1/v2 nie został usunięty.');
 });
 try{
- const loaded=I.load(TEST_STORAGE);trip=loaded.trip;routes=loaded.routes;
- if(loaded.from==='v1')message('notice','Wczytano starszą wyprawę v1 bez jej zmiany.');
- if(loaded.from==='v2'){
+ const archive=readArchive();
+ if(archive.items.length){
+  const active=archive.items.find(x=>x.id===archive.activeId)||archive.items[0],data=I.unpack(active.data);
+  trip=data.trip;routes=data.routes;showResults=segments().some(x=>x.status==='routed');
+  message('notice','Otworzono zapisaną trasę: '+active.name);
+ }else{
+  const loaded=I.load(OLD_TEST_STORAGE);trip=loaded.trip;routes=loaded.routes;
   showResults=segments().some(x=>x.status==='routed');
-  message('notice','Przywrócono wyprawę v2 i obliczone trasy.');
-  const saved=segments().filter(s=>s.status==='routed').length;
-  if(saved)message('routing-status','✓ Przywrócono '+saved+' wyznaczonych odcinków OSM. Dostępność dróg pozostaje niezweryfikowana.');
+  if(loaded.from==='v2')message('notice','Odczytano trasę z poprzedniego testu bez modyfikowania jej zapisu. Użyj Zapisz, by dodać ją do Moje trasy.');
  }
-}catch(_){trip=M.emptyTrip();routes=Object.create(null);
- message('notice','Nie udało się odczytać zapisu; stare dane pozostają nietknięte.',true);
+}catch(e){trip=M.emptyTrip();routes=Object.create(null);
+ message('notice','Błąd odczytu zapisów — stare dane pozostały nietknięte: '+String(e.message||e),true);
 }
 try{
  if(!M||!R||!I||!G||!window.L)throw Error('Brak wymaganych modułów');
