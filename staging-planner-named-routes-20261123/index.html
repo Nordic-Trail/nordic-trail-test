@@ -528,7 +528,7 @@ el('close-trips-dialog').addEventListener('click',()=>el('trips-dialog').close()
   beginHeight=sheet.getBoundingClientRect().height;currentHeight=beginHeight;
   const css=getComputedStyle(sheet),padding=parseFloat(css.paddingBottom)||0;
   minHeight=chrome.getBoundingClientRect().height+padding+2;
-  maxHeight=parseFloat(css.maxHeight)||Math.min(window.innerHeight*0.82,760);
+  maxHeight=Math.min(window.innerHeight*0.82,760);
   maxHeight=Math.max(minHeight,maxHeight);
   dragged=false;suppressClick=false;
   handle.setPointerCapture(event.pointerId);
