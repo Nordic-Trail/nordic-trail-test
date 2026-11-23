@@ -157,14 +157,12 @@ h3{font-size:15px;margin:13px 0 6px}
 <div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg><span id="route-button-label">Wyznacz trasę</span></button></div>
 <div class="buttons"><button type="button" id="undo-step" class="secondary" disabled><svg class="ui-icon" aria-hidden="true"><use href="#nt-undo"/></svg>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
 <p id="routing-status" role="status" aria-live="polite" hidden></p></section>
-<section class="card" id="route-audit-card" hidden aria-label="Kontrola dopasowania trasy do punktów">
-<h2><svg class="ui-icon" aria-hidden="true"><use href="#nt-trail"/></svg> Kontrola dopasowania OSM</h2>
+<section class="card" id="route-audit-card" hidden aria-label="Brakujące fragmenty trasy">
+<h2><svg class="ui-icon" aria-hidden="true"><use href="#nt-trail"/></svg> Brakujące fragmenty trasy</h2>
 <p id="route-audit-head" role="status"></p><ol id="route-audit-list"></ol>
-<p class="hint"><strong>Legenda:</strong> zielona ciągła — trasa obliczona OSM; ciemnopomarańczowa przerywana — odległość w linii prostej bez potwierdzonego dojścia. Dotknij łącznika, aby zobaczyć ostrzeżenie. Łączniki nie są dodawane do GPX jako ścieżki.</p>
-<p class="hint">Pomiar po linii prostej między wybranym punktem a początkiem lub końcem geometrii OSM. Próg ostrzegawczy w tym teście: 50 m. Brak ostrzeżenia nie gwarantuje dostępności ścieżki w terenie.</p>
-<div class="buttons"><button type="button" id="test-radius" class="secondary">Sprawdź promień 50 m (Valhalla)</button></div>
-<p class="hint">Test wyśle współrzędne i rodzaj podróży do demonstracyjnego serwera tylko po zaznaczeniu zgody powyżej. Nie zmienia ani nie zapisuje trasy.</p>
-<p id="radius-test-status" role="status" aria-live="polite" hidden></p>
+<p class="hint"><strong>Co oznaczają linie?</strong> Zielona — wyznaczona trasa. Pomarańczowa przerywana — miejsce, w którym trasa nie dochodzi do punktu. Fioletowa przerywana — Twój ręczny szkic. Pomarańczowe i fioletowe fragmenty nie są potwierdzonymi ścieżkami i nie są dodawane do GPX.</p>
+<p class="hint">Pokazane odległości są mierzone w linii prostej — nie oznaczają długości istniejącej ścieżki. Ostrzegamy, jeśli przerwa przekracza 50 m. Nawet gdy trasa kończy się blisko punktu, sprawdź dojście w terenie.</p>
+<details id="route-audit-advanced"><summary>Dodatkowe sprawdzenie trasy (test)</summary><div class="buttons"><button type="button" id="test-radius" class="secondary">Sprawdź, czy jest bliższa ścieżka</button></div><p class="hint">To próba ponownego wyszukania trasy przy mniejszym obszarze dopasowania punktów (50 m). Test wymaga zaznaczenia zgody na wysłanie współrzędnych powyżej. Nie zmienia zapisanej trasy.</p><p id="radius-test-status" role="status" aria-live="polite" hidden></p></details>
 </section>
 <section class="card"><h2>Zapis i eksport</h2>
 <div class="export-actions"><button id="open-my-trips" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-trail"/></svg>Moje trasy</button><div class="export-stack"><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><p class="small-note">Plik GPX — do wykorzystania w innych aplikacjach i urządzeniach.</p></div></div>
@@ -250,7 +248,7 @@ function updateQuick(){
  routeBtn.disabled=busy||!segs.length||(done&&!gaps);
  routeBtn.classList.toggle('done',done&&!gaps);
  routeBtn.classList.toggle('gap-warning',done&&gaps);
- el('route-button-label').textContent=busy?'Wyznaczanie…':done&&gaps?'Sprawdź dopasowanie punktów':done?'Trasa wyznaczona':remaining.length<segs.length?'Wyznacz pozostałe odcinki':'Wyznacz trasę';
+ el('route-button-label').textContent=busy?'Wyznaczanie…':done&&gaps?'Zobacz brakujące fragmenty':done?'Trasa wyznaczona':remaining.length<segs.length?'Wyznacz pozostałe odcinki':'Wyznacz trasę';
  for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-goal','finish']]){
   el(id).classList.toggle('active',picking&&pendingKind===kind);
  }
@@ -292,26 +290,26 @@ function renderEndpointAudit(segs){
  const heading=el('route-audit-head');
  heading.className=warn.length?'audit-alert':'audit-clear';
  heading.textContent=warn.length?
-  'Uwaga: '+warn.length+' z '+routed.length+' odcinków OSM nie dochodzi wystarczająco blisko wskazanych punktów. Sprawdź poniższe odległości.':
-  'Wszystkie wyznaczone odcinki mieszczą się w progu ostrzegawczym 50 m.';
+  'Uwaga: wyznaczona trasa nie dochodzi dokładnie do wszystkich punktów. Problem dotyczy '+warn.length+' z '+routed.length+' odcinków. Zobacz, gdzie brakuje połączenia.':
+  'Wyznaczona trasa kończy się blisko zaznaczonych punktów (do 50 m). Sprawdź jednak możliwość dojścia na miejscu.';
  const list=el('route-audit-list');list.replaceChildren();
  for(const item of rows){
   const li=document.createElement('li');
-  if(item.status==='draft'){li.textContent='Odcinek '+item.index+'–'+(item.index+1)+': szkic, brak danych OSM.';}
+  if(item.status==='draft'){li.textContent='Między punktami '+item.index+' i '+(item.index+1)+': trasa nie została jeszcze wyznaczona.';}
   else{
    const a=Math.round(item.start),b=Math.round(item.end);
-   li.textContent='Odcinek '+item.index+'–'+(item.index+1)+': od punktu '+item.index+' — '+a+' m; do punktu '+(item.index+1)+' — '+b+' m'+(item.warning?' · WYMAGA SPRAWDZENIA':' · w progu testowym');
+   li.textContent='Między punktami '+item.index+' i '+(item.index+1)+': przy punkcie '+item.index+' — '+a+' m, przy punkcie '+(item.index+1)+' — '+b+' m'+(item.warning?' · brakuje połączenia':' · trasa blisko punktów');
    const seg=segs[item.index-1];
    if(seg.mode==='walk'){
     for(const [side,metres,num] of [['start',item.start,item.index],['end',item.end,item.index+1]]){
      if(metres<=GAP_WARNING_METERS)continue;
      const key=seg.key+'|'+side;
      const control=document.createElement('button');control.type='button';
-     control.textContent=(manualGapDrafts[key]?'Popraw szkic':'Narysuj szkic')+' do punktu '+num+' ('+Math.round(metres)+' m)';
+     control.textContent=(manualGapDrafts[key]?'Popraw ręczny szkic':'Narysuj brakujący fragment')+' · punkt '+num+' ('+Math.round(metres)+' m)';
      control.disabled=busy;control.addEventListener('click',()=>startManualGapSketch(seg.key,side));
      li.appendChild(control);
      if(manualGapDrafts[key]){
-      const tip=document.createElement('small');tip.textContent='Fioletowa linia to szkic, nie potwierdzone dojście; nie zostanie dodana do GPX.';
+      const tip=document.createElement('small');tip.textContent='Ten fioletowy fragment został narysowany ręcznie. Nie jest sprawdzoną ścieżką i nie trafi do GPX.';
       li.appendChild(tip);
      }
     }
@@ -358,7 +356,7 @@ function redraw(){
      color:'#ad4e11',weight:4,opacity:.95,dashArray:'3 10',
      interactive:true,bubblingMouseEvents:false
     }).addTo(gapLines);
-    connector.bindPopup('BRAK POTWIERDZONEJ ŚCIEŻKI: '+Math.round(dist)+' m w linii prostej. Jest to odległość orientacyjna, a nie trasa do nawigacji.',{autoPan:true,maxWidth:260});
+    connector.bindPopup('Tu brakuje wyznaczonego połączenia: '+Math.round(dist)+' m w linii prostej. Pomarańczowa linia nie oznacza sprawdzonej ścieżki.',{autoPan:true,maxWidth:260});
    }
   }
  });
@@ -606,11 +604,11 @@ el('gap-sketch-finish').addEventListener('click',()=>{
 async function testStrictRadius(){
  if(busy||activeGapDraft)return;
  if(!el('route-consent').checked){
-  message('radius-test-status','Zaznacz najpierw zgodę na wysłanie współrzędnych do Valhalli.',true);return;
+  message('radius-test-status','Zaznacz najpierw zgodę na sprawdzenie trasy online.',true);return;
  }
  const all=segments(),poor=all.map((s,i)=>({s,index:i+1})).filter(({s})=>s.status==='routed'&&
    (distanceMeters(s.from,s.points[0])>GAP_WARNING_METERS||distanceMeters(s.to,s.points[s.points.length-1])>GAP_WARNING_METERS));
- if(!poor.length){message('radius-test-status','Brak odcinków przekraczających próg 50 m.');return;}
+ if(!poor.length){message('radius-test-status','Wszystkie końce trasy są w odległości do 50 m od wskazanych punktów.');return;}
  if(poor.length>MAX_CALLS-calls){message('radius-test-status','Limit 6 wywołań na sesję testową.',true);return;}
  const out=[];setBusy(true);
  try{
@@ -618,18 +616,18 @@ async function testStrictRadius(){
    const {s,index}=poor[i],pause=Math.max(0,MIN_INTERVAL-(Date.now()-lastRequestTime));
    if(pause)await delay(pause);
    calls++;lastRequestTime=Date.now();
-   message('radius-test-status',[...out,'Odcinek '+index+'–'+(index+1)+': sprawdzanie promienia 50 m…'].join('\n'));
+   message('radius-test-status',[...out,'Między punktami '+index+' i '+(index+1)+': szukam bliższej ścieżki…'].join('\n'));
    try{
     const resp=await requestRoute(s,50);
     const a=Math.round(distanceMeters(s.from,resp.points[0])),b=Math.round(distanceMeters(s.to,resp.points[resp.points.length-1]));
-    out.push('Odcinek '+index+'–'+(index+1)+': początek '+a+' m, koniec '+b+' m — '+(a>50||b>50?'nadal niedopasowany':'oba końce w progu 50 m'));
+    out.push('Między punktami '+index+' i '+(index+1)+': przerwa na początku '+a+' m, na końcu '+b+' m — '+(a>50||b>50?'nadal brakuje połączenia':'trasa kończy się bliżej punktów'));
    }catch(e){
-    out.push('Odcinek '+index+'–'+(index+1)+': brak trasy dla promienia 50 m ('+String(e.message||e)+')');
+    out.push('Między punktami '+index+' i '+(index+1)+': nie udało się znaleźć bliższej ścieżki ('+String(e.message||e)+')');
     if(String(e.message||e).includes('429'))break;
    }
   }
  }finally{setBusy(false);}
- message('radius-test-status',out.join('\n')+'\nOryginalna trasa i punkty bez zmian. Wynik nie potwierdza dostępności.',false);
+ message('radius-test-status',out.join('\n')+'\nTwoja trasa i punkty pozostały bez zmian. Wynik nie potwierdza istnienia ścieżki.',false);
 }
 el('test-radius').addEventListener('click',testStrictRadius);
 
@@ -675,8 +673,8 @@ async function calculate(){
  else{
   const gaps=endpointAudit().filter(x=>x.warning);
   message('routing-status',gaps.length?
-   'Uwaga: wyznaczono odcinki OSM, ale '+gaps.length+' z nich nie dochodzi wystarczająco blisko wybranych punktów. Szczegóły w „Kontrola dopasowania OSM”.':
-   '✓ Wyznaczono '+done+' odcinków OSM. Zachowaj geometrię przez Zapisz. Dostępność prawna niezweryfikowana.',!!gaps.length);
+   'Wyznaczona trasa nie prowadzi dokładnie do wszystkich punktów. Zajrzyj do „Brakujące fragmenty trasy”.':
+   '✓ Wyznaczono '+done+' odcinków trasy. Aby je zachować, wybierz Zapisz. Dostępność dróg i ścieżek nie została sprawdzona.',!!gaps.length);
  }
 }
 el('fit-trip').addEventListener('click',()=>{
@@ -906,7 +904,7 @@ el('export-gpx').addEventListener('click',()=>{
   const s=segments(),draft=s.filter(x=>x.status==='draft').length;
   if(draft&&!confirm('UWAGA: '+draft+' odcinków nadal jest szkicem po prostej. Eksportować GPX z oznaczonymi szkicami?'))return;
    const gaps=endpointAudit(s).filter(x=>x.warning);
-   if(gaps.length&&!confirm('UWAGA: '+gaps.length+' odcinków OSM nie dochodzi do wybranych punktów (odległość ponad 50 m). GPX może nie prowadzić do celu. Mimo to pobrać plik?'))return;
+   if(gaps.length&&!confirm('Uwaga: przy '+gaps.length+' odcinkach trasa kończy się ponad 50 m od wskazanych punktów. Plik GPX może nie doprowadzić do tych miejsc. Pobrać mimo to?'))return;
   download('nordic-trail-trasy-test.gpx',I.gpx(trip,routes));
   message('action-status','✓ GPX utworzony: '+(s.length-draft)+' odcinków OSM, '+draft+' szkiców. Nie jest to nawigacja.');
  }catch(_){message('action-status','Nie udało się wyeksportować GPX.',true);}
