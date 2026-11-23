@@ -106,8 +106,8 @@ button:disabled{opacity:.5;cursor:wait}
 .leaflet-control-attribution a{color:#143e61!important}
 html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;overscroll-behavior:none!important}
 #map-layers-backdrop{position:fixed;inset:0;z-index:1130;background:rgba(6,20,13,.16);touch-action:none}
-.nt-layers-sheet{--nt-offset:0px;position:fixed;left:50%;bottom:0;z-index:1180;transform:translate(-50%,var(--nt-offset));width:min(100%,550px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
-.nt-layers-sheet[data-dragging="true"]{transition:none}
+.nt-layers-sheet{--nt-offset:0px;--nt-layer-gesture-height:auto;height:var(--nt-layer-gesture-height);position:fixed;left:50%;bottom:0;z-index:1180;transform:translate(-50%,var(--nt-offset));width:min(100%,550px);max-height:min(78dvh,760px);overflow-y:auto;overscroll-behavior:contain;border:1px solid rgba(203,232,197,.77);border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));background:var(--nt-glass);color:var(--ink);box-shadow:0 -12px 40px #07170d88;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:transform .18s ease,max-height .18s ease}
+.nt-layers-sheet[data-dragging="true"]{transition:none!important;overflow:hidden}
 .nt-layers-sheet.is-collapsed{max-height:min(135px,28dvh);overflow:hidden}
 .nt-layers-sheet.is-collapsed .nt-layer-body{display:none}
 .nt-layer-handle{display:flex;align-items:center;justify-content:center;width:100%;height:38px;min-height:38px;margin:-18px 0 8px;padding:0;background:transparent;border:0;border-radius:8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -1118,7 +1118,8 @@ body.nt-planner-on #workspace{visibility:hidden!important;pointer-events:none!im
       window.scrollTo(lockedScrollX,lockedScrollY);
     }
   },{passive:true});
-  function setLayersCollapsed(value){
+  function setLayersCollapsed(value,preserveHeight=false){
+    if(!preserveHeight)layersSheet.style.removeProperty('--nt-layer-gesture-height');
     layersSheet.classList.toggle('is-collapsed',value);
     layerHandle.setAttribute('aria-expanded',value?'false':'true');
     if(value)layerHandle.focus();
@@ -1128,6 +1129,7 @@ body.nt-planner-on #workspace{visibility:hidden!important;pointer-events:none!im
     layersSheet.hidden=true;layersBackdrop.hidden=true;
     syncOverlayPageScroll();
     layersSheet.style.removeProperty('--nt-offset');
+    layersSheet.style.removeProperty('--nt-layer-gesture-height');
     delete layersSheet.dataset.dragging;
     setLayersCollapsed(false);
     layersButton.setAttribute('aria-expanded','false');
@@ -1468,31 +1470,60 @@ body.nt-planner-on #workspace{visibility:hidden!important;pointer-events:none!im
     closeLayers();
   });
 
-  let handleDragging=false,handleStart=0,handleLast=0,handleMoved=false,suppressHandleClick=false;
+  // The sheet must follow the finger continuously. S Pen hover / Air View never
+  // starts a drag, and its pen pointer events cannot move a captured touch.
+  let layerPointer=null,layerStartY=0,layerStartHeight=0,layerHeight=0;
+  let layerMinHeight=0,layerMaxHeight=0,layerStartCollapsed=false,layerMoved=false;
+  let suppressHandleClick=false;
   layerHandle.addEventListener('pointerdown',event=>{
-    if(layersSheet.hidden||event.button!==0||!['touch','pen'].includes(event.pointerType))return;
-    handleDragging=true;handleStart=event.clientY;handleLast=event.clientY;
-    handleMoved=false;suppressHandleClick=false;layersSheet.dataset.dragging='true';
+    if(layersSheet.hidden||layerPointer!==null||event.pointerType!=='touch'||
+      event.isPrimary===false||event.button!==0||event.buttons!==1)return;
+    layerPointer=event.pointerId;
+    layerStartY=event.clientY;
+    layerStartHeight=layersSheet.getBoundingClientRect().height;
+    layerHeight=layerStartHeight;
+    layerStartCollapsed=layersSheet.classList.contains('is-collapsed');
+    layerMinHeight=Math.min(135,window.innerHeight*0.28);
+    layerMaxHeight=Math.max(layerMinHeight,Math.min(760,window.innerHeight*0.78));
+    layerMoved=false;suppressHandleClick=false;
     layerHandle.setPointerCapture(event.pointerId);
   });
   layerHandle.addEventListener('pointermove',event=>{
-    if(!handleDragging)return;
-    handleLast=event.clientY;const d=handleLast-handleStart;
-    if(Math.abs(d)>8)handleMoved=true;
-    layersSheet.style.setProperty('--nt-offset',Math.max(-90,Math.min(d,200))+'px');
+    if(layerPointer!==event.pointerId||event.pointerType!=='touch'||(event.buttons&1)!==1)return;
+    const delta=event.clientY-layerStartY;
+    if(!layerMoved&&Math.abs(delta)<7)return;
+    if(!layerMoved){
+      layerMoved=true;
+      layersSheet.style.setProperty('--nt-layer-gesture-height',layerStartHeight+'px');
+      setLayersCollapsed(false,true);
+      layersSheet.dataset.dragging='true';
+    }
+    layerHeight=Math.max(layerMinHeight,Math.min(layerMaxHeight,layerStartHeight-delta));
+    layersSheet.style.setProperty('--nt-layer-gesture-height',layerHeight+'px');
   });
   function finishLayerDrag(event){
-    if(!handleDragging)return;
-    handleDragging=false;delete layersSheet.dataset.dragging;
-    layersSheet.style.removeProperty('--nt-offset');
-    const d=handleLast-handleStart;
-    if(handleMoved){
+    if(layerPointer!==event.pointerId)return;
+    const wasMoved=layerMoved,cancelled=event.type==='pointercancel';
+    layerPointer=null;layerMoved=false;
+    delete layersSheet.dataset.dragging;
+    if(wasMoved){
       suppressHandleClick=true;
-      if(d>125&&layersSheet.classList.contains('is-collapsed'))closeLayers();
-      else if(d>55)setLayersCollapsed(true);
-      else if(d< -55)setLayersCollapsed(false);
+      if(cancelled){
+        if(layerStartCollapsed)setLayersCollapsed(true);
+        else{
+          setLayersCollapsed(false,true);
+          layersSheet.style.setProperty('--nt-layer-gesture-height',layerStartHeight+'px');
+        }
+      }else if(layerHeight<=layerMinHeight+9)setLayersCollapsed(true);
+      else if(layerHeight>=layerMaxHeight-9)setLayersCollapsed(false);
+      else{
+        // Preserve intermediate positions: no snap to one of two sizes.
+        setLayersCollapsed(false,true);
+        layersSheet.style.setProperty('--nt-layer-gesture-height',layerHeight+'px');
+      }
     }
-    if(layerHandle.hasPointerCapture(event.pointerId))layerHandle.releasePointerCapture(event.pointerId);
+    if(layerHandle.hasPointerCapture(event.pointerId))
+      layerHandle.releasePointerCapture(event.pointerId);
   }
   layerHandle.addEventListener('pointerup',finishLayerDrag);
   layerHandle.addEventListener('pointercancel',finishLayerDrag);
