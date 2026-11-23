@@ -29,37 +29,110 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .group-menu{display:grid;gap:6px;min-width:190px;color:#1c3023}
 .group-menu button{display:block;width:100%;text-align:left;font-size:13px;min-height:38px}
 @media(max-width:800px){main{display:block;padding:8px}#map{height:47dvh;min-height:260px}.panel{margin-top:10px}header{padding:9px;font-size:13px}}
+.ui-icon{width:22px;height:22px;fill:currentColor;flex:none;vertical-align:middle}
+button .ui-icon{margin-right:5px}.stage-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.stage-buttons button{min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;line-height:1.15}
+.stage-buttons .ui-icon{width:25px;height:25px;margin-right:0}
+#clear-routes{margin-top:8px}.small-note{font-size:12px;color:#c0cdc0;text-align:center;margin:5px 0 0}
+#advanced-route{margin:8px 0;font-size:13px}#advanced-route summary{cursor:pointer;padding:5px}
+button.active{outline:2px solid var(--accent)}
+.edit-primary{width:100%;min-height:49px;background:#c8dba4;color:#192d1f;border:2px solid #ecf2d8}
+.export-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px;align-items:start}
+.export-actions>button,.export-stack button{width:100%;min-height:48px}
+.export-stack{display:flex;flex-direction:column;gap:0}
+.export-stack .small-note{text-align:left;margin:6px 2px 0}
+.stage-buttons button{min-height:62px}
+.stage-buttons .ui-icon{width:32px;height:32px}
+h3{font-size:15px;margin:13px 0 6px}
+
+/* Planner controls on map. Small visuals with accessible touch targets. */
+.map-area{position:relative;isolation:isolate}
+.map-area #map{width:100%}
+#route-modes{position:absolute;bottom:12px;left:12px;right:12px;z-index:450;display:flex;justify-content:center;gap:14px;margin:0;pointer-events:none}
+#route-modes button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:52px;min-width:66px;padding:5px 9px;gap:2px;background:rgba(18,42,29,.70);color:#f1f4e9;border:1px solid rgba(231,245,219,.85);box-shadow:0 3px 14px #07170d66;backdrop-filter:blur(4px);pointer-events:auto}
+#route-modes button .ui-icon{width:27px;height:27px}
+#route-modes button span{font-size:10px}
+#route-modes button.active{background:#41634b;outline:2px solid var(--accent);outline-offset:1px}
+.sheet-chrome{display:none}
+@media(max-width:800px){
+ html,body{min-height:100%;overscroll-behavior:none}
+ header{position:absolute;top:0;left:0;right:0;z-index:500;background:rgba(18,42,29,.76);backdrop-filter:blur(4px)}
+ main{display:block;padding:0}
+ .map-section{position:relative;height:100dvh;overflow:hidden}
+ .map-area,.map-area #map{height:100dvh;min-height:0;border:0;border-radius:0}
+ .map-fit-actions,.map-section>.hint{display:none}
+ #route-modes{bottom:calc(16px + env(safe-area-inset-bottom));transition:bottom .18s ease}
+ body:has(#planner-sheet[data-sheet="compact"]) #route-modes{bottom:calc(181px + env(safe-area-inset-bottom))}
+ body:has(#planner-sheet[data-sheet="expanded"]) #route-modes{bottom:calc(16px + env(safe-area-inset-bottom))}
+ .panel#planner-sheet{position:fixed;z-index:700;bottom:0;left:0;right:0;margin:0;display:flex;flex-direction:column;gap:0;width:100%;max-height:min(82dvh,760px);background:rgba(18,42,29,.82);border:1px solid rgba(231,245,219,.78);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -12px 30px #07170d77;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow:hidden;padding-bottom:env(safe-area-inset-bottom);transition:transform .20s ease}
+ .panel#planner-sheet[data-sheet="closed"]{transform:translateY(105%);pointer-events:none}
+ .panel#planner-sheet[data-sheet="compact"]{transform:translateY(0)}
+ .panel#planner-sheet[data-sheet="expanded"]{transform:translateY(0)}
+ .panel#planner-sheet[data-dragging="true"]{transition:none;transform:translateY(var(--sheet-offset,0px))}
+ .sheet-chrome{display:block;padding:5px 10px 11px;flex:none}
+ .sheet-handle{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;width:100%;min-height:34px;height:34px;padding:0;background:transparent;color:#e3f0dc;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+ .sheet-grip{width:49px;height:5px;border-radius:9px;background:#d3e2c9;display:block}
+ .sheet-chevron{font-size:17px;line-height:17px}
+ .sheet-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;padding:2px 2px 10px}
+ .sheet-heading strong{font-size:15px}
+ #sheet-prompt{color:#e2eddd;font-size:11px;text-align:right;max-width:53%}
+ .quick-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+ .quick-actions button{min-width:0;min-height:46px;font-size:12px;padding:6px 1px}
+ .quick-actions button.active{outline:2px solid white}
+ #sheet-more{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding:0 10px 14px;touch-action:pan-y}
+ .panel#planner-sheet[data-sheet="compact"] #sheet-more,.panel#planner-sheet[data-sheet="closed"] #sheet-more{display:none}
+ .panel#planner-sheet .card{margin:0 0 10px;background:rgba(28,51,37,.68)}
+ .panel#planner-sheet #editor:not([hidden]){display:block}
+ .panel#planner-sheet #notice{font-size:13px}
+ .panel#planner-sheet .buttons{gap:8px}
+ .panel#planner-sheet button:focus-visible{outline:3px solid white}
+ .leaflet-control-zoom{margin-top:75px!important}
+}
+@media(prefers-reduced-motion:reduce){.panel#planner-sheet,#route-modes{transition:none!important}}
 </style></head>
-<body><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a href="../staging-app/">Powrót do mapy</a></header>
-<main><section aria-label="Mapa planowania"><div id="map"></div><div class="buttons"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
-<div class="panel">
+<body><svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+<symbol id="nt-car" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M4.9,18.9 L4.9,22.7 L9.7,23.2 L10.2,26.1 L9.2,28.4 L6.4,28.9 L4.5,30.3 L4.5,37.0 L14,37 L15.4,39.8 L18.2,39.8 L19.2,40.8 L18.7,43.2 L14.9,43.2 L13.5,41.7 L13,39.4 L4.5,39.4 L4,51.7 L4.5,54.5 L5.9,56 L12.1,56 L13.5,54.5 L14,47.4 L50,47.4 L50.5,54.5 L51.9,56 L57.6,56 L59.5,54.5 L59.5,39.4 L51,39.4 L50.5,42.2 L49.1,43.2 L45.8,43.2 L44.8,42.2 L44.8,40.8 L45.8,39.8 L48.6,39.8 L48.6,38.4 L50,37 L59.5,37 L59.5,30.3 L57.6,28.9 L54.8,28.4 L53.8,25.6 L54.3,23.2 L59.1,22.7 L59.1,18.9 L54.3,18.5 L53.4,21.3 L52.4,20.4 L50.5,10.4 L49.1,8.5 L46.7,7.6 L17.3,7.6 L14.9,8.5 L13.5,10.9 L11.6,19.9 L10.6,21.3 L9.7,20.8 L9.7,18.5 Z M47.7,26.5 L50,26.5 L51.5,27.5 L52.9,30.3 L52.4,32.2 L49.1,34.6 L46.2,33.7 L44.8,31.8 L45.3,28.4 Z M39.6,26.5 L41.5,27.5 L41.5,36.5 L40.5,37.5 L38.6,36.5 L38.6,27.5 Z M36.3,26.5 L38.2,27.5 L38.2,36.5 L37.2,37.5 L35.3,36.5 L35.3,28 Z M33.4,26.5 L34.8,27.5 L34.8,36.5 L33.9,37.5 L32.9,37.5 L32,36 L32.5,27.5 Z M30.1,26.5 L31.5,27.5 L31.5,36.5 L30.6,37.5 L28.7,36 L29.2,27.5 Z M27.3,26.5 L28.7,27.5 L28.7,36.5 L27.7,37.5 L25.8,36.5 L26.3,27.5 Z M23.5,26.5 L25.4,27.5 L25.4,36.5 L24.4,37.5 L22.5,36.5 L22.5,27.5 Z M14,26.5 L17.3,27 L19.2,29.4 L18.7,32.7 L16.3,34.6 L13.5,34.1 L11.1,30.8 L12.1,28 Z M13,20.8 L14.9,12.8 L16.3,10.9 L47.7,10.9 L49.1,12.8 L51,21.8 L13.5,22.3 Z"/></symbol>
+<symbol id="nt-walker" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M35.1,15.9 L30.4,15.9 L21.1,20 L19.5,21.8 L16.4,30.3 L16.4,32.5 L17.6,33.7 L19.5,33.7 L21.1,32.5 L23.2,25.9 L24.5,24 L27.6,22.8 L27.9,23.7 L21.7,44 L14.2,55.3 L14.2,57.8 L15.7,59.4 L17.6,59.7 L19.5,58.7 L26.7,47.8 L29.5,39.4 L30.1,39.4 L36.4,45.9 L38.9,58.1 L40.8,59.7 L42.9,59.7 L44.2,58.7 L44.8,57.5 L42,42.8 L34.8,34.7 L34.8,32.8 L37,26.8 L39.2,30.6 L46.7,34 L48,34 L49.2,33.1 L49.5,30.6 L48.9,29.7 L41.7,25.9 L38.6,18.4 L37,16.8 Z M37,4 L35.4,4.6 L33.9,6.2 L32.9,8.4 L32.9,10.3 L33.9,12.4 L35.1,13.7 L37.3,14.6 L38.9,14.6 L40.8,14 L42.6,12.4 L43.6,10.6 L43.6,7.8 L41.4,4.6 L39.8,4 Z"/></symbol>
+<symbol id="nt-trail" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M11.7,51.3 L8.7,52.6 L7,54.3 L5.7,57 L9.7,57 L12.7,54 Z M26.1,49.6 L26.5,52.3 L29.8,52.3 L32.8,51.6 L32.2,48.9 L26.5,48.9 Z M14.7,49.9 L15.7,52.6 L19.1,52 L22.8,52 L22.8,48.9 L17.7,48.9 Z M48.6,26.5 L43.2,28.1 L44.2,30.5 L49.6,28.8 Z M28.8,17.4 L26.8,21.1 L27.8,21.8 L25.5,24.8 L26.5,24.8 L26.8,25.5 L24.5,28.5 L27.8,28.5 L28.5,29.1 L28.5,31.5 L29.5,31.5 L29.8,28.5 L33.2,28.1 L30.8,25.5 L31.2,24.8 L32.5,24.8 L30.2,22.1 L30.5,21.4 L31.2,21.4 Z M13.1,10.7 L8,19.1 L10.4,19.8 L5.7,26.1 L9,26.8 L4,33.5 L11.4,33.8 L12,39.5 L14.1,39.5 L14.4,33.8 L22.1,33.8 L16.7,26.8 L20.4,26.5 L15.4,19.8 L18.1,19.4 Z M54.3,6.7 L52,6.7 L49.3,7.7 L47.3,9.7 L46.3,12.7 L46.9,16.4 L53,26.1 L59.7,15.1 L59.7,11.4 L58.7,9.4 L56.3,7.4 Z M52.3,10 L54.6,10.4 L56.3,12.4 L56.3,14.4 L54.3,16.4 L51.3,16.1 L49.6,13.4 L49.9,12 Z"/></symbol>
+<symbol id="nt-route" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M32,45.2 L30.4,44.1 L26.5,51.2 L29.8,51.2 Z M7.8,38.6 L5.1,41.3 L4,44.1 L4,46.8 L6.2,51.2 L17.2,51.2 L19.4,47.9 L18.8,41.3 L16.1,38.6 L13.3,37.5 Z M10.6,41.3 L13.9,41.3 L16.1,43.5 L16.1,46.8 L12.8,49.6 L10,49 L7.8,46.8 L7.8,44.1 Z M39.7,36.4 L36.9,36.9 L33.1,40.8 L34.7,42.4 L37.5,39.7 L40.2,38.6 Z M50.1,35.8 L49,33.6 L44.1,34.7 L44.1,36.9 Z M49.6,12.2 L45.7,15 L44.6,17.2 L44.6,22.1 L49,30.4 L52.3,34.2 L58.9,23.2 L59.5,17.7 L56.7,13.3 L54.5,12.2 Z M50.7,15.5 L53.4,15.5 L56.2,18.3 L56.2,21 L53.4,23.8 L50.7,23.8 L47.9,21 L47.9,18.3 Z"/></symbol>
+<symbol id="nt-undo" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M4,22.2 L4,24.8 L17,37.9 L20.9,36.6 L20.9,34 L14.4,27.4 L17,24.8 L41.8,24.8 L52.2,31.3 L53.5,41.8 L45.7,49.6 L32.7,49.6 L31.3,54.8 L45.7,54.8 L50.9,52.2 L58.7,41.8 L58.7,34 L56.1,27.4 L47,20.9 L15.7,20.9 L14.4,18.3 L20.9,11.8 L19.6,7.9 Z"/></symbol>
+<symbol id="nt-cancel" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M5.6,4 L4,8.8 L24.8,31.2 L4,52 L4,55.2 L8.8,58.4 L31.2,36 L55.2,58.4 L58.4,52 L37.6,29.6 L58.4,8.8 L58.4,5.6 L50.4,5.6 L31.2,24.8 L10.4,4 Z"/></symbol>
+<symbol id="nt-download" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M55.3,41.8 L54.4,54.9 L59.1,54.9 L59.1,43.7 Z M4.9,41.8 L4,54.9 L8.7,54.9 L8.7,43.7 Z M32,8.2 L29.2,9.1 L29.2,39 L28.3,39.9 L18.9,30.6 L15.2,33.4 L31.1,50.2 L46.9,34.3 L46.9,32.5 L44.1,30.6 L34.8,39.9 L33.9,39 L33.9,10.1 Z"/></symbol>
+</svg><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a href="../staging-app/">Powrót do mapy</a></header>
+<main><section class="map-section" aria-label="Mapa planowania"><div class="map-area"><div id="map"></div><div id="route-modes" class="stage-buttons" role="group" aria-label="Rodzaj planowanej trasy"><button id="add-drive-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy samochodowej" title="Trasa samochodowa"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg><span>Samochód</span></button><button id="add-walk-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy pieszej" title="Trasa piesza"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg><span>Pieszo</span></button></div></div><div class="buttons map-fit-actions"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
+<div class="panel" id="planner-sheet" data-sheet="closed">
+<div class="sheet-chrome">
+<button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button>
+<div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
+<div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Gotowe</button></div>
+</div>
+<div id="sheet-more">
 <section class="card"><h1>Zaplanuj wyprawę</h1>
 <label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
-<div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt na mapie</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj</button></div>
-<p id="notice" role="status" aria-live="polite">Kliknij „Dodaj punkt na mapie”, a następnie wybierz miejsce.</p>
+ <div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt początkowy</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj wybór punktu</button></div>
+ <div class="buttons"><button id="toggle-trip-editor" type="button" class="edit-primary" aria-controls="trip-edit-section" aria-expanded="false" disabled>✎ Edycja trasy</button></div>
+<p id="notice" role="status" aria-live="polite">Wybierz punkt początkowy, a następnie dodaj etap samochodowy lub pieszy.</p>
 <div class="stat"><span>Punkty:</span><b id="count">0</b></div>
-<div class="stat"><span>Samochód (OSM / szkic):</span><b id="drive-km">0 km</b></div>
-<div class="stat"><span>Pieszo (OSM / szkic):</span><b id="walk-km">0 km</b></div>
-<p class="hint">Dystanse obliczone z dróg OSM lub po linii prostej dla nieobliczonych szkiców.</p></section>
+<div id="route-results" hidden><div class="stat"><span>Samochód (OSM / szkic):</span><b id="drive-km">0 km</b></div><div class="stat"><span>Pieszo (OSM / szkic):</span><b id="walk-km">0 km</b></div><p class="hint">Dystanse obliczone z dróg OSM lub po linii prostej dla nieobliczonych szkiców.</p></div></section>
 <section class="card" id="editor" hidden><h2>Edytuj punkt</h2><p id="coords" class="hint"></p>
 <label for="point-name">Nazwa</label><input id="point-name" maxlength="80">
 <label for="point-kind">Rodzaj</label><select id="point-kind"><option value="start">Start</option><option value="parking">Parking</option><option value="stop">Postój</option><option value="view">Widok</option><option value="camp">Biwak</option><option value="finish">Meta</option></select>
 <div id="travel-row"><label for="point-mode">Dojazd od poprzedniego punktu</label><select id="point-mode"><option value="drive">🚙 Samochód</option><option value="walk">🥾 Pieszo</option></select></div>
 <div class="buttons"><button id="save-point" type="button">Zapisz punkt</button><button id="close-editor" type="button" class="secondary">Zamknij</button></div></section>
 <section class="card"><h2>Warstwy</h2><label class="layer"><input id="visible-drive" type="checkbox" checked> Samochód</label><label class="layer"><input id="visible-walk" type="checkbox" checked> Pieszo</label><p class="hint">Ukrywanie odcinków nie usuwa punktów.</p></section>
-<section class="card"><h2>Kolejność punktów</h2><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p></section>
-<section class="card"><h2>Wyznaczanie trasy OSM</h2>
-<p class="warning">Wynik nie jest nawigacją. OSM nie gwarantuje legalnego przejazdu samochodem, otwartego szlabanu ani możliwości biwakowania.</p>
+<section class="card" id="trip-edit-section" hidden><h2>Edycja trasy</h2><p class="hint">Zmiana kolejności wpływa na przebieg wyprawy. Punkty możesz edytować, przesuwać i usuwać.</p><h3>Kolejność punktów</h3><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p>
+ <details id="advanced-route"><summary>Przywróć szkic trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details></section>
+<section class="card" aria-label="Wyznaczanie trasy">
 <label class="layer"><input id="route-consent" type="checkbox"> Zgadzam się wysłać współrzędne punktów i typ podróży na publiczny demonstracyjny serwer Valhalla/FOSSGIS. Nie wysyłamy nazw ani danych konta.</label>
-<div class="buttons"><button type="button" id="compute-routes">Wyznacz trasę po OSM</button><button type="button" id="clear-routes" class="secondary">Pokaż szkic</button></div>
-<p id="routing-status" role="status" aria-live="polite">Nie obliczono jeszcze trasy po OSM.</p>
-<p class="hint">Maksymalnie 4 odcinki i 6 zapytań na sesję. Brak automatycznych ponowień.</p></section>
+<div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg>Wyznacz trasę</button></div>
+<div class="buttons"><button type="button" id="undo-step" class="secondary" disabled><svg class="ui-icon" aria-hidden="true"><use href="#nt-undo"/></svg>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
+<p id="routing-status" role="status" aria-live="polite" hidden></p></section>
 <section class="card"><h2>Zapis i eksport</h2>
-<div class="buttons"><button id="save-local" type="button">Zapisz lokalnie</button><button id="export-gpx" type="button" class="secondary">Eksport GPX</button><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div>
-<p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+<div class="export-actions"><button id="save-local" type="button">Zapisz</button><div class="export-stack"><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><p class="small-note">Plik GPX — do wykorzystania w innych aplikacjach i urządzeniach.</p></div></div>
+ <div class="buttons"><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
 <p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></section>
 <section class="card"><h2>Ważne ograniczenia</h2><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></section>
-</div></main>
+</div></div></main>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../staging-trips/route-model.js"></script>
 <script src="../staging-trips/routing-core.js"></script>
@@ -72,7 +145,9 @@ const M=window.NordicTripModel,R=window.NordicRoutingCore,I=window.NordicIntegra
 const el=id=>document.getElementById(id);
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null;
-let busy=false,calls=0,lastRequestTime=0;
+let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',pendingKind='stop',activeMode=null,showResults=false;
+const history=[];
+function remember(){history.push({trip:JSON.parse(JSON.stringify(trip)),routes:JSON.parse(JSON.stringify(routes)),showResults});if(history.length>25)history.shift();}
 function message(id,text,error=false){
  const node=el(id);node.textContent=text;node.classList.toggle('error',error);node.hidden=false;
 }
@@ -83,16 +158,49 @@ function button(name,callback,disabled=false){
  b.className='secondary';b.disabled=disabled;b.addEventListener('click',callback);return b;
 }
 function pick(yes){
- picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt na mapie';
+ picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt początkowy';
  el('cancel-pick').hidden=!yes;
  if(map)map.getContainer().style.cursor=yes?'crosshair':'';
+ updateQuick();
+}
+function setSheet(level){
+ const sheet=el('planner-sheet');sheet.dataset.sheet=level;
+ const expanded=level==='expanded',handle=el('sheet-handle');
+ handle.setAttribute('aria-expanded',String(expanded));
+ handle.setAttribute('aria-label',expanded?'Zwiń narzędzia':'Rozwiń narzędzia');
+ el('sheet-chevron').textContent=expanded?'⌄':'⌃';
+ if(expanded)sheet.scrollTop=0;
+}
+function updateQuick(){
+ for(const [id,mode] of [['add-drive-stage','drive'],['add-walk-stage','walk']]){
+  const active=mode===activeMode;
+  el(id).classList.toggle('active',active);
+  el(id).setAttribute('aria-pressed',String(active));
+  el(id).disabled=busy||trip.waypoints.length>=M.MAX_POINTS;
+ }
+ el('sheet-mode-title').textContent=activeMode==='walk'?'Trasa piesza':activeMode==='drive'?'Trasa samochodowa':'Planowanie trasy';
+ el('sheet-prompt').textContent=picking?(pendingKind==='start'?'Wskaż start na mapie':pendingKind==='finish'?'Wskaż cel na mapie':'Dotykaj mapy, aby dodawać punkty'):'Wybierz działanie, a następnie miejsce na mapie';
+ el('quick-start').disabled=busy||!activeMode||trip.waypoints.length>0;
+ el('quick-point').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
+ el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
+ el('quick-undo').disabled=busy||!history.length;
+ el('quick-done').disabled=busy;
+ for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-goal','finish']]){
+  el(id).classList.toggle('active',picking&&pendingKind===kind);
+ }
+}
+function chooseMode(mode){
+ if(busy)return;
+ activeMode=mode;pendingMode=mode;pendingKind='stop';
+ closeEditor();pick(false);setSheet('compact');updateQuick();
+ message('notice',trip.waypoints.length?'Wybierz Punkt lub Cel, a następnie miejsce na mapie.':'Wybierz Start, a następnie miejsce na mapie.');
 }
 function setBusy(value){
  busy=value;
- for(const id of ['start-pick','cancel-pick','save-point','save-local','export-gpx','new-trip','compute-routes','clear-routes']){
+ for(const id of ['start-pick','cancel-pick','save-point','save-local','export-gpx','new-trip','compute-routes','clear-routes','add-drive-stage','add-walk-stage','undo-step','cancel-planning']){
   el(id).disabled=value;
  }
- if(!value)el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;
+ if(!value){el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;el('undo-step').disabled=!history.length;}updateQuick();
 }
 function closeEditor(){selected=null;el('editor').hidden=true;}
 function dataSegments(){return I.pack(trip,routes).routes;}
@@ -174,6 +282,13 @@ function refresh(){
     km(list.filter(s=>s.status==='draft').reduce((n,s)=>n+s.km,0))+' szkic';
  }
  el('count').textContent=String(trip.waypoints.length);
+ el('route-results').hidden=!showResults;
+ el('start-pick').hidden=trip.waypoints.length>0;
+ el('toggle-trip-editor').disabled=busy||trip.waypoints.length===0;
+ if(!trip.waypoints.length){el('trip-edit-section').hidden=true;el('toggle-trip-editor').setAttribute('aria-expanded','false');el('toggle-trip-editor').textContent='✎ Edycja trasy';}
+ for(const id of ['add-drive-stage','add-walk-stage'])el(id).disabled=busy||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
+ el('undo-step').disabled=busy||!history.length;
+ el('export-gpx').disabled=busy||trip.waypoints.length<2;
  el('drive-km').textContent=stat('drive');el('walk-km').textContent=stat('walk');
  el('start-pick').disabled=busy||trip.waypoints.length>=M.MAX_POINTS;
  el('empty').hidden=trip.waypoints.length>0;
@@ -196,11 +311,11 @@ function refresh(){
   li.appendChild(actions);list.appendChild(li);
  });
  if(selected&&!trip.waypoints.some(p=>p.id===selected))closeEditor();
- redraw();
+ redraw();updateQuick();
 }
 function modify(fn){
  if(busy){message('notice','Trwa obliczanie tras. Zmiana niedostępna.',true);return false;}
- try{trip=fn();routes=I.routesFor(trip,routes);clearStatus();refresh();return true;}
+ try{const next=fn(),nextRoutes=I.routesFor(next,routes);remember();trip=next;routes=nextRoutes;clearStatus();refresh();return true;}
  catch(error){message('notice',String(error.message||error),true);return false;}
 }
 function edit(id){
@@ -211,7 +326,7 @@ function edit(id){
  el('travel-row').hidden=trip.waypoints[0].id===id;
  if(p.mode!=='none')el('point-mode').value=p.mode;
  el('coords').textContent=p.lat.toFixed(6)+', '+p.lon.toFixed(6);
- refresh();el('editor').scrollIntoView({behavior:'smooth',block:'nearest'});
+ refresh();setSheet('expanded');if(window.innerWidth>800)el('editor').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function download(filename,data){
  const blob=new Blob([data],{type:'application/gpx+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
@@ -244,7 +359,7 @@ async function calculate(){
  if(missing.length>MAX_SEGMENTS||missing.length>MAX_CALLS-calls){
   message('routing-status','Limit testu: 4 odcinki i 6 zapytań na sesję.',true);return;
  }
- setBusy(true);
+ remember();showResults=true;setBusy(true);
  let done=0,errors=0,reason='';
  try{
   for(let i=0;i<missing.length;i++){
@@ -269,13 +384,75 @@ el('fit-trip').addEventListener('click',()=>{
  else message('notice','Mapa obejmuje całą wyprawę.');
 });
 el('compute-routes').addEventListener('click',calculate);
+el('toggle-trip-editor').addEventListener('click',()=>{
+ if(busy||!trip.waypoints.length)return;
+ const panel=el('trip-edit-section');panel.hidden=!panel.hidden;
+ el('toggle-trip-editor').setAttribute('aria-expanded',String(!panel.hidden));
+ el('toggle-trip-editor').textContent=panel.hidden?'✎ Edycja trasy':'✎ Zamknij edycję';
+ if(!panel.hidden){setSheet('expanded');if(window.innerWidth>800)panel.scrollIntoView({behavior:'smooth',block:'start'});}
+});
 el('clear-routes').addEventListener('click',()=>{
- if(busy)return;routes=Object.create(null);refresh();fit();
- message('routing-status','Pokazano tylko szkic. Zapis lokalny nie został zmieniony.');
+ if(busy)return;
+ if(!Object.keys(routes).length){message('routing-status','Trasa jest już szkicem.');return;}
+ if(!confirm('Przywrócić szkic? Wyznaczone odcinki znikną z bieżącej edycji.'))return;
+ remember();routes=Object.create(null);showResults=false;refresh();fit();
+ message('routing-status','Przywrócono szkic. Zapis lokalny nie został zmieniony.');
 });
-el('start-pick').addEventListener('click',()=>{
- if(busy)return;closeEditor();pick(true);message('notice','Dotknij pustego miejsca na mapie.');
+el('undo-step').addEventListener('click',()=>{if(busy||!history.length)return;const prev=history.pop();trip=prev.trip;routes=prev.routes;showResults=prev.showResults;closeEditor();pick(false);refresh();fit();message('notice','Cofnięto ostatnią zmianę.');});
+el('cancel-planning').addEventListener('click',()=>{
+ if(busy)return;
+ if(picking){pick(false);message('notice','Anulowano wybór punktu.');return;}
+ if(selected){closeEditor();refresh();message('notice','Anulowano edycję.');return;}
+ if(!confirm('Przywrócić ostatnią zapisaną wyprawę? Niezapisane zmiany zostaną utracone.'))return;
+ try{const saved=I.load(localStorage);trip=saved.trip;routes=saved.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');refresh();fit();message('notice','Przywrócono zapis lokalny.');}
+ catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
+el('start-pick').addEventListener('click',()=>{if(busy)return;pendingMode=activeMode||'drive';pendingKind='start';closeEditor();pick(true);message('notice','Wskaż punkt początkowy na mapie.');});
+for(const [id,mode] of [['add-drive-stage','drive'],['add-walk-stage','walk']]){
+ el(id).addEventListener('click',()=>chooseMode(mode));
+}
+for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-goal','finish']]){
+ el(id).addEventListener('click',()=>{
+  if(busy||!activeMode)return;
+  if(kind==='start'&&trip.waypoints.length||kind!=='start'&&!trip.waypoints.length)return;
+  pendingMode=activeMode;pendingKind=kind;closeEditor();pick(true);
+  message('notice',kind==='stop'?'Dotykaj mapy, aby dodawać kolejne punkty. Zakończ przyciskiem Gotowe.':'Wskaż '+(kind==='start'?'start':'cel')+' na mapie.');
+ });
+}
+el('quick-undo').addEventListener('click',()=>el('undo-step').click());
+el('quick-done').addEventListener('click',()=>{
+ if(busy)return;pick(false);closeEditor();activeMode=null;pendingKind='stop';setSheet('closed');updateQuick();
+ message('notice','Zakończono edycję etapu. Trasa pozostaje na mapie.');
+});
+(function initSheetHandle(){
+ const handle=el('sheet-handle'),sheet=el('planner-sheet');
+ let drag=false,start=0,last=0,moved=false,suppressClick=false;
+ handle.addEventListener('pointerdown',event=>{
+  if(event.button!==0||sheet.dataset.sheet==='closed')return;
+  drag=true;start=event.clientY;last=start;moved=false;suppressClick=false;
+  sheet.dataset.dragging='true';handle.setPointerCapture(event.pointerId);
+ });
+ handle.addEventListener('pointermove',event=>{
+  if(!drag)return;last=event.clientY;const delta=last-start;
+  if(Math.abs(delta)>8)moved=true;
+  sheet.style.setProperty('--sheet-offset',Math.max(-120,Math.min(delta,160))+'px');
+ });
+ function endDrag(event){
+  if(!drag)return;drag=false;delete sheet.dataset.dragging;sheet.style.removeProperty('--sheet-offset');
+  const delta=last-start;
+  if(moved){suppressClick=true;
+   if(delta>55)setSheet('compact');
+   else if(delta< -55)setSheet('expanded');
+  }
+  if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+ }
+ handle.addEventListener('pointerup',endDrag);
+ handle.addEventListener('pointercancel',endDrag);
+ handle.addEventListener('click',()=>{
+  if(suppressClick){suppressClick=false;return;}
+  setSheet(sheet.dataset.sheet==='expanded'?'compact':'expanded');
+ });
+})();
 el('cancel-pick').addEventListener('click',()=>{if(!busy){pick(false);message('notice','Anulowano.');}});
 el('save-point').addEventListener('click',()=>{
  if(!selected||busy)return;
@@ -301,7 +478,7 @@ el('save-local').addEventListener('click',()=>{
  }catch(_){message('action-status','Nie udało się zapisać wyprawy v2.',true);}
 });
 el('export-gpx').addEventListener('click',()=>{
- if(busy)return;
+ if(busy||trip.waypoints.length<2)return;
  try{
   trip=M.renameTrip(trip,el('trip-name').value);
   const s=segments(),draft=s.filter(x=>x.status==='draft').length;
@@ -312,7 +489,8 @@ el('export-gpx').addEventListener('click',()=>{
 });
 el('new-trip').addEventListener('click',()=>{
  if(busy||!confirm('Utworzyć pustą wyprawę? Niezapisane zmiany znikną.'))return;
- trip=M.emptyTrip();routes=Object.create(null);
+ remember();trip=M.emptyTrip();routes=Object.create(null);showResults=false;
+ el('routing-status').hidden=true;el('routing-status').textContent='';
  closeEditor();pick(false);refresh();
  message('action-status','Nowa wyprawa. Poprzedni zapis v1/v2 nie został usunięty.');
 });
@@ -320,11 +498,10 @@ try{
  const loaded=I.load(localStorage);trip=loaded.trip;routes=loaded.routes;
  if(loaded.from==='v1')message('notice','Wczytano starszą wyprawę v1 bez jej zmiany.');
  if(loaded.from==='v2'){
+  showResults=segments().some(x=>x.status==='routed');
   message('notice','Przywrócono wyprawę v2 i obliczone trasy.');
   const saved=segments().filter(s=>s.status==='routed').length;
-  message('routing-status',saved
-   ?'✓ Przywrócono '+saved+' obliczonych odcinków OSM. Nie trzeba ponownie wysyłać współrzędnych. Dostępność dróg pozostaje niezweryfikowana.'
-   :'Wczytano wyprawę v2. Nie ma zapisanych obliczonych odcinków OSM.');
+  if(saved)message('routing-status','✓ Przywrócono '+saved+' wyznaczonych odcinków OSM. Dostępność dróg pozostaje niezweryfikowana.');
  }
 }catch(_){trip=M.emptyTrip();routes=Object.create(null);
  message('notice','Nie udało się odczytać zapisu; stare dane pozostają nietknięte.',true);
@@ -342,14 +519,17 @@ try{
   const n=trip.waypoints.length;
   const added=modify(()=>M.add(trip,{lat:Number(event.latlng.lat.toFixed(6)),
    lon:Number(event.latlng.lng.toFixed(6)),name:n===0?'Start':'Punkt '+(n+1),
-   kind:n===0?'start':'stop',mode:n===0?'none':'drive'}));
-  pick(false);
+   kind:n===0?'start':pendingKind==='finish'?'finish':'stop',mode:n===0?'none':pendingMode}));
   if(added){
-   fit();edit(trip.waypoints[trip.waypoints.length-1].id);
-   message('notice','Dodano punkt. Ustaw rodzaj i sposób dotarcia.');
+   const isGoal=pendingKind==='finish',isStart=n===0;
+   if(isGoal){pick(false);activeMode=null;setSheet('closed');}
+   else if(isStart){pick(false);}
+   else{pick(true);}
+   fit();updateQuick();
+   message('notice',isGoal?'Dodano cel. Etap zakończony.':isStart?'Dodano start. Wybierz Punkt lub Cel.':'Dodano punkt. Dotknij mapy, aby dodać kolejny, albo wybierz Gotowe.');
   }
  });
 }catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
-refresh();fit();
+refresh();fit();updateQuick();
 })();
 </script></body></html>
