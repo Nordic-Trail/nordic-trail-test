@@ -559,7 +559,11 @@ function renderManualGapLines(){
    }).addTo(manualGapLines));
   }
  };
- for(const draft of Object.values(manualGapDrafts))render(draft);
+ // During editing, show only the working copy of that sketch. The saved copy stays untouched for Anuluj.
+ for(const draft of Object.values(manualGapDrafts)){
+  if(activeGapDraft&&draft.key===activeGapDraft.key)continue;
+  render(draft);
+ }
  if(activeGapDraft)render(activeGapDraft);
 }
 function updateGapSketchHint(){
