@@ -146,6 +146,10 @@ h3{font-size:15px;margin:13px 0 6px}
 (()=>{
 const M=window.NordicTripModel,R=window.NordicRoutingCore,I=window.NordicIntegratedTrip,G=window.NordicMarkerGroups;
 const el=id=>document.getElementById(id);
+const TEST_STORAGE={
+ getItem(key){return localStorage.getItem('nt-save-preview-20261123:'+key);},
+ setItem(key,value){localStorage.setItem('nt-save-preview-20261123:'+key,value);}
+};
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null;
 let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',pendingKind='stop',activeMode=null,showResults=false;
@@ -412,7 +416,7 @@ el('cancel-planning').addEventListener('click',()=>{
  if(picking){pick(false);message('notice','Anulowano wybór punktu.');return;}
  if(selected){closeEditor();refresh();message('notice','Anulowano edycję.');return;}
  if(!confirm('Przywrócić ostatnią zapisaną wyprawę? Niezapisane zmiany zostaną utracone.'))return;
- try{const saved=I.load(localStorage);trip=saved.trip;routes=saved.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');refresh();fit();message('notice','Przywrócono zapis lokalny.');}
+ try{const saved=I.load(TEST_STORAGE);trip=saved.trip;routes=saved.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');refresh();fit();message('notice','Przywrócono zapis lokalny.');}
  catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
 el('start-pick').addEventListener('click',()=>{if(busy)return;pendingMode=activeMode||'drive';pendingKind='start';closeEditor();pick(true);message('notice','Wskaż punkt początkowy na mapie.');});
@@ -433,7 +437,7 @@ el('quick-done').addEventListener('click',()=>{
  if(trip.waypoints.length<2){showToast('Dodaj co najmniej dwa punkty przed zapisem.',true);return;}
  try{
   const next=M.renameTrip(trip,el('trip-name').value);
-  I.save(localStorage,next,routes);
+  I.save(TEST_STORAGE,next,routes);
   trip=next;history.length=0;
   pick(false);closeEditor();activeMode=null;pendingKind='stop';setSheet('closed');refresh();updateQuick();
   message('action-status','✓ Trasa zapisana lokalnie w tej przeglądarce.');
@@ -493,7 +497,7 @@ el('save-local').addEventListener('click',()=>{
  if(busy)return;
  try{
   trip=M.renameTrip(trip,el('trip-name').value);
-  I.save(localStorage,trip,routes);
+  I.save(TEST_STORAGE,trip,routes);
   message('action-status','✓ Zapisano wyprawę v2 wraz z obliczonymi odcinkami. Stary zapis v1 bez zmian.');
  }catch(_){message('action-status','Nie udało się zapisać wyprawy v2.',true);}
 });
@@ -515,7 +519,7 @@ el('new-trip').addEventListener('click',()=>{
  message('action-status','Nowa wyprawa. Poprzedni zapis v1/v2 nie został usunięty.');
 });
 try{
- const loaded=I.load(localStorage);trip=loaded.trip;routes=loaded.routes;
+ const loaded=I.load(TEST_STORAGE);trip=loaded.trip;routes=loaded.routes;
  if(loaded.from==='v1')message('notice','Wczytano starszą wyprawę v1 bez jej zmiany.');
  if(loaded.from==='v2'){
   showResults=segments().some(x=>x.status==='routed');
