@@ -206,6 +206,13 @@ function setSheet(open){
  $('sheet-toggle').textContent=sheetOpen?'⌄ Zwiń panel':'⌃ Otwórz planer';
  $('sheet-toggle').setAttribute('aria-expanded',String(sheetOpen));
 }
+// In overview, tapping exposed map (including a route or a point) dismisses
+// the sheet. The dismissal must not change waypoints or start map editing.
+function collapseSheetOnMapTap(){
+ if(!mapReview||!sheetOpen)return false;
+ setSheet(false);
+ return true;
+}
 function enterMapEditing(){
  if(mapEditing)return;
  mapEditing=true;mapReview=false;sheetOpen=false;
@@ -280,12 +287,14 @@ function redraw(){
  for(const id of trip.itinerary){
   const leg=trip.legs[id];if(!trip.visible[leg.mode])continue;
   L.polyline(leg.points.map(p=>[p.lat,p.lon]),{color:color(leg.mode),weight:5,dashArray:leg.mode==='walk'?'7 7':null,opacity:id===selected?1:0.76,interactive:!pending}).addTo(lines).on('click',()=>{
+   if(collapseSheetOnMapTap())return;
    if(pending)return;mode=leg.mode;selected=id;render();notice('Wybrano etap do edycji.');
   });
   leg.points.forEach(p=>{
    const lbl=p.role==='start'?'S':p.role==='finish'?'C':'+';
    const icon=L.divIcon({className:'',html:'<span style="display:grid;place-items:center;width:28px;height:28px;border:2px solid white;border-radius:50%;color:white;background:'+color(leg.mode)+';font-weight:700">'+lbl+'</span>',iconSize:[28,28],iconAnchor:[14,14]});
    L.marker([p.lat,p.lon],{icon,interactive:!pending}).addTo(pins).on('click',()=>{
+    if(collapseSheetOnMapTap())return;
     if(pending)return;mode=leg.mode;selected=id;render();notice('Wybrano punkt '+p.name+' w warstwie '+(mode==='drive'?'samochodowej.':'pieszej.'));
    });
   });
@@ -417,6 +426,7 @@ map=L.map('map').setView([59.3,17.6],9);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
 lines=L.layerGroup().addTo(map);pins=L.layerGroup().addTo(map);
 map.on('click',e=>{
+ if(collapseSheetOnMapTap())return;
  if(!pending)return;
  const point={lat:Number(e.latlng.lat.toFixed(6)),lon:Number(e.latlng.lng.toFixed(6))};
  selectMapAction(pending,point);
