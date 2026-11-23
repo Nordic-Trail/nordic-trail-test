@@ -301,6 +301,12 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 body.nt-planner-on .map-top-actions,body.nt-planner-on .map-toolbar,
 body.nt-planner-on .point-sheet,body.nt-planner-on .nt-layers-sheet,
 body.nt-planner-on .nt-osm-detail-sheet{visibility:hidden!important;pointer-events:none!important}
+/* Samsung Air View / S Pen: prevent the underlying long STAGING page
+   from scrolling into view while the route planner overlays the map.
+   Leaflet touch gestures remain enabled on the map itself. */
+body.nt-planner-on{position:fixed!important;inset:0!important;width:100%!important;
+ height:100dvh!important;overflow:hidden!important;overscroll-behavior:none!important}
+body.nt-planner-on #workspace{visibility:hidden!important;pointer-events:none!important}
 .nt-trip-number{background:#163d2b;color:white;border:2px solid white;width:30px;height:30px;border-radius:100%;display:grid;place-items:center;font-weight:700;box-shadow:0 2px 5px #0008}
 .nt-trip-number.start{background:#714f19;border-color:#ffe3a3}
 .nt-trip-number.group{background:#2a5265;border-color:#d7f0fa;width:36px;height:36px;font-size:13px}
