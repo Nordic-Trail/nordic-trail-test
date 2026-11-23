@@ -16,8 +16,8 @@ const FIRST_NAMED_ARCHIVE_KEY='nt-nordic-trail-gap-visual-20261123-v1';
 const EARLIER_ARCHIVE_KEY='nt-nordic-trail-endpoint-audit-20261123-v1';
 const ORIGINAL_NAMED_ARCHIVE_KEY='nt-nordic-trail-named-preview-20261123-v1';
 const TEST_STORAGE={
- getItem(key){return localStorage.getItem('nt-named-preview-working-20261123:'+key);},
- setItem(key,value){localStorage.setItem('nt-named-preview-working-20261123:'+key,value);}
+ getItem(key){return localStorage.getItem('nt-shared-map-working-20261123:'+key);},
+ setItem(key,value){localStorage.setItem('nt-shared-map-working-20261123:'+key,value);}
 };
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null,gapLines=null,manualGapLines=null;
