@@ -303,6 +303,19 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 .nt-integrated-route-head small{display:block;font-size:11px;font-weight:400;color:#d2dfcc}
 .nt-integrated-route-head button{flex:0 0 auto;min-width:105px;width:auto;min-height:46px;margin:0;background:#c8d49c;color:#16271c;border:0;border-radius:11px;padding:8px 12px}
 #nt-integrated-route-iframe{flex:1;display:block;width:100%;height:100%;border:0;background:#203727}
+
+/* Four matching icon-only tools on the right. Integrated preview only. */
+.nt-map-tools{position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:925;display:flex;flex-direction:column;gap:9px;pointer-events:auto}
+.nt-map-tools .nt-tool-tile{display:grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;max-width:48px;margin:0;padding:0;border:1px solid rgba(231,245,219,.82);border-radius:12px;background:rgba(18,42,29,.40);color:#f4f8ec;box-shadow:0 3px 12px #081b1088;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.nt-map-tools .nt-tool-tile svg{width:23px;height:23px;display:block;stroke:currentColor;fill:none}
+.nt-map-tools .nt-tool-tile[aria-expanded="true"]{background:rgba(46,85,57,.84);outline:2px solid #e8f8d5;outline-offset:1px}
+.nt-map-search-panel[hidden]{display:none!important}
+.nt-map-search-panel{position:absolute;z-index:926;right:calc(70px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));width:min(330px,calc(100vw - 96px));max-height:70dvh;overflow:auto;padding:12px 14px;border:1px solid #bdd8b6;border-radius:14px;background:rgba(18,43,29,.96);box-shadow:0 7px 24px #071b1299}
+.nt-map-search-panel .nt-search-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.nt-map-search-panel .nt-search-heading button{width:38px;height:38px;min-height:38px;margin:0;padding:0;border-radius:9px;background:#385640;color:#fff}
+.nt-map-search-panel label{font-size:13px}.nt-map-search-panel input{min-height:44px}.nt-map-search-panel>button{width:100%}
+.nt-map-search-panel .hint{font-size:12px;margin:9px 0 0}#nt-main-search-status{font-size:12px;line-height:1.45;padding:8px 0 0}
+@media(max-width:440px){.nt-map-tools{right:10px;gap:8px}.nt-map-tools .nt-tool-tile{width:46px;height:46px;min-width:46px;min-height:46px;max-width:46px}}
 </style>
 </head>
 <body>
@@ -310,9 +323,18 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <main>
 <section id="map-section" aria-label="Pełnoekranowa mapa NORDIC TRAIL">
 <div id="map" aria-label="Mapa interaktywna; dotknij wolnego miejsca, aby dodać punkt"></div>
-<div class="map-top-actions"><button type="button" id="open-layers-btn" aria-label="Warstwy mapy" aria-expanded="false" aria-controls="map-layers-sheet" title="Warstwy mapy">
-<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></button>
-<button type="button" id="open-workspace-btn" aria-label="Otwórz panel użytkownika, logowania i moderacji">☰ Panel</button></div>
+<nav class="map-top-actions nt-map-tools" aria-label="Narzędzia mapy">
+<button type="button" id="open-layers-btn" class="nt-tool-tile" aria-label="Warstwy" title="Warstwy" aria-expanded="false" aria-controls="map-layers-sheet"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></button>
+<button type="button" id="open-workspace-btn" class="nt-tool-tile" aria-label="Narzędzia i konto" title="Narzędzia i konto"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="10" cy="17" r="2" fill="currentColor" stroke="none"/></svg></button>
+<button type="button" id="nt-main-search-btn" class="nt-tool-tile" aria-label="Szukaj punktu lub współrzędnych" title="Szukaj" aria-controls="nt-main-search-panel" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m16 16 5.3 5.3"/></svg></button>
+<button type="button" id="nt-main-locate-btn" class="nt-tool-tile" aria-label="Moja lokalizacja" title="Moja lokalizacja"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></button>
+</nav>
+<form id="nt-main-search-panel" class="nt-map-search-panel" aria-label="Szukaj na mapie" hidden>
+<div class="nt-search-heading"><strong>Szukaj na mapie</strong><button type="button" id="nt-main-search-close" aria-label="Zamknij wyszukiwanie">×</button></div>
+<label for="nt-main-search-input">Nazwa punktu lub współrzędne</label><input id="nt-main-search-input" maxlength="120" autocomplete="off" placeholder="Np. szlaban lub 59.31, 18.06" required>
+<button type="submit">Pokaż na mapie</button>
+<p class="hint">Wyszukuje wczytane punkty NORDIC TRAIL i współrzędne. Szukanie miejsc online nie jest jeszcze dostępne.</p>
+<p id="nt-main-search-status" role="status" hidden></p></form>
 <p class="status" id="map-action-status" role="status" aria-live="polite" hidden></p>
 <div class="map-toolbar">
 <button type="button" id="nt-open-planner-btn" class="secondary" aria-label="Otwórz planer tras" aria-controls="nt-integrated-route-overlay" aria-expanded="false"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M32,45.2 L30.4,44.1 L26.5,51.2 L29.8,51.2 Z M7.8,38.6 L5.1,41.3 L4,44.1 L4,46.8 L6.2,51.2 L17.2,51.2 L19.4,47.9 L18.8,41.3 L16.1,38.6 L13.3,37.5 Z M10.6,41.3 L13.9,41.3 L16.1,43.5 L16.1,46.8 L12.8,49.6 L10,49 L7.8,46.8 L7.8,44.1 Z M39.7,36.4 L36.9,36.9 L33.1,40.8 L34.7,42.4 L37.5,39.7 L40.2,38.6 Z M50.1,35.8 L49,33.6 L44.1,34.7 L44.1,36.9 Z M49.6,12.2 L45.7,15 L44.6,17.2 L44.6,22.1 L49,30.4 L52.3,34.2 L58.9,23.2 L59.5,17.7 L56.7,13.3 L54.5,12.2 Z M50.7,15.5 L53.4,15.5 L56.2,18.3 L56.2,21 L53.4,23.8 L50.7,23.8 L47.9,21 L47.9,18.3 Z"/></svg><span>Trasy</span></button>
@@ -544,6 +566,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       const result=await db.from('map_points').select('id,kind,status,note,lat,lon').eq('visibility','public').eq('review_status','approved').order('id',{ascending:true}).limit(500);
       if(result.error)throw result.error;
       const rows=result.data||[];
+      ntPublicSearchIndex=rows.map(p=>({lat:p.lat,lon:p.lon,text:[p.kind,p.status,p.note].filter(Boolean).join(' ')}));
       if(markers)markers.clearLayers();
       el('points').replaceChildren();
       for(const p of rows){
@@ -1508,6 +1531,44 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     if(map)window.requestAnimationFrame(()=>map.invalidateSize({pan:false}));
   }
   el('open-workspace-btn').addEventListener('click',()=>{el('workspace').scrollIntoView({behavior:'smooth',block:'start'});});
+
+ // Local search among already-loaded public markers and coordinates; location only after user's click.
+ const ntSearchBtn=el('nt-main-search-btn'),ntSearchPanel=el('nt-main-search-panel');
+ let ntPositionLayer=null,ntPublicSearchIndex=[];
+ function ntCloseSearch(){ntSearchPanel.hidden=true;ntSearchBtn.setAttribute('aria-expanded','false');}
+ ntSearchBtn.addEventListener('click',()=>{
+   const opening=ntSearchPanel.hidden;
+   ntSearchPanel.hidden=!opening;ntSearchBtn.setAttribute('aria-expanded',String(opening));
+   if(opening)el('nt-main-search-input').focus();
+ });
+ el('nt-main-search-close').addEventListener('click',ntCloseSearch);
+ function ntSearchCoordinates(query){
+   const match=query.trim().match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+   if(!match)return null;
+   const lat=Number(match[1]),lon=Number(match[2]);
+   if(Math.abs(lat)>90||Math.abs(lon)>180)return null;
+   return [lat,lon];
+ }
+ el('nt-main-search-panel').addEventListener('submit',event=>{
+   event.preventDefault();if(!map)return;
+   const query=el('nt-main-search-input').value.trim(),coords=ntSearchCoordinates(query);
+   let result=coords;
+   if(!result){const item=ntPublicSearchIndex.find(x=>x.text.toLocaleLowerCase('pl').includes(query.toLocaleLowerCase('pl')));if(item)result=[item.lat,item.lon];}
+   if(!result){el('nt-main-search-status').textContent='Nie znaleziono punktu. Wpisz nazwę wczytanego punktu albo współrzędne, np. 59.31, 18.06.';el('nt-main-search-status').hidden=false;return;}
+   map.setView(result,Math.max(14,map.getZoom()),{animate:false});ntCloseSearch();revealMapViewport();
+ });
+ el('nt-main-locate-btn').addEventListener('click',()=>{
+  if(!map||!navigator.geolocation){message('map-action-status','Lokalizacja urządzenia nie jest dostępna.');return;}
+  message('map-action-status','Sprawdzam lokalizację po zgodzie urządzenia…');
+  navigator.geolocation.getCurrentPosition(position=>{
+   const {latitude,longitude,accuracy}=position.coords;
+   if(ntPositionLayer)map.removeLayer(ntPositionLayer);
+   ntPositionLayer=L.circle([latitude,longitude],{radius:Math.max(accuracy||15,15),color:'#def2bd',weight:2,fillColor:'#356e52',fillOpacity:.15,interactive:false}).addTo(map);
+   map.setView([latitude,longitude],15,{animate:false});
+   revealMapViewport();message('map-action-status','Twoja lokalizacja została pokazana na mapie (orientacyjnie).');
+  },()=>message('map-action-status','Nie udało się odczytać lokalizacji. Sprawdź uprawnienia przeglądarki.',true),{enableHighAccuracy:false,timeout:12000,maximumAge:60000});
+ });
+
   el('back-to-map-btn').addEventListener('click',revealMapViewport);
   el('add-point-btn').addEventListener('click',()=>{
     if(!db||!activeUser){
