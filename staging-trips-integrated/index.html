@@ -54,11 +54,16 @@ h3{font-size:15px;margin:13px 0 6px}
 <symbol id="nt-cancel" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M5.6,4 L4,8.8 L24.8,31.2 L4,52 L4,55.2 L8.8,58.4 L31.2,36 L55.2,58.4 L58.4,52 L37.6,29.6 L58.4,8.8 L58.4,5.6 L50.4,5.6 L31.2,24.8 L10.4,4 Z"/></symbol>
 <symbol id="nt-download" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M55.3,41.8 L54.4,54.9 L59.1,54.9 L59.1,43.7 Z M4.9,41.8 L4,54.9 L8.7,54.9 L8.7,43.7 Z M32,8.2 L29.2,9.1 L29.2,39 L28.3,39.9 L18.9,30.6 L15.2,33.4 L31.1,50.2 L46.9,34.3 L46.9,32.5 L44.1,30.6 L34.8,39.9 L33.9,39 L33.9,10.1 Z"/></symbol>
 </svg><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a href="../staging-app/">Powrót do mapy</a></header>
-<main><section aria-label="Mapa planowania"><div id="map"></div><div class="buttons"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
-<div class="panel">
+<main><section class="map-section" aria-label="Mapa planowania"><div class="map-area"><div id="map"></div><div id="route-modes" class="stage-buttons" role="group" aria-label="Rodzaj planowanej trasy"><button id="add-drive-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy samochodowej" title="Trasa samochodowa"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg><span>Samochód</span></button><button id="add-walk-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy pieszej" title="Trasa piesza"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg><span>Pieszo</span></button></div></div><div class="buttons map-fit-actions"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
+<div class="panel" id="planner-sheet" data-sheet="closed">
+<div class="sheet-chrome">
+<button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button>
+<div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
+<div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Gotowe</button></div>
+</div>
+<div id="sheet-more">
 <section class="card"><h1>Zaplanuj wyprawę</h1>
 <label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
-<div class="stage-buttons"><button id="add-drive-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg>Etap samochodowy</button><button id="add-walk-stage" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg>Etap pieszy</button></div>
  <div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt początkowy</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj wybór punktu</button></div>
  <div class="buttons"><button id="toggle-trip-editor" type="button" class="edit-primary" aria-controls="trip-edit-section" aria-expanded="false" disabled>✎ Edycja trasy</button></div>
 <p id="notice" role="status" aria-live="polite">Wybierz punkt początkowy, a następnie dodaj etap samochodowy lub pieszy.</p>
@@ -82,7 +87,7 @@ h3{font-size:15px;margin:13px 0 6px}
  <div class="buttons"><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
 <p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></section>
 <section class="card"><h2>Ważne ograniczenia</h2><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></section>
-</div></main>
+</div></div></main>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../staging-trips/route-model.js"></script>
 <script src="../staging-trips/routing-core.js"></script>
@@ -95,7 +100,7 @@ const M=window.NordicTripModel,R=window.NordicRoutingCore,I=window.NordicIntegra
 const el=id=>document.getElementById(id);
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null;
-let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',showResults=false;
+let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',pendingKind='stop',activeMode=null,showResults=false;
 const history=[];
 function remember(){history.push({trip:JSON.parse(JSON.stringify(trip)),routes:JSON.parse(JSON.stringify(routes)),showResults});if(history.length>25)history.shift();}
 function message(id,text,error=false){
@@ -109,10 +114,41 @@ function button(name,callback,disabled=false){
 }
 function pick(yes){
  picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt początkowy';
- el('add-drive-stage').classList.toggle('active',yes&&pendingMode==='drive');
- el('add-walk-stage').classList.toggle('active',yes&&pendingMode==='walk');
  el('cancel-pick').hidden=!yes;
  if(map)map.getContainer().style.cursor=yes?'crosshair':'';
+ updateQuick();
+}
+function setSheet(level){
+ const sheet=el('planner-sheet');sheet.dataset.sheet=level;
+ const expanded=level==='expanded',handle=el('sheet-handle');
+ handle.setAttribute('aria-expanded',String(expanded));
+ handle.setAttribute('aria-label',expanded?'Zwiń narzędzia':'Rozwiń narzędzia');
+ el('sheet-chevron').textContent=expanded?'⌄':'⌃';
+ if(expanded)sheet.scrollTop=0;
+}
+function updateQuick(){
+ for(const [id,mode] of [['add-drive-stage','drive'],['add-walk-stage','walk']]){
+  const active=mode===activeMode;
+  el(id).classList.toggle('active',active);
+  el(id).setAttribute('aria-pressed',String(active));
+  el(id).disabled=busy||trip.waypoints.length>=M.MAX_POINTS;
+ }
+ el('sheet-mode-title').textContent=activeMode==='walk'?'Trasa piesza':activeMode==='drive'?'Trasa samochodowa':'Planowanie trasy';
+ el('sheet-prompt').textContent=picking?(pendingKind==='start'?'Wskaż start na mapie':pendingKind==='finish'?'Wskaż cel na mapie':'Dotykaj mapy, aby dodawać punkty'):'Wybierz działanie, a następnie miejsce na mapie';
+ el('quick-start').disabled=busy||!activeMode||trip.waypoints.length>0;
+ el('quick-point').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
+ el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
+ el('quick-undo').disabled=busy||!history.length;
+ el('quick-done').disabled=busy;
+ for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-goal','finish']]){
+  el(id).classList.toggle('active',picking&&pendingKind===kind);
+ }
+}
+function chooseMode(mode){
+ if(busy)return;
+ activeMode=mode;pendingMode=mode;pendingKind='stop';
+ closeEditor();pick(false);setSheet('compact');updateQuick();
+ message('notice',trip.waypoints.length?'Wybierz Punkt lub Cel, a następnie miejsce na mapie.':'Wybierz Start, a następnie miejsce na mapie.');
 }
 function setBusy(value){
  busy=value;
