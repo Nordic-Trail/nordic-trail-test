@@ -499,6 +499,87 @@ async function requestRoute(s,strictRadius=null){
   return R.parseValhallaResponse(JSON.parse(text),s.from,s.to,s.mode);
  }finally{clearTimeout(timer);}
 }
+
+function gapEndpoints(seg,side){return {point:side==='start'?seg.from:seg.to,nearest:side==='start'?seg.points[0]:seg.points[seg.points.length-1]};}
+function gapLength(draft){const pts=[draft.nearest,...draft.via,draft.point];return pts.slice(1).reduce((sum,p,i)=>sum+distanceMeters(pts[i],p),0);}
+function renderManualGapLines(){
+ if(!manualGapLines)return;
+ manualGapLines.clearLayers();
+ const all=segments();
+ const render=d=>{
+  const seg=all.find(s=>s.key===d.segmentKey&&s.status==='routed'&&s.mode==='walk');
+  if(!seg)return;
+  const ends=gapEndpoints(seg,d.side);
+  if(distanceMeters(ends.point,ends.nearest)<=GAP_WARNING_METERS)return;
+  const pts=[ends.nearest,...d.via,ends.point];
+  L.polyline(pts.map(p=>[p.lat,p.lon]),{color:'#bca7ee',weight:4,opacity:1,dashArray:'8 7',interactive:false}).addTo(manualGapLines);
+  d.via.forEach(p=>L.circleMarker([p.lat,p.lon],{radius:5,color:'#eee2ff',weight:2,fillColor:'#7555b5',fillOpacity:1,interactive:false}).addTo(manualGapLines));
+ };
+ for(const d of Object.values(manualGapDrafts))render(d);
+ if(activeGapDraft)render(activeGapDraft);
+}
+function updateGapSketchHint(){
+ if(!activeGapDraft)return;
+ const count=activeGapDraft.via.length;
+ el('gap-sketch-hint').textContent='Punkty pomocnicze: '+count+'. Dotykaj mapy, aby poprowadzić szkic. To NIE jest potwierdzona ścieżka ani trasa do nawigacji.';
+ el('gap-sketch-undo').disabled=!count;
+}
+function startManualGapSketch(segmentKey,side){
+ if(busy||activeGapDraft)return;
+ const seg=segments().find(s=>s.key===segmentKey);
+ if(!seg||seg.status!=='routed'||seg.mode!=='walk'||!['start','end'].includes(side))return;
+ const ends=gapEndpoints(seg,side);
+ if(distanceMeters(ends.point,ends.nearest)<=GAP_WARNING_METERS)return;
+ pick(false);closeEditor();
+ activeGapDraft={segmentKey,key:segmentKey+'|'+side,side,point:ends.point,nearest:ends.nearest,via:[]};
+ el('gap-sketch-tools').hidden=false;setSheet('closed');updateGapSketchHint();redraw();
+ map.fitBounds(L.latLngBounds([[ends.point.lat,ends.point.lon],[ends.nearest.lat,ends.nearest.lon]]),{padding:[110,110],maxZoom:16,animate:false});
+}
+function exitGapSketch(){activeGapDraft=null;el('gap-sketch-tools').hidden=true;redraw();}
+el('gap-sketch-cancel').addEventListener('click',()=>{exitGapSketch();showToast('Szkic anulowany. Trasa OSM bez zmian.');});
+el('gap-sketch-undo').addEventListener('click',()=>{
+ if(!activeGapDraft||!activeGapDraft.via.length)return;
+ activeGapDraft.via.pop();redraw();updateGapSketchHint();
+});
+el('gap-sketch-finish').addEventListener('click',()=>{
+ if(!activeGapDraft)return;
+ if(!activeGapDraft.via.length){showToast('Dodaj co najmniej jeden punkt pomocniczy.',true);return;}
+ const draft=activeGapDraft;
+ manualGapDrafts[draft.key]={...draft,via:draft.via.slice()};
+ const metres=Math.round(gapLength(draft));
+ exitGapSketch();renderEndpointAudit(segments());
+ showToast('Szkic: około '+metres+' m. Brak potwierdzonej ścieżki.');
+});
+async function testStrictRadius(){
+ if(busy||activeGapDraft)return;
+ if(!el('route-consent').checked){
+  message('radius-test-status','Zaznacz najpierw zgodę na wysłanie współrzędnych do Valhalli.',true);return;
+ }
+ const all=segments(),poor=all.map((s,i)=>({s,index:i+1})).filter(({s})=>s.status==='routed'&&
+   (distanceMeters(s.from,s.points[0])>GAP_WARNING_METERS||distanceMeters(s.to,s.points[s.points.length-1])>GAP_WARNING_METERS));
+ if(!poor.length){message('radius-test-status','Brak odcinków przekraczających próg 50 m.');return;}
+ if(poor.length>MAX_CALLS-calls){message('radius-test-status','Limit 6 wywołań na sesję testową.',true);return;}
+ const out=[];setBusy(true);
+ try{
+  for(let i=0;i<poor.length;i++){
+   const {s,index}=poor[i],pause=Math.max(0,MIN_INTERVAL-(Date.now()-lastRequestTime));
+   if(pause)await delay(pause);
+   calls++;lastRequestTime=Date.now();
+   message('radius-test-status',[...out,'Odcinek '+index+'–'+(index+1)+': sprawdzanie promienia 50 m…'].join('\n'));
+   try{
+    const resp=await requestRoute(s,50);
+    const a=Math.round(distanceMeters(s.from,resp.points[0])),b=Math.round(distanceMeters(s.to,resp.points[resp.points.length-1]));
+    out.push('Odcinek '+index+'–'+(index+1)+': początek '+a+' m, koniec '+b+' m — '+(a>50||b>50?'nadal niedopasowany':'oba końce w progu 50 m'));
+   }catch(e){
+    out.push('Odcinek '+index+'–'+(index+1)+': brak trasy dla promienia 50 m ('+String(e.message||e)+')');
+    if(String(e.message||e).includes('429'))break;
+   }
+  }
+ }finally{setBusy(false);}
+ message('radius-test-status',out.join('\n')+'\nOryginalna trasa i punkty bez zmian. Wynik nie potwierdza dostępności.',false);
+}
+el('test-radius').addEventListener('click',testStrictRadius);
+
 function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 async function calculate(){
  if(busy)return;
