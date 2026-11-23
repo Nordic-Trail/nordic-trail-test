@@ -338,7 +338,14 @@ function edit(id){
  el('travel-row').hidden=trip.waypoints[0].id===id;
  if(p.mode!=='none')el('point-mode').value=p.mode;
  el('coords').textContent=p.lat.toFixed(6)+', '+p.lon.toFixed(6);
- refresh();setSheet('expanded');if(window.innerWidth>800)el('editor').scrollIntoView({behavior:'smooth',block:'nearest'});
+ refresh();setSheet('expanded');
+  if(window.innerWidth<=800){
+    requestAnimationFrame(()=>{
+      const content=el('sheet-more'),editor=el('editor');
+      const target=content.scrollTop+editor.getBoundingClientRect().top-content.getBoundingClientRect().top-10;
+      content.scrollTo({top:Math.max(0,target),behavior:'smooth'});
+    });
+  }else el('editor').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function download(filename,data){
  const blob=new Blob([data],{type:'application/gpx+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
