@@ -1013,7 +1013,7 @@ try{
 try{
  if(!M||!R||!I||!G||!window.L)throw Error('Brak wymaganych modułów');
  map=L.map('map').setView([62.2,15.2],5);
- window.NTPlannerSearchBridge={getWaypoints:()=>trip.waypoints.map(p=>({name:p.name,lat:p.lat,lon:p.lon})),center:coords=>map.setView(coords,Math.max(14,map.getZoom()),{animate:false})};
+ window.NTPlannerSearchBridge={getWaypoints:()=>trip.waypoints.map(p=>({name:p.name,lat:p.lat,lon:p.lon})),center:coords=>map.setView(coords,Math.max(14,map.getZoom()),{animate:false}),openTools:()=>setSheet('expanded')};
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:19,attribution:'© OpenStreetMap contributors'
  }).addTo(map);
@@ -1064,10 +1064,8 @@ get('nt-plan-layer-walk').addEventListener('change',()=>{get('visible-walk').che
 get('visible-drive').addEventListener('change',()=>{get('nt-plan-layer-drive').checked=get('visible-drive').checked;});
 get('visible-walk').addEventListener('change',()=>{get('nt-plan-layer-walk').checked=get('visible-walk').checked;});
 get('nt-plan-tools-btn').addEventListener('click',()=>{
- hidePanels();get('toggle-trip-editor').disabled=get('toggle-trip-editor').disabled; // Do not alter edit mode.
- get('planner-sheet').dataset.sheet='expanded';
- get('sheet-handle').setAttribute('aria-expanded','true');
- get('sheet-chevron').textContent='⌄';
+ hidePanels();
+ window.NTPlannerSearchBridge?.openTools?.();
 });
 get('nt-plan-search-box').addEventListener('submit',event=>{
  event.preventDefault();
