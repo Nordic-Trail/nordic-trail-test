@@ -112,6 +112,18 @@ h3{font-size:15px;margin:13px 0 6px}
 #route-audit-list li{padding:5px 0}
 #route-audit-card strong{font-variant-numeric:tabular-nums}
 #compute-routes.done{opacity:1;background:#315a40;color:#e2f3df;border:1px solid #83ab86;cursor:default}.point-mode-choice{display:flex;align-items:center;gap:8px;background:#102219;border:1px solid #779179;border-radius:9px;padding-left:12px}.point-mode-choice select{margin:0;border:0;flex:1;min-width:0}html.nt-embedded body>header{display:none!important}
+
+/* Shared four icon-only tiles, paired with STAGING integration host. */
+.nt-map-tools{position:absolute;z-index:650;right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:9px;pointer-events:auto}
+.nt-map-tools .nt-tool-tile{display:grid;place-items:center;width:48px;height:48px;min-width:48px;min-height:48px;max-width:48px;padding:0;margin:0;border-radius:12px;border:1px solid rgba(231,245,219,.82);background:rgba(18,42,29,.40);color:#f4f8ec;box-shadow:0 3px 12px #081b1088;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.nt-map-tools .nt-tool-tile svg{width:23px;height:23px;fill:none;stroke:currentColor}
+.nt-map-tools .nt-tool-tile[aria-expanded="true"]{background:rgba(46,85,57,.84);outline:2px solid #e8f8d5;outline-offset:1px}
+.nt-map-tool-panel[hidden]{display:none!important}
+.nt-map-tool-panel{position:absolute;z-index:655;right:calc(70px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));width:min(330px,calc(100vw - 96px));max-height:70dvh;overflow:auto;padding:12px 14px;border:1px solid #bdd8b6;border-radius:14px;background:rgba(18,43,29,.96);box-shadow:0 7px 24px #071b1299}
+.nt-tool-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.nt-tool-panel-head button{width:38px;height:38px;min-height:38px;padding:0;margin:0;border-radius:9px;background:#385640;color:#fff}
+.nt-map-tool-panel p{font-size:12px;color:#e0edde;line-height:1.4;margin:8px 0}.nt-map-tool-panel label{font-size:13px}.nt-map-tool-panel input:not([type=checkbox]){width:100%}
+.nt-map-tool-panel .nt-plan-submit{width:100%;min-height:44px;margin-top:9px}
+@media(max-width:440px){.nt-map-tools{right:10px;gap:8px}.nt-map-tools .nt-tool-tile{width:46px;height:46px;min-width:46px;min-height:46px;max-width:46px}}
 </style></head>
 <body><svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
 <symbol id="nt-car" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M4.9,18.9 L4.9,22.7 L9.7,23.2 L10.2,26.1 L9.2,28.4 L6.4,28.9 L4.5,30.3 L4.5,37.0 L14,37 L15.4,39.8 L18.2,39.8 L19.2,40.8 L18.7,43.2 L14.9,43.2 L13.5,41.7 L13,39.4 L4.5,39.4 L4,51.7 L4.5,54.5 L5.9,56 L12.1,56 L13.5,54.5 L14,47.4 L50,47.4 L50.5,54.5 L51.9,56 L57.6,56 L59.5,54.5 L59.5,39.4 L51,39.4 L50.5,42.2 L49.1,43.2 L45.8,43.2 L44.8,42.2 L44.8,40.8 L45.8,39.8 L48.6,39.8 L48.6,38.4 L50,37 L59.5,37 L59.5,30.3 L57.6,28.9 L54.8,28.4 L53.8,25.6 L54.3,23.2 L59.1,22.7 L59.1,18.9 L54.3,18.5 L53.4,21.3 L52.4,20.4 L50.5,10.4 L49.1,8.5 L46.7,7.6 L17.3,7.6 L14.9,8.5 L13.5,10.9 L11.6,19.9 L10.6,21.3 L9.7,20.8 L9.7,18.5 Z M47.7,26.5 L50,26.5 L51.5,27.5 L52.9,30.3 L52.4,32.2 L49.1,34.6 L46.2,33.7 L44.8,31.8 L45.3,28.4 Z M39.6,26.5 L41.5,27.5 L41.5,36.5 L40.5,37.5 L38.6,36.5 L38.6,27.5 Z M36.3,26.5 L38.2,27.5 L38.2,36.5 L37.2,37.5 L35.3,36.5 L35.3,28 Z M33.4,26.5 L34.8,27.5 L34.8,36.5 L33.9,37.5 L32.9,37.5 L32,36 L32.5,27.5 Z M30.1,26.5 L31.5,27.5 L31.5,36.5 L30.6,37.5 L28.7,36 L29.2,27.5 Z M27.3,26.5 L28.7,27.5 L28.7,36.5 L27.7,37.5 L25.8,36.5 L26.3,27.5 Z M23.5,26.5 L25.4,27.5 L25.4,36.5 L24.4,37.5 L22.5,36.5 L22.5,27.5 Z M14,26.5 L17.3,27 L19.2,29.4 L18.7,32.7 L16.3,34.6 L13.5,34.1 L11.1,30.8 L12.1,28 Z M13,20.8 L14.9,12.8 L16.3,10.9 L47.7,10.9 L49.1,12.8 L51,21.8 L13.5,22.3 Z"/></symbol>
@@ -124,7 +136,26 @@ h3{font-size:15px;margin:13px 0 6px}
 </svg><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a id="nt-planner-return" href="./">Powrót do mapy</a></header>
 <dialog id="save-dialog" class="nt-dialog" aria-labelledby="save-dialog-title"><form id="save-route-form"><h2 id="save-dialog-title">Zapisz trasę</h2><label for="save-route-name">Nazwa trasy</label><input id="save-route-name" maxlength="100" autocomplete="off" placeholder="Np. Wędrówka nad jeziorem" required><p>Trasa i ukończone ręczne szkice zostaną zapisane lokalnie w tej przeglądarce.</p><p id="save-gap-summary" role="status"></p><p>Ręczne szkice nie są potwierdzonymi ścieżkami i nie są dodawane do GPX.</p><p id="save-route-error" role="alert" hidden></p><div class="buttons"><button type="button" id="save-route-back" class="secondary">Wróć</button><button type="submit">Zapisz trasę</button></div></form></dialog>
 <dialog id="trips-dialog" class="nt-dialog" aria-labelledby="trips-dialog-title"><h2 id="trips-dialog-title">Moje trasy</h2><p>Trasy i ręczne szkice zapisane w tej przeglądarce.</p><ul id="named-routes-list"></ul><button id="close-trips-dialog" type="button" class="secondary" style="width:100%">Zamknij</button></dialog>
-<main><section class="map-section" aria-label="Mapa planowania"><div class="map-area"><div id="map"></div><div id="route-modes" class="stage-buttons" role="group" aria-label="Rodzaj planowanej trasy"><button id="add-drive-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy samochodowej" title="Trasa samochodowa"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg><span>Samochód</span></button><button id="add-walk-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy pieszej" title="Trasa piesza"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg><span>Pieszo</span></button></div></div><div class="buttons map-fit-actions"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
+<main><section class="map-section" aria-label="Mapa planowania"><div class="map-area"><div id="map"></div><nav id="nt-planner-map-tools" class="nt-map-tools" aria-label="Narzędzia mapy">
+<button id="nt-plan-layers-btn" type="button" class="nt-tool-tile" title="Warstwy" aria-label="Warstwy" aria-controls="nt-plan-layers-box" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></button>
+<button id="nt-plan-tools-btn" type="button" class="nt-tool-tile" title="Narzędzia i moje trasy" aria-label="Narzędzia i moje trasy" aria-controls="planner-sheet"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="10" cy="17" r="2" fill="currentColor" stroke="none"/></svg></button>
+<button id="nt-plan-search-btn" type="button" class="nt-tool-tile" title="Szukaj" aria-label="Szukaj" aria-controls="nt-plan-search-box" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m16 16 5.3 5.3"/></svg></button>
+<button id="nt-plan-locate-btn" type="button" class="nt-tool-tile" title="Moja lokalizacja" aria-label="Moja lokalizacja"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></button>
+</nav>
+<div id="nt-plan-layers-box" class="nt-map-tool-panel" hidden>
+<div class="nt-tool-panel-head"><strong>Warstwy trasy</strong><button id="nt-plan-layers-close" type="button" aria-label="Zamknij warstwy">×</button></div>
+<p>Włącz lub ukryj odcinki. Punkty wyprawy pozostają widoczne.</p>
+<label class="layer"><input type="checkbox" id="nt-plan-layer-drive" checked> Samochód</label>
+<label class="layer"><input type="checkbox" id="nt-plan-layer-walk" checked> Pieszo</label>
+</div>
+<form id="nt-plan-search-box" class="nt-map-tool-panel" hidden>
+<div class="nt-tool-panel-head"><strong>Szukaj w wyprawie</strong><button id="nt-plan-search-close" type="button" aria-label="Zamknij wyszukiwanie">×</button></div>
+<label for="nt-plan-search-input">Punkt lub współrzędne</label><input id="nt-plan-search-input" maxlength="120" placeholder="Np. Punkt 2 lub 59.31, 18.06" required autocomplete="off">
+<button type="submit" class="nt-plan-submit">Pokaż na mapie</button>
+<p id="nt-plan-search-status" role="status" hidden></p>
+<p>Przeszukuje punkty tej wyprawy i współrzędne. Bez wysyłania zapytania do zewnętrznej wyszukiwarki.</p>
+</form>
+<div id="route-modes" class="stage-buttons" role="group" aria-label="Rodzaj planowanej trasy"><button id="add-drive-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy samochodowej" title="Trasa samochodowa"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg><span>Samochód</span></button><button id="add-walk-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy pieszej" title="Trasa piesza"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg><span>Pieszo</span></button></div></div><div class="buttons map-fit-actions"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
 <div id="save-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <div id="gap-sketch-tools" role="region" aria-label="Ręczny szkic brakującego dojścia" hidden>
 <strong>Ręczny szkic — EDYCJA PUNKTÓW v2</strong>
@@ -982,6 +1013,7 @@ try{
 try{
  if(!M||!R||!I||!G||!window.L)throw Error('Brak wymaganych modułów');
  map=L.map('map').setView([62.2,15.2],5);
+ window.NTPlannerSearchBridge={getWaypoints:()=>trip.waypoints.map(p=>({name:p.name,lat:p.lat,lon:p.lon})),center:coords=>map.setView(coords,Math.max(14,map.getZoom()),{animate:false})};
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:19,attribution:'© OpenStreetMap contributors'
  }).addTo(map);
@@ -1017,6 +1049,46 @@ try{
 refresh();fit();updateQuick();
 })();
 </script><script>
+(function(){
+'use strict';
+const get=id=>document.getElementById(id);
+const layerBox=get('nt-plan-layers-box'),searchBox=get('nt-plan-search-box'),layerBtn=get('nt-plan-layers-btn'),searchBtn=get('nt-plan-search-btn');
+function hidePanels(){layerBox.hidden=true;searchBox.hidden=true;layerBtn.setAttribute('aria-expanded','false');searchBtn.setAttribute('aria-expanded','false');}
+function toggle(box,button){const opening=box.hidden;hidePanels();box.hidden=!opening;button.setAttribute('aria-expanded',String(opening));if(opening&&box===searchBox)get('nt-plan-search-input').focus();}
+layerBtn.addEventListener('click',()=>toggle(layerBox,layerBtn));
+searchBtn.addEventListener('click',()=>toggle(searchBox,searchBtn));
+get('nt-plan-layers-close').addEventListener('click',hidePanels);
+get('nt-plan-search-close').addEventListener('click',hidePanels);
+get('nt-plan-layer-drive').addEventListener('change',()=>{get('visible-drive').checked=get('nt-plan-layer-drive').checked;get('visible-drive').dispatchEvent(new Event('change'));});
+get('nt-plan-layer-walk').addEventListener('change',()=>{get('visible-walk').checked=get('nt-plan-layer-walk').checked;get('visible-walk').dispatchEvent(new Event('change'));});
+get('visible-drive').addEventListener('change',()=>{get('nt-plan-layer-drive').checked=get('visible-drive').checked;});
+get('visible-walk').addEventListener('change',()=>{get('nt-plan-layer-walk').checked=get('visible-walk').checked;});
+get('nt-plan-tools-btn').addEventListener('click',()=>{
+ hidePanels();get('toggle-trip-editor').disabled=get('toggle-trip-editor').disabled; // Do not alter edit mode.
+ get('planner-sheet').dataset.sheet='expanded';
+ get('sheet-handle').setAttribute('aria-expanded','true');
+ get('sheet-chevron').textContent='⌄';
+});
+get('nt-plan-search-box').addEventListener('submit',event=>{
+ event.preventDefault();
+ const input=get('nt-plan-search-input').value.trim(),match=input.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+ let coords=null;
+ if(match){const lat=Number(match[1]),lon=Number(match[2]);if(Math.abs(lat)<=90&&Math.abs(lon)<=180)coords=[lat,lon];}
+ else{const points=window.NTPlannerSearchBridge?.getWaypoints?.()||[];const found=points.find(p=>p.name.toLocaleLowerCase('pl').includes(input.toLocaleLowerCase('pl')));if(found)coords=[found.lat,found.lon];}
+ if(!coords){get('nt-plan-search-status').hidden=false;get('nt-plan-search-status').textContent='Nie znaleziono punktu. Spróbuj nazwy punktu lub współrzędnych.';return;}
+ window.NTPlannerSearchBridge?.center?.(coords);hidePanels();
+});
+get('nt-plan-locate-btn').addEventListener('click',()=>{
+ if(!navigator.geolocation){get('nt-plan-search-status').hidden=false;get('nt-plan-search-status').textContent='Lokalizacja nie jest dostępna.';toggle(searchBox,searchBtn);return;}
+ navigator.geolocation.getCurrentPosition(pos=>{
+   const coords=[pos.coords.latitude,pos.coords.longitude];
+   window.NTPlannerSearchBridge?.center?.(coords);
+ },()=>{
+   toggle(searchBox,searchBtn);
+   get('nt-plan-search-status').hidden=false;get('nt-plan-search-status').textContent='Nie udało się odczytać lokalizacji. Sprawdź uprawnienia telefonu.';
+ },{enableHighAccuracy:false,timeout:12000,maximumAge:60000});
+});
+})();</script><script>
 (function(){
  'use strict';
  const link=document.getElementById('nt-planner-return');
