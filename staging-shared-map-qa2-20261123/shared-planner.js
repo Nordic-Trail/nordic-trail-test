@@ -567,7 +567,7 @@ el('clear-routes').addEventListener('click',()=>{
  remember();routes=Object.create(null);showResults=false;refresh();fit();
  message('routing-status','Przywrócono szkic. Zapis lokalny nie został zmieniony.');
 });
-el('undo-step').addEventListener('click',()=>{if(busy||!history.length)return;const prev=history.pop();trip=prev.trip;routes=prev.routes;showResults=prev.showResults;closeEditor();pick(false);refresh();fit();message('notice','Cofnięto ostatnią zmianę.');});
+el('undo-step').addEventListener('click',()=>{if(busy||!history.length)return;const prev=history.pop();trip=prev.trip;routes=prev.routes;showResults=prev.showResults;closeEditor();pick(false);refresh();message('notice','Cofnięto ostatnią zmianę.');});
 el('cancel-planning').addEventListener('click',()=>{
  if(busy)return;
  if(picking){pick(false);message('notice','Anulowano wybór punktu.');return;}
