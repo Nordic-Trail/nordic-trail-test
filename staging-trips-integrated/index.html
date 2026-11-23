@@ -44,6 +44,51 @@ button.active{outline:2px solid var(--accent)}
 .stage-buttons button{min-height:62px}
 .stage-buttons .ui-icon{width:32px;height:32px}
 h3{font-size:15px;margin:13px 0 6px}
+
+/* Planner controls on map. Small visuals with accessible touch targets. */
+.map-area{position:relative;isolation:isolate}
+.map-area #map{width:100%}
+#route-modes{position:absolute;bottom:12px;left:12px;right:12px;z-index:450;display:flex;justify-content:center;gap:14px;margin:0;pointer-events:none}
+#route-modes button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:52px;min-width:66px;padding:5px 9px;gap:2px;background:rgba(18,42,29,.70);color:#f1f4e9;border:1px solid rgba(231,245,219,.85);box-shadow:0 3px 14px #07170d66;backdrop-filter:blur(4px);pointer-events:auto}
+#route-modes button .ui-icon{width:27px;height:27px}
+#route-modes button span{font-size:10px}
+#route-modes button.active{background:#41634b;outline:2px solid var(--accent);outline-offset:1px}
+.sheet-chrome{display:none}
+@media(max-width:800px){
+ html,body{min-height:100%;overscroll-behavior:none}
+ header{position:absolute;top:0;left:0;right:0;z-index:500;background:rgba(18,42,29,.76);backdrop-filter:blur(4px)}
+ main{display:block;padding:0}
+ .map-section{position:relative;height:100dvh;overflow:hidden}
+ .map-area,.map-area #map{height:100dvh;min-height:0;border:0;border-radius:0}
+ .map-fit-actions,.map-section>.hint{display:none}
+ #route-modes{bottom:calc(16px + env(safe-area-inset-bottom));transition:bottom .18s ease}
+ body:has(#planner-sheet[data-sheet="compact"]) #route-modes{bottom:calc(181px + env(safe-area-inset-bottom))}
+ body:has(#planner-sheet[data-sheet="expanded"]) #route-modes{bottom:calc(16px + env(safe-area-inset-bottom))}
+ .panel#planner-sheet{position:fixed;z-index:700;bottom:0;left:0;right:0;margin:0;display:flex;flex-direction:column;gap:0;width:100%;max-height:min(82dvh,760px);background:rgba(18,42,29,.82);border:1px solid rgba(231,245,219,.78);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -12px 30px #07170d77;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow:hidden;padding-bottom:env(safe-area-inset-bottom);transition:transform .20s ease}
+ .panel#planner-sheet[data-sheet="closed"]{transform:translateY(105%);pointer-events:none}
+ .panel#planner-sheet[data-sheet="compact"]{transform:translateY(0)}
+ .panel#planner-sheet[data-sheet="expanded"]{transform:translateY(0)}
+ .panel#planner-sheet[data-dragging="true"]{transition:none;transform:translateY(var(--sheet-offset,0px))}
+ .sheet-chrome{display:block;padding:5px 10px 11px;flex:none}
+ .sheet-handle{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;width:100%;min-height:34px;height:34px;padding:0;background:transparent;color:#e3f0dc;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+ .sheet-grip{width:49px;height:5px;border-radius:9px;background:#d3e2c9;display:block}
+ .sheet-chevron{font-size:17px;line-height:17px}
+ .sheet-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;padding:2px 2px 10px}
+ .sheet-heading strong{font-size:15px}
+ #sheet-prompt{color:#e2eddd;font-size:11px;text-align:right;max-width:53%}
+ .quick-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+ .quick-actions button{min-width:0;min-height:46px;font-size:12px;padding:6px 1px}
+ .quick-actions button.active{outline:2px solid white}
+ #sheet-more{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding:0 10px 14px;touch-action:pan-y}
+ .panel#planner-sheet[data-sheet="compact"] #sheet-more,.panel#planner-sheet[data-sheet="closed"] #sheet-more{display:none}
+ .panel#planner-sheet .card{margin:0 0 10px;background:rgba(28,51,37,.68)}
+ .panel#planner-sheet #editor:not([hidden]){display:block}
+ .panel#planner-sheet #notice{font-size:13px}
+ .panel#planner-sheet .buttons{gap:8px}
+ .panel#planner-sheet button:focus-visible{outline:3px solid white}
+ .leaflet-control-zoom{margin-top:75px!important}
+}
+@media(prefers-reduced-motion:reduce){.panel#planner-sheet,#route-modes{transition:none!important}}
 </style></head>
 <body><svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
 <symbol id="nt-car" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M4.9,18.9 L4.9,22.7 L9.7,23.2 L10.2,26.1 L9.2,28.4 L6.4,28.9 L4.5,30.3 L4.5,37.0 L14,37 L15.4,39.8 L18.2,39.8 L19.2,40.8 L18.7,43.2 L14.9,43.2 L13.5,41.7 L13,39.4 L4.5,39.4 L4,51.7 L4.5,54.5 L5.9,56 L12.1,56 L13.5,54.5 L14,47.4 L50,47.4 L50.5,54.5 L51.9,56 L57.6,56 L59.5,54.5 L59.5,39.4 L51,39.4 L50.5,42.2 L49.1,43.2 L45.8,43.2 L44.8,42.2 L44.8,40.8 L45.8,39.8 L48.6,39.8 L48.6,38.4 L50,37 L59.5,37 L59.5,30.3 L57.6,28.9 L54.8,28.4 L53.8,25.6 L54.3,23.2 L59.1,22.7 L59.1,18.9 L54.3,18.5 L53.4,21.3 L52.4,20.4 L50.5,10.4 L49.1,8.5 L46.7,7.6 L17.3,7.6 L14.9,8.5 L13.5,10.9 L11.6,19.9 L10.6,21.3 L9.7,20.8 L9.7,18.5 Z M47.7,26.5 L50,26.5 L51.5,27.5 L52.9,30.3 L52.4,32.2 L49.1,34.6 L46.2,33.7 L44.8,31.8 L45.3,28.4 Z M39.6,26.5 L41.5,27.5 L41.5,36.5 L40.5,37.5 L38.6,36.5 L38.6,27.5 Z M36.3,26.5 L38.2,27.5 L38.2,36.5 L37.2,37.5 L35.3,36.5 L35.3,28 Z M33.4,26.5 L34.8,27.5 L34.8,36.5 L33.9,37.5 L32.9,37.5 L32,36 L32.5,27.5 Z M30.1,26.5 L31.5,27.5 L31.5,36.5 L30.6,37.5 L28.7,36 L29.2,27.5 Z M27.3,26.5 L28.7,27.5 L28.7,36.5 L27.7,37.5 L25.8,36.5 L26.3,27.5 Z M23.5,26.5 L25.4,27.5 L25.4,36.5 L24.4,37.5 L22.5,36.5 L22.5,27.5 Z M14,26.5 L17.3,27 L19.2,29.4 L18.7,32.7 L16.3,34.6 L13.5,34.1 L11.1,30.8 L12.1,28 Z M13,20.8 L14.9,12.8 L16.3,10.9 L47.7,10.9 L49.1,12.8 L51,21.8 L13.5,22.3 Z"/></symbol>
@@ -155,7 +200,7 @@ function setBusy(value){
  for(const id of ['start-pick','cancel-pick','save-point','save-local','export-gpx','new-trip','compute-routes','clear-routes','add-drive-stage','add-walk-stage','undo-step','cancel-planning']){
   el(id).disabled=value;
  }
- if(!value){el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;el('undo-step').disabled=!history.length;}
+ if(!value){el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;el('undo-step').disabled=!history.length;}updateQuick();
 }
 function closeEditor(){selected=null;el('editor').hidden=true;}
 function dataSegments(){return I.pack(trip,routes).routes;}
@@ -266,7 +311,7 @@ function refresh(){
   li.appendChild(actions);list.appendChild(li);
  });
  if(selected&&!trip.waypoints.some(p=>p.id===selected))closeEditor();
- redraw();
+ redraw();updateQuick();
 }
 function modify(fn){
  if(busy){message('notice','Trwa obliczanie tras. Zmiana niedostępna.',true);return false;}
@@ -281,7 +326,7 @@ function edit(id){
  el('travel-row').hidden=trip.waypoints[0].id===id;
  if(p.mode!=='none')el('point-mode').value=p.mode;
  el('coords').textContent=p.lat.toFixed(6)+', '+p.lon.toFixed(6);
- refresh();el('editor').scrollIntoView({behavior:'smooth',block:'nearest'});
+ refresh();setSheet('expanded');if(window.innerWidth>800)el('editor').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function download(filename,data){
  const blob=new Blob([data],{type:'application/gpx+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
@@ -344,7 +389,7 @@ el('toggle-trip-editor').addEventListener('click',()=>{
  const panel=el('trip-edit-section');panel.hidden=!panel.hidden;
  el('toggle-trip-editor').setAttribute('aria-expanded',String(!panel.hidden));
  el('toggle-trip-editor').textContent=panel.hidden?'✎ Edycja trasy':'✎ Zamknij edycję';
- if(!panel.hidden)panel.scrollIntoView({behavior:'smooth',block:'start'});
+ if(!panel.hidden){setSheet('expanded');if(window.innerWidth>800)panel.scrollIntoView({behavior:'smooth',block:'start'});}
 });
 el('clear-routes').addEventListener('click',()=>{
  if(busy)return;
@@ -362,10 +407,52 @@ el('cancel-planning').addEventListener('click',()=>{
  try{const saved=I.load(localStorage);trip=saved.trip;routes=saved.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');refresh();fit();message('notice','Przywrócono zapis lokalny.');}
  catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
-el('start-pick').addEventListener('click',()=>{if(busy)return;pendingMode='drive';closeEditor();pick(true);message('notice','Wskaż punkt początkowy na mapie.');});
+el('start-pick').addEventListener('click',()=>{if(busy)return;pendingMode=activeMode||'drive';pendingKind='start';closeEditor();pick(true);message('notice','Wskaż punkt początkowy na mapie.');});
 for(const [id,mode] of [['add-drive-stage','drive'],['add-walk-stage','walk']]){
- el(id).addEventListener('click',()=>{if(busy||!trip.waypoints.length)return;pendingMode=mode;closeEditor();pick(true);message('notice','Wskaż następny punkt etapu '+(mode==='walk'?'pieszego.':'samochodowego.'));});
+ el(id).addEventListener('click',()=>chooseMode(mode));
 }
+for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-goal','finish']]){
+ el(id).addEventListener('click',()=>{
+  if(busy||!activeMode)return;
+  if(kind==='start'&&trip.waypoints.length||kind!=='start'&&!trip.waypoints.length)return;
+  pendingMode=activeMode;pendingKind=kind;closeEditor();pick(true);
+  message('notice',kind==='stop'?'Dotykaj mapy, aby dodawać kolejne punkty. Zakończ przyciskiem Gotowe.':'Wskaż '+(kind==='start'?'start':'cel')+' na mapie.');
+ });
+}
+el('quick-undo').addEventListener('click',()=>el('undo-step').click());
+el('quick-done').addEventListener('click',()=>{
+ if(busy)return;pick(false);closeEditor();activeMode=null;pendingKind='stop';setSheet('closed');updateQuick();
+ message('notice','Zakończono edycję etapu. Trasa pozostaje na mapie.');
+});
+(function initSheetHandle(){
+ const handle=el('sheet-handle'),sheet=el('planner-sheet');
+ let drag=false,start=0,last=0,moved=false,suppressClick=false;
+ handle.addEventListener('pointerdown',event=>{
+  if(event.button!==0||sheet.dataset.sheet==='closed')return;
+  drag=true;start=event.clientY;last=start;moved=false;suppressClick=false;
+  sheet.dataset.dragging='true';handle.setPointerCapture(event.pointerId);
+ });
+ handle.addEventListener('pointermove',event=>{
+  if(!drag)return;last=event.clientY;const delta=last-start;
+  if(Math.abs(delta)>8)moved=true;
+  sheet.style.setProperty('--sheet-offset',Math.max(-120,Math.min(delta,160))+'px');
+ });
+ function endDrag(event){
+  if(!drag)return;drag=false;delete sheet.dataset.dragging;sheet.style.removeProperty('--sheet-offset');
+  const delta=last-start;
+  if(moved){suppressClick=true;
+   if(delta>55)setSheet('compact');
+   else if(delta< -55)setSheet('expanded');
+  }
+  if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+ }
+ handle.addEventListener('pointerup',endDrag);
+ handle.addEventListener('pointercancel',endDrag);
+ handle.addEventListener('click',()=>{
+  if(suppressClick){suppressClick=false;return;}
+  setSheet(sheet.dataset.sheet==='expanded'?'compact':'expanded');
+ });
+})();
 el('cancel-pick').addEventListener('click',()=>{if(!busy){pick(false);message('notice','Anulowano.');}});
 el('save-point').addEventListener('click',()=>{
  if(!selected||busy)return;
@@ -432,14 +519,17 @@ try{
   const n=trip.waypoints.length;
   const added=modify(()=>M.add(trip,{lat:Number(event.latlng.lat.toFixed(6)),
    lon:Number(event.latlng.lng.toFixed(6)),name:n===0?'Start':'Punkt '+(n+1),
-   kind:n===0?'start':'stop',mode:n===0?'none':pendingMode}));
-  pick(false);
+   kind:n===0?'start':pendingKind==='finish'?'finish':'stop',mode:n===0?'none':pendingMode}));
   if(added){
-   fit();edit(trip.waypoints[trip.waypoints.length-1].id);
-   message('notice','Dodano punkt. Ustaw rodzaj i sposób dotarcia.');
+   const isGoal=pendingKind==='finish',isStart=n===0;
+   if(isGoal){pick(false);activeMode=null;setSheet('closed');}
+   else if(isStart){pick(false);}
+   else{pick(true);}
+   fit();updateQuick();
+   message('notice',isGoal?'Dodano cel. Etap zakończony.':isStart?'Dodano start. Wybierz Punkt lub Cel.':'Dodano punkt. Dotknij mapy, aby dodać kolejny, albo wybierz Gotowe.');
   }
  });
 }catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
-refresh();fit();
+refresh();fit();updateQuick();
 })();
 </script></body></html>
