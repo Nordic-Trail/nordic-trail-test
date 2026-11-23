@@ -52,7 +52,7 @@ h3{font-size:15px;margin:13px 0 6px}
 #route-modes button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:52px;min-width:66px;padding:5px 9px;gap:2px;background:rgba(18,42,29,.70);color:#f1f4e9;border:1px solid rgba(231,245,219,.85);box-shadow:0 3px 14px #07170d66;backdrop-filter:blur(4px);pointer-events:auto}
 #route-modes button .ui-icon{width:27px;height:27px}
 #route-modes button span{font-size:10px}
-#route-modes button.active{background:#41634b;outline:2px solid var(--accent);outline-offset:1px}
+#route-modes button.active{background:#42664c;outline:3px solid #efffdc;outline-offset:2px;box-shadow:0 0 0 2px #173a28,0 0 14px #e4ffd177}
 .sheet-chrome{display:none}
 @media(max-width:800px){
  html,body{min-height:100%;overscroll-behavior:none}
@@ -79,6 +79,8 @@ h3{font-size:15px;margin:13px 0 6px}
  .quick-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
  .quick-actions button{min-width:0;min-height:46px;font-size:12px;padding:6px 1px}
  .quick-actions button.active{outline:2px solid white}
+  #save-toast{position:fixed;z-index:900;top:calc(72px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);padding:13px 18px;border-radius:12px;background:#254934;color:white;border:1px solid #d7ead3;box-shadow:0 5px 22px #091e1288;text-align:center;font-weight:700;pointer-events:none}
+  #save-toast.error{background:#653a30;border-color:#e9b7a9}
  #sheet-more{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding:0 10px 14px;touch-action:pan-y}
  .panel#planner-sheet[data-sheet="compact"] #sheet-more,.panel#planner-sheet[data-sheet="closed"] #sheet-more{display:none}
  .panel#planner-sheet .card{margin:0 0 10px;background:rgba(28,51,37,.68)}
@@ -100,11 +102,12 @@ h3{font-size:15px;margin:13px 0 6px}
 <symbol id="nt-download" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M55.3,41.8 L54.4,54.9 L59.1,54.9 L59.1,43.7 Z M4.9,41.8 L4,54.9 L8.7,54.9 L8.7,43.7 Z M32,8.2 L29.2,9.1 L29.2,39 L28.3,39.9 L18.9,30.6 L15.2,33.4 L31.1,50.2 L46.9,34.3 L46.9,32.5 L44.1,30.6 L34.8,39.9 L33.9,39 L33.9,10.1 Z"/></symbol>
 </svg><header><div><strong>NORDIC TRAIL</strong><small>STAGING · planer + routing OSM</small></div><a href="../staging-app/">Powrót do mapy</a></header>
 <main><section class="map-section" aria-label="Mapa planowania"><div class="map-area"><div id="map"></div><div id="route-modes" class="stage-buttons" role="group" aria-label="Rodzaj planowanej trasy"><button id="add-drive-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy samochodowej" title="Trasa samochodowa"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg><span>Samochód</span></button><button id="add-walk-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy pieszej" title="Trasa piesza"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg><span>Pieszo</span></button></div></div><div class="buttons map-fit-actions"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">🚙 Samochód: pomarańczowy · 🥾 Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
+<div id="save-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <div class="panel" id="planner-sheet" data-sheet="closed">
 <div class="sheet-chrome">
 <button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button>
 <div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
-<div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Gotowe</button></div>
+<div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Zapisz</button></div>
 </div>
 <div id="sheet-more">
 <section class="card"><h1>Zaplanuj wyprawę</h1>
@@ -147,6 +150,11 @@ const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null;
 let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',pendingKind='stop',activeMode=null,showResults=false;
 const history=[];
+let toastTimer=null;
+function showToast(text,error=false){
+ const t=el('save-toast');t.textContent=text;t.classList.toggle('error',error);t.hidden=false;
+ if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},4500);
+}
 function remember(){history.push({trip:JSON.parse(JSON.stringify(trip)),routes:JSON.parse(JSON.stringify(routes)),showResults});if(history.length>25)history.shift();}
 function message(id,text,error=false){
  const node=el(id);node.textContent=text;node.classList.toggle('error',error);node.hidden=false;
@@ -182,9 +190,9 @@ function updateQuick(){
  el('sheet-prompt').textContent=picking?(pendingKind==='start'?'Wskaż start na mapie':pendingKind==='finish'?'Wskaż cel na mapie':'Dotykaj mapy, aby dodawać punkty'):'Wybierz działanie, a następnie miejsce na mapie';
  el('quick-start').disabled=busy||!activeMode||trip.waypoints.length>0;
  el('quick-point').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
- el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
+ el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS||trip.waypoints.at(-1).kind==='finish';
  el('quick-undo').disabled=busy||!history.length;
- el('quick-done').disabled=busy;
+ el('quick-done').disabled=busy||trip.waypoints.length<2;
  for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-goal','finish']]){
   el(id).classList.toggle('active',picking&&pendingKind===kind);
  }
@@ -225,8 +233,8 @@ function redraw(){
  segments().forEach(s=>{
   if(s.mode==='drive'&&!el('visible-drive').checked||s.mode==='walk'&&!el('visible-walk').checked)return;
   const routed=s.status==='routed';
-  L.polyline(s.points.map(p=>[p.lat,p.lon]),{color:s.mode==='drive'?'#f3bb62':'#73d4a5',
-   weight:routed?5:4,opacity:routed?0.95:0.48,dashArray:routed?null:'5 10',interactive:false}).addTo(lines);
+  L.polyline(s.points.map(p=>[p.lat,p.lon]),{color:s.mode==='drive'?'#f3bb62':'#17623d',
+   weight:routed?5:4,opacity:s.mode==='walk'?0.90:(routed?0.95:0.48),dashArray:routed?null:'5 10',interactive:false}).addTo(lines);
  });
  drawMarkers();
 }
@@ -416,13 +424,25 @@ for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-g
   if(busy||!activeMode)return;
   if(kind==='start'&&trip.waypoints.length||kind!=='start'&&!trip.waypoints.length)return;
   pendingMode=activeMode;pendingKind=kind;closeEditor();pick(true);
-  message('notice',kind==='stop'?'Dotykaj mapy, aby dodawać kolejne punkty. Zakończ przyciskiem Gotowe.':'Wskaż '+(kind==='start'?'start':'cel')+' na mapie.');
+  message('notice',kind==='stop'?'Dotykaj mapy, aby dodawać kolejne punkty. Zakończ przyciskiem Zapisz.':'Wskaż '+(kind==='start'?'start':'cel')+' na mapie.');
  });
 }
 el('quick-undo').addEventListener('click',()=>el('undo-step').click());
 el('quick-done').addEventListener('click',()=>{
- if(busy)return;pick(false);closeEditor();activeMode=null;pendingKind='stop';setSheet('closed');updateQuick();
- message('notice','Zakończono edycję etapu. Trasa pozostaje na mapie.');
+ if(busy)return;
+ if(trip.waypoints.length<2){showToast('Dodaj co najmniej dwa punkty przed zapisem.',true);return;}
+ try{
+  const next=M.renameTrip(trip,el('trip-name').value);
+  I.save(localStorage,next,routes);
+  trip=next;history.length=0;
+  pick(false);closeEditor();activeMode=null;pendingKind='stop';setSheet('closed');refresh();updateQuick();
+  message('action-status','✓ Trasa zapisana lokalnie w tej przeglądarce.');
+  showToast('✓ Trasa zapisana lokalnie');
+ }catch(error){
+  showToast('Nie udało się zapisać trasy. Spróbuj ponownie.',true);
+  message('notice','Nie udało się zapisać lokalnie: '+String(error&&error.message||'Błąd zapisu.'),true);
+  setSheet('compact');
+ }
 });
 (function initSheetHandle(){
  const handle=el('sheet-handle'),sheet=el('planner-sheet');
@@ -522,11 +542,11 @@ try{
    kind:n===0?'start':pendingKind==='finish'?'finish':'stop',mode:n===0?'none':pendingMode}));
   if(added){
    const isGoal=pendingKind==='finish',isStart=n===0;
-   if(isGoal){pick(false);activeMode=null;setSheet('closed');}
+   if(isGoal){pick(false);setSheet('compact');}
    else if(isStart){pick(false);}
    else{pick(true);}
    fit();updateQuick();
-   message('notice',isGoal?'Dodano cel. Etap zakończony.':isStart?'Dodano start. Wybierz Punkt lub Cel.':'Dodano punkt. Dotknij mapy, aby dodać kolejny, albo wybierz Gotowe.');
+   message('notice',isGoal?'Cel dodany. Możesz zapisać trasę.':isStart?'Dodano start. Wybierz Punkt lub Cel.':'Dodano punkt. Dotknij mapy, aby dodać kolejny, albo wybierz Zapisz.');
   }
  });
 }catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
