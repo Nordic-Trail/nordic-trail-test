@@ -52,7 +52,7 @@ h3{font-size:15px;margin:13px 0 6px}
 #route-modes button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:52px;min-width:66px;padding:5px 9px;gap:2px;background:rgba(18,42,29,.70);color:#f1f4e9;border:1px solid rgba(231,245,219,.85);box-shadow:0 3px 14px #07170d66;backdrop-filter:blur(4px);pointer-events:auto}
 #route-modes button .ui-icon{width:27px;height:27px}
 #route-modes button span{font-size:10px}
-#route-modes button.active{background:#41634b;outline:2px solid var(--accent);outline-offset:1px}
+#route-modes button.active{background:#42664c;outline:3px solid #efffdc;outline-offset:2px;box-shadow:0 0 0 2px #173a28,0 0 14px #e4ffd177}
 .sheet-chrome{display:none}
 @media(max-width:800px){
  html,body{min-height:100%;overscroll-behavior:none}
@@ -233,8 +233,8 @@ function redraw(){
  segments().forEach(s=>{
   if(s.mode==='drive'&&!el('visible-drive').checked||s.mode==='walk'&&!el('visible-walk').checked)return;
   const routed=s.status==='routed';
-  L.polyline(s.points.map(p=>[p.lat,p.lon]),{color:s.mode==='drive'?'#f3bb62':'#73d4a5',
-   weight:routed?5:4,opacity:routed?0.95:0.48,dashArray:routed?null:'5 10',interactive:false}).addTo(lines);
+  L.polyline(s.points.map(p=>[p.lat,p.lon]),{color:s.mode==='drive'?'#f3bb62':'#17623d',
+   weight:routed?5:4,opacity:s.mode==='walk'?0.90:(routed?0.95:0.48),dashArray:routed?null:'5 10',interactive:false}).addTo(lines);
  });
  drawMarkers();
 }
