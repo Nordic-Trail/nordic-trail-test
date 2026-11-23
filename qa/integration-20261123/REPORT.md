@@ -24,6 +24,16 @@ Status: **branch preview prepared; no merge approved**
 - Previous named-trips and Supabase data: **not modified by this integration PR**.
 - Live Samsung behavior and actual Supabase flows in integration preview: **NOT YET TESTED**.
 
+
+## Update: unified map controls (23 Nov, evening)
+- **Implemented in both integration documents**: exactly four square right-edge icon buttons: **Warstwy**, **Narzędzia**, **Szukaj**, **Moja lokalizacja**. Both use a matching 48 px touch target (46 px on narrow screens), translucent background, consistent corners/borders.
+- No extra always-visible tool buttons were added; large route actions remain at the bottom of the planner, and the main map keeps its established add-point / route-entry workflow.
+- Main-map **Narzędzia** opens its existing workspace; planner **Narzędzia** opens its existing sliding trip sheet. **Warstwy** preserves the original main-map layer sheet and exposes car/walk visibility in the planner. Search handles locally loaded map points, trip waypoints, and numeric coordinates. There is no new paid geocoder. Locator requests browser location only after user activation, and handles refusal.
+- **Static QA PASS** after changes: all 81 original app IDs preserved, no duplicate IDs in either integration document, all inline JavaScript parses, original auth/moderation/reporting elements still present, approved walker/car/trail icons preserved, GPX +180 boundary fix and isolated named trip storage retained.
+- A public QA-only copy was created at `staging-integration-20261123/index.html` and `planner.html` on `main`. This does **not** change `staging-app/index.html`; source remains reviewable in the integration branch.
+- **Browser automation unavailable:** attempted Chromium navigation to GitHub Pages was rejected by network administrator; this is not an app failure. Real-device verification of the new tiles and switching between map/planner is **PENDING**.
+- Completion scope: **four-tile design and static integration check ready**, not final production integration nor one shared Leaflet map. Do not merge or declare full MVP ready until Samsung / STAGING regression passes.
+
 ## Known limitation
 This is a **module shell integration**, not final single-map integration. Planner runs in a separate iframe with its own Leaflet map. Therefore the existing STAGING map and planner do not yet share one Leaflet instance, map view, layers or map interaction. This is deliberate for safe initial verification and **is not final MVP acceptance**.
 
