@@ -315,6 +315,19 @@ body.nt-planner-on #workspace{visibility:hidden!important;pointer-events:none!im
 .nt-via-marker{width:48px;height:48px;display:flex;align-items:center;justify-content:center;touch-action:none;pointer-events:none}
 .nt-via-marker .nt-via-dot{display:block;width:23px;height:23px;border:3px solid #f4edff;border-radius:50%;background:#7555b5;box-shadow:0 1px 8px #1b1537cc;pointer-events:none}
 .nt-manual-via-hit{touch-action:none!important;cursor:grab}
+
+/* QA5: the same approved glass controls on map and route planner. */
+:root{--nt-map-control-bg:rgba(18,42,29,.40);--nt-map-control-edge:rgba(231,245,219,.84)}
+.map-top-actions button,.map-toolbar>button,#open-layers-btn,.nt-layer-close{
+ background:var(--nt-map-control-bg)!important;border:1.5px solid var(--nt-map-control-edge)!important;
+ border-radius:15px!important;color:#f5f8ee;box-shadow:0 2px 10px rgba(3,15,9,.38)!important;
+ backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);text-shadow:0 1px 2px rgba(5,18,11,.80)}
+.map-top-actions button{min-height:48px}
+.map-toolbar>button{min-height:48px}
+#nt-open-planner-btn svg{height:26px;width:26px}
+.nt-layers-sheet{background:rgba(18,42,29,.40);border-color:var(--nt-map-control-edge);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+/* Maintain the add-point primary-action distinction with an outline, not a competing opaque fill. */
+.map-toolbar #add-point-btn{border:2px solid #d3e6b9!important;color:#f5f8ee!important}
 </style>
 </head>
 <body>
@@ -1476,8 +1489,8 @@ body.nt-planner-on #workspace{visibility:hidden!important;pointer-events:none!im
   let layerMinHeight=0,layerMaxHeight=0,layerStartCollapsed=false,layerMoved=false;
   let suppressHandleClick=false;
   layerHandle.addEventListener('pointerdown',event=>{
-    if(layersSheet.hidden||layerPointer!==null||event.pointerType!=='touch'||
-      event.isPrimary===false||event.button!==0||event.buttons!==1)return;
+    if(layersSheet.hidden||layerPointer!==null||!(event.pointerType==='touch'||event.pointerType==='pen')||
+      event.isPrimary===false||event.button!==0||(event.buttons&1)!==1)return;
     layerPointer=event.pointerId;
     layerStartY=event.clientY;
     layerStartHeight=layersSheet.getBoundingClientRect().height;
@@ -1489,7 +1502,7 @@ body.nt-planner-on #workspace{visibility:hidden!important;pointer-events:none!im
     layerHandle.setPointerCapture(event.pointerId);
   });
   layerHandle.addEventListener('pointermove',event=>{
-    if(layerPointer!==event.pointerId||event.pointerType!=='touch'||(event.buttons&1)!==1)return;
+    if(layerPointer!==event.pointerId||!(event.pointerType==='touch'||event.pointerType==='pen')||(event.buttons&1)!==1)return;
     const delta=event.clientY-layerStartY;
     if(!layerMoved&&Math.abs(delta)<7)return;
     if(!layerMoved){
