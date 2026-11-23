@@ -67,8 +67,8 @@ h3{font-size:15px;margin:13px 0 6px}
  .panel#planner-sheet{position:fixed;z-index:700;bottom:0;left:0;right:0;margin:0;display:flex;flex-direction:column;gap:0;width:100%;max-height:min(82dvh,760px);background:rgba(18,42,29,.82);border:1px solid rgba(231,245,219,.78);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -12px 30px #07170d77;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow:hidden;padding-bottom:env(safe-area-inset-bottom);transition:transform .20s ease}
  .panel#planner-sheet[data-sheet="closed"]{transform:translateY(105%);pointer-events:none}
  .panel#planner-sheet[data-sheet="compact"]{transform:translateY(0)}
- .panel#planner-sheet[data-sheet="expanded"]{transform:translateY(0)}
- .panel#planner-sheet[data-dragging="true"]{transition:none;transform:translateY(var(--sheet-offset,0px))}
+ .panel#planner-sheet[data-sheet="expanded"]{transform:translateY(0);height:var(--nt-sheet-height,min(82dvh,760px))}
+ .panel#planner-sheet[data-dragging="true"]{transition:none!important}
  .sheet-chrome{display:block;padding:5px 10px 11px;flex:none}
  .sheet-handle{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;width:100%;min-height:34px;height:34px;padding:0;background:transparent;color:#e3f0dc;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
  .sheet-grip{width:49px;height:5px;border-radius:9px;background:#d3e2c9;display:block}
@@ -179,8 +179,10 @@ function pick(yes){
  if(map)map.getContainer().style.cursor=yes?'crosshair':'';
  updateQuick();
 }
-function setSheet(level){
- const sheet=el('planner-sheet');sheet.dataset.sheet=level;
+function setSheet(level,preserveHeight=false){
+ const sheet=el('planner-sheet');
+ if(!preserveHeight)sheet.style.removeProperty('--nt-sheet-height');
+ sheet.dataset.sheet=level;
  const expanded=level==='expanded',handle=el('sheet-handle');
  handle.setAttribute('aria-expanded',String(expanded));
  handle.setAttribute('aria-label',expanded?'Zwiń narzędzia':'Rozwiń narzędzia');
@@ -518,24 +520,41 @@ el('open-my-trips').addEventListener('click',showMyRoutes);
 el('close-trips-dialog').addEventListener('click',()=>el('trips-dialog').close());
 
 (function initSheetHandle(){
- const handle=el('sheet-handle'),sheet=el('planner-sheet');
- let drag=false,start=0,last=0,moved=false,suppressClick=false;
+ const handle=el('sheet-handle'),sheet=el('planner-sheet'),chrome=el('sheet-handle').parentElement;
+ let pointerId=null,beginY=0,beginHeight=0,currentHeight=0,minHeight=0,maxHeight=0,dragged=false,suppressClick=false;
  handle.addEventListener('pointerdown',event=>{
-  if(event.button!==0||sheet.dataset.sheet==='closed')return;
-  drag=true;start=event.clientY;last=start;moved=false;suppressClick=false;
-  sheet.dataset.dragging='true';handle.setPointerCapture(event.pointerId);
+  if(event.button!==0||sheet.dataset.sheet==='closed'||pointerId!==null)return;
+  pointerId=event.pointerId;beginY=event.clientY;
+  beginHeight=sheet.getBoundingClientRect().height;currentHeight=beginHeight;
+  const css=getComputedStyle(sheet),padding=parseFloat(css.paddingBottom)||0;
+  minHeight=chrome.getBoundingClientRect().height+padding+2;
+  maxHeight=parseFloat(css.maxHeight)||Math.min(window.innerHeight*0.82,760);
+  maxHeight=Math.max(minHeight,maxHeight);
+  dragged=false;suppressClick=false;
+  handle.setPointerCapture(event.pointerId);
  });
  handle.addEventListener('pointermove',event=>{
-  if(!drag)return;last=event.clientY;const delta=last-start;
-  if(Math.abs(delta)>8)moved=true;
-  sheet.style.setProperty('--sheet-offset',Math.max(-120,Math.min(delta,160))+'px');
+  if(pointerId!==event.pointerId)return;
+  const delta=event.clientY-beginY;
+  if(!dragged&&Math.abs(delta)<7)return;
+  if(!dragged){
+   dragged=true;
+   sheet.style.setProperty('--nt-sheet-height',beginHeight+'px');
+   setSheet('expanded',true);
+   sheet.dataset.dragging='true';
+  }
+  currentHeight=Math.max(minHeight,Math.min(maxHeight,beginHeight-delta));
+  sheet.style.setProperty('--nt-sheet-height',currentHeight+'px');
  });
  function endDrag(event){
-  if(!drag)return;drag=false;delete sheet.dataset.dragging;sheet.style.removeProperty('--sheet-offset');
-  const delta=last-start;
-  if(moved){suppressClick=true;
-   if(delta>55)setSheet('compact');
-   else if(delta< -55)setSheet('expanded');
+  if(pointerId!==event.pointerId)return;
+  const wasDragged=dragged;
+  pointerId=null;dragged=false;
+  delete sheet.dataset.dragging;
+  if(wasDragged){
+   suppressClick=true;
+   if(currentHeight<=minHeight+12)setSheet('compact');
+   else setSheet('expanded',true);
   }
   if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
  }
