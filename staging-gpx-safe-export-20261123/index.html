@@ -495,7 +495,8 @@ function safeRoutedGpx(modelTrip,display){
  if(t.waypoints.length<2)throw Error('Najpierw dodaj co najmniej dwa punkty.');
  if(!Array.isArray(display)||display.length!==t.waypoints.length-1)throw Error('Nieprawidłowy plan trasy.');
  const name=t.name,fmt=n=>Number(n).toFixed(6);
- const attrs=p=>'lat="'+fmt(p.lat)+'" lon="'+fmt(p.lon)+'"';
+ // GPX 1.1 longitudeType excludes +180; -180 is the same meridian.
+ const attrs=p=>'lat="'+fmt(p.lat)+'" lon="'+fmt(p.lon===180?-180:p.lon)+'"';
  const audit=endpointAudit(display);
  const accepted=display.map((segment,index)=>({segment,index,audit:audit[index]})).filter(x=>x.segment.status==='routed');
  if(!accepted.length)throw Error('Nie ma wyznaczonych odcinków, które można bezpiecznie wyeksportować.');
