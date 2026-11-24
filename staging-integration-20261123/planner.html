@@ -69,7 +69,8 @@ h3{font-size:15px;margin:13px 0 6px}
  .panel#planner-sheet[data-sheet="compact"]{transform:translateY(0)}
  .panel#planner-sheet[data-sheet="expanded"]{transform:translateY(0);height:var(--nt-sheet-height,min(82dvh,760px))}
  .panel#planner-sheet[data-dragging="true"]{transition:none!important}
- .sheet-chrome{display:block;padding:5px 10px 11px;flex:none}
+ .sheet-chrome{display:block;position:relative;padding:5px 10px 11px;flex:none}
+ #sheet-close-all{position:absolute;right:10px;top:5px;width:34px;height:34px;min-width:34px;min-height:34px;margin:0;padding:0;border-radius:9px;background:transparent;color:#e3f0dc;font-size:23px;line-height:1;border:0}
  .sheet-handle{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;width:100%;min-height:34px;height:34px;padding:0;background:transparent;color:#e3f0dc;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
  .sheet-grip{width:49px;height:5px;border-radius:9px;background:#d3e2c9;display:block}
  .sheet-chevron{font-size:17px;line-height:17px}
@@ -193,7 +194,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 </div>
 <div class="panel" id="planner-sheet" data-sheet="closed">
 <div class="sheet-chrome">
-<button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button>
+<button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button><button id="sheet-close-all" type="button" aria-label="Schowaj panel planowania" title="Schowaj panel planowania">×</button>
 <div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
 <div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Zapisz</button></div>
 </div>
@@ -941,10 +942,10 @@ el('close-trips-dialog').addEventListener('click',()=>el('trips-dialog').close()
 
 (function initSheetHandle(){
  const handle=el('sheet-handle'),sheet=el('planner-sheet'),chrome=el('sheet-handle').parentElement;
- let pointerId=null,beginY=0,beginHeight=0,currentHeight=0,minHeight=0,maxHeight=0,dragged=false,suppressClick=false;
+ let pointerId=null,beginY=0,beginHeight=0,currentHeight=0,minHeight=0,maxHeight=0,dragged=false,suppressClick=false,beginLevel='closed',lastDelta=0;
  handle.addEventListener('pointerdown',event=>{
   if(event.button!==0||sheet.dataset.sheet==='closed'||pointerId!==null)return;
-  pointerId=event.pointerId;beginY=event.clientY;
+  pointerId=event.pointerId;beginY=event.clientY;beginLevel=sheet.dataset.sheet;lastDelta=0;
   beginHeight=sheet.getBoundingClientRect().height;currentHeight=beginHeight;
   const css=getComputedStyle(sheet),padding=parseFloat(css.paddingBottom)||0;
   minHeight=chrome.getBoundingClientRect().height+padding+2;
@@ -955,7 +956,7 @@ el('close-trips-dialog').addEventListener('click',()=>el('trips-dialog').close()
  });
  handle.addEventListener('pointermove',event=>{
   if(pointerId!==event.pointerId)return;
-  const delta=event.clientY-beginY;
+  const delta=event.clientY-beginY;lastDelta=delta;
   if(!dragged&&Math.abs(delta)<7)return;
   if(!dragged){
    dragged=true;
@@ -973,13 +974,16 @@ el('close-trips-dialog').addEventListener('click',()=>el('trips-dialog').close()
   delete sheet.dataset.dragging;
   if(wasDragged){
    suppressClick=true;
-   if(currentHeight<=minHeight+12)setSheet('compact');
+   if(event.type==='pointercancel')setSheet(beginLevel);
+   else if((beginLevel==='compact'&&lastDelta>28)||beginHeight-lastDelta<minHeight-38)setSheet('closed');
+   else if(currentHeight<=minHeight+12)setSheet('compact');
    else setSheet('expanded',true);
   }
   if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
  }
  handle.addEventListener('pointerup',endDrag);
  handle.addEventListener('pointercancel',endDrag);
+ el('sheet-close-all').addEventListener('click',()=>setSheet('closed'));
  handle.addEventListener('click',()=>{
   if(suppressClick){suppressClick=false;return;}
   setSheet(sheet.dataset.sheet==='expanded'?'compact':'expanded');
