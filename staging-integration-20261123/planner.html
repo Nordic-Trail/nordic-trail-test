@@ -164,6 +164,10 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 .nt-route-list-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .nt-route-list-actions button{width:100%;min-width:0}
 @media(max-width:800px){#quick-point{line-height:1.15;white-space:normal}#quick-delete-route{min-height:44px}}
+
+#quick-delete-route{border:1px solid #8ca28c;color:#f1f4e9;background:transparent}
+.nt-route-list-actions{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}
+.nt-route-list-actions button{white-space:normal;overflow-wrap:anywhere}
 </style></head>
 <body><svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
 <symbol id="nt-car" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M4.9,18.9 L4.9,22.7 L9.7,23.2 L10.2,26.1 L9.2,28.4 L6.4,28.9 L4.5,30.3 L4.5,37.0 L14,37 L15.4,39.8 L18.2,39.8 L19.2,40.8 L18.7,43.2 L14.9,43.2 L13.5,41.7 L13,39.4 L4.5,39.4 L4,51.7 L4.5,54.5 L5.9,56 L12.1,56 L13.5,54.5 L14,47.4 L50,47.4 L50.5,54.5 L51.9,56 L57.6,56 L59.5,54.5 L59.5,39.4 L51,39.4 L50.5,42.2 L49.1,43.2 L45.8,43.2 L44.8,42.2 L44.8,40.8 L45.8,39.8 L48.6,39.8 L48.6,38.4 L50,37 L59.5,37 L59.5,30.3 L57.6,28.9 L54.8,28.4 L53.8,25.6 L54.3,23.2 L59.1,22.7 L59.1,18.9 L54.3,18.5 L53.4,21.3 L52.4,20.4 L50.5,10.4 L49.1,8.5 L46.7,7.6 L17.3,7.6 L14.9,8.5 L13.5,10.9 L11.6,19.9 L10.6,21.3 L9.7,20.8 L9.7,18.5 Z M47.7,26.5 L50,26.5 L51.5,27.5 L52.9,30.3 L52.4,32.2 L49.1,34.6 L46.2,33.7 L44.8,31.8 L45.3,28.4 Z M39.6,26.5 L41.5,27.5 L41.5,36.5 L40.5,37.5 L38.6,36.5 L38.6,27.5 Z M36.3,26.5 L38.2,27.5 L38.2,36.5 L37.2,37.5 L35.3,36.5 L35.3,28 Z M33.4,26.5 L34.8,27.5 L34.8,36.5 L33.9,37.5 L32.9,37.5 L32,36 L32.5,27.5 Z M30.1,26.5 L31.5,27.5 L31.5,36.5 L30.6,37.5 L28.7,36 L29.2,27.5 Z M27.3,26.5 L28.7,27.5 L28.7,36.5 L27.7,37.5 L25.8,36.5 L26.3,27.5 Z M23.5,26.5 L25.4,27.5 L25.4,36.5 L24.4,37.5 L22.5,36.5 L22.5,27.5 Z M14,26.5 L17.3,27 L19.2,29.4 L18.7,32.7 L16.3,34.6 L13.5,34.1 L11.1,30.8 L12.1,28 Z M13,20.8 L14.9,12.8 L16.3,10.9 L47.7,10.9 L49.1,12.8 L51,21.8 L13.5,22.3 Z"/></symbol>
@@ -209,7 +213,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button><button id="sheet-close-all" type="button" aria-label="Schowaj panel planowania" title="Schowaj panel planowania">×</button>
 <div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
 <div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt<br>pośredni</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Zapisz</button></div>
-<button id="quick-delete-route" type="button" class="nt-danger" disabled><svg class="ui-icon" aria-hidden="true"><use href="#nt-trash"/></svg>Usuń trasę</button>
+<button id="quick-delete-route" type="button" class="secondary" disabled><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></g></svg>Usuń z mapy</button>
 </div>
 <div id="sheet-more">
 <section class="card"><h1>Zaplanuj wyprawę</h1>
@@ -971,10 +975,10 @@ function resetCurrentRoute(){
 }
 function clearCurrentRoute(){
  if(busy||trip.waypoints.length<2||trip.waypoints.at(-1).kind!=='finish'||activeGapDraft)return;
- if(!confirm('Usunąć bieżącą trasę z mapy? Zapisane trasy w Moich trasach pozostaną.'))return;
+ if(!confirm('Usunąć bieżącą trasę z mapy? Niezapisane zmiany przepadną. Zapisane trasy pozostaną w folderze Moje trasy.'))return;
  try{const archive=readArchive();localStorage.setItem(ARCHIVE_KEY,JSON.stringify({...archive,activeId:null}));}
  catch(e){showToast('Nie udało się zakończyć edycji: '+String(e.message||e),true);return;}
- resetCurrentRoute();showToast('Usunięto bieżącą trasę z mapy.');
+ resetCurrentRoute();clearStatus();showToast('Usunięto z mapy. Zapisane trasy pozostają w Moich trasach.');
 }
 el('quick-delete-route').addEventListener('click',clearCurrentRoute);
 function deleteNamedRoute(id){
@@ -982,11 +986,11 @@ function deleteNamedRoute(id){
  try{
   const archive=readArchive(),item=archive.items.find(x=>x.id===id);if(!item)return;
   const current=currentRouteId===id;
-  if(!confirm('Trwale usunąć zapisaną trasę „'+item.name+'” z tej przeglądarki?'+(current?' Bieżąca edycja tej trasy również zostanie zamknięta.':'')))return;
+  if(!confirm('Trwale usunąć zapisaną trasę „'+item.name+'” z folderu Moje trasy? Tej operacji nie można cofnąć.'+(current?' Bieżąca edycja tej trasy również zostanie zamknięta.':'')))return;
   const items=archive.items.filter(x=>x.id!==id);
   localStorage.setItem(ARCHIVE_KEY,JSON.stringify({...archive,activeId:archive.activeId===id?null:archive.activeId,items}));
   if(current)resetCurrentRoute();
-  showMyRoutes();showToast('Usunięto zapis: '+item.name);
+  clearStatus();showMyRoutes();showToast('Usunięto trwale: '+item.name);
  }catch(e){showToast('Nie udało się usunąć trasy: '+String(e.message||e),true);}
 }
 function showMyRoutes(){
@@ -994,11 +998,11 @@ function showMyRoutes(){
  try{
   const archive=readArchive(),ul=el('named-routes-list');
   ul.replaceChildren();
-  if(!archive.items.length){const li=document.createElement('li');li.textContent='Brak nazwanych tras.';ul.appendChild(li);}
+  if(!archive.items.length){const li=document.createElement('li');li.textContent='Nie masz jeszcze zapisanych tras.';ul.appendChild(li);}
   for(const item of archive.items){
    const li=document.createElement('li'),detail=document.createElement('div'),name=button(item.name,()=>loadNamedRoute(item.id)),date=document.createElement('small'),actions=document.createElement('div');
    name.className='nt-route-name';date.textContent=new Date(item.updatedAt||item.createdAt).toLocaleString('pl-PL')+' · szkice: '+(Array.isArray(item.manualGaps)?item.manualGaps.length:0)+(archive.activeId===item.id?' · aktualna':'');
-   const editBtn=button('Edytuj',()=>loadNamedRoute(item.id,true)),deleteBtn=button('Usuń',()=>deleteNamedRoute(item.id));
+   const editBtn=button('Edytuj',()=>loadNamedRoute(item.id,true)),deleteBtn=button('Usuń trwale',()=>deleteNamedRoute(item.id));
    deleteBtn.className='nt-danger';deleteBtn.insertAdjacentHTML('afterbegin','<svg class="ui-icon" aria-hidden="true"><use href="#nt-trash"/></svg>');
    actions.className='nt-route-list-actions';actions.append(editBtn,deleteBtn);detail.append(name,date);li.append(detail,actions);ul.appendChild(li);
   }
