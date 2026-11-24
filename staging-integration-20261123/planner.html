@@ -62,9 +62,9 @@ h3{font-size:15px;margin:13px 0 6px}
  .map-area,.map-area #map{height:100dvh;min-height:0;border:0;border-radius:0}
  .map-fit-actions,.map-section>.hint{display:none}
  #route-modes{bottom:calc(16px + env(safe-area-inset-bottom));transition:bottom .18s ease}
- body:has(#planner-sheet[data-sheet="compact"]) #route-modes{bottom:calc(181px + env(safe-area-inset-bottom))}
- body:has(#planner-sheet[data-sheet="expanded"]) #route-modes{bottom:calc(16px + env(safe-area-inset-bottom))}
- .panel#planner-sheet{position:fixed;z-index:700;bottom:0;left:0;right:0;margin:0;display:flex;flex-direction:column;gap:0;width:100%;max-height:min(82dvh,760px);background:rgba(18,42,29,.82);border:1px solid rgba(231,245,219,.78);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -12px 30px #07170d77;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow:hidden;padding-bottom:env(safe-area-inset-bottom);transition:transform .20s ease}
+ body:has(#planner-sheet[data-sheet="compact"]) #route-modes,body:has(#planner-sheet[data-sheet="expanded"]) #route-modes{bottom:calc(var(--nt-visible-sheet-height, 150px) + 12px)}
+ body:has(#planner-sheet[data-dragging="true"]) #route-modes{transition:none}
+ .panel#planner-sheet{position:fixed;z-index:700;bottom:0;left:0;right:0;margin:0;display:flex;flex-direction:column;gap:0;width:100%;max-height:min(82dvh,760px,calc(100dvh - 76px));background:rgba(18,42,29,.82);border:1px solid rgba(231,245,219,.78);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -12px 30px #07170d77;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow:hidden;padding-bottom:env(safe-area-inset-bottom);transition:transform .20s ease}
  .panel#planner-sheet[data-sheet="closed"]{transform:translateY(105%);pointer-events:none}
  .panel#planner-sheet[data-sheet="compact"]{transform:translateY(0)}
  .panel#planner-sheet[data-sheet="expanded"]{transform:translateY(0);height:var(--nt-sheet-height,min(82dvh,760px))}
@@ -282,10 +282,15 @@ function pick(yes){
  if(map)map.getContainer().style.cursor=yes?'crosshair':'';
  updateQuick();
 }
+function syncModeTiles(){
+ const sheet=el('planner-sheet');
+ document.documentElement.style.setProperty('--nt-visible-sheet-height',sheet.getBoundingClientRect().height+'px');
+}
 function setSheet(level,preserveHeight=false){
  const sheet=el('planner-sheet');
  if(!preserveHeight)sheet.style.removeProperty('--nt-sheet-height');
  sheet.dataset.sheet=level;
+ syncModeTiles();
  const expanded=level==='expanded',handle=el('sheet-handle');
  handle.setAttribute('aria-expanded',String(expanded));
  handle.setAttribute('aria-label',expanded?'Zwiń narzędzia':'Rozwiń narzędzia');
@@ -319,6 +324,7 @@ function updateQuick(){
 }
 function chooseMode(mode){
  if(busy)return;
+ if(activeMode===mode&&el('planner-sheet').dataset.sheet!=='closed'&&window.matchMedia('(max-width:800px)').matches){setSheet('closed');return;}
  activeMode=mode;pendingMode=mode;pendingKind='stop';
  closeEditor();pick(false);setSheet('compact');updateQuick();
  message('notice',trip.waypoints.length?'Wybierz Punkt lub Cel, a następnie miejsce na mapie.':'Wybierz Start, a następnie miejsce na mapie.');
@@ -942,6 +948,9 @@ el('close-trips-dialog').addEventListener('click',()=>el('trips-dialog').close()
 
 (function initSheetHandle(){
  const handle=el('sheet-handle'),sheet=el('planner-sheet'),chrome=el('sheet-handle').parentElement;
+ if(typeof ResizeObserver!=='undefined')new ResizeObserver(syncModeTiles).observe(sheet);
+ window.addEventListener('resize',syncModeTiles);
+ syncModeTiles();
  let pointerId=null,beginY=0,beginHeight=0,currentHeight=0,minHeight=0,maxHeight=0,dragged=false,suppressClick=false,beginLevel='closed',lastDelta=0;
  handle.addEventListener('pointerdown',event=>{
   if(event.button!==0||sheet.dataset.sheet==='closed'||pointerId!==null)return;
@@ -965,7 +974,7 @@ el('close-trips-dialog').addEventListener('click',()=>el('trips-dialog').close()
    sheet.dataset.dragging='true';
   }
   currentHeight=Math.max(minHeight,Math.min(maxHeight,beginHeight-delta));
-  sheet.style.setProperty('--nt-sheet-height',currentHeight+'px');
+  sheet.style.setProperty('--nt-sheet-height',currentHeight+'px');syncModeTiles();
  });
  function endDrag(event){
   if(pointerId!==event.pointerId)return;
