@@ -1,0 +1,55 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NORDIC TRAIL — audyt silnika</title><style>body{font:16px system-ui;background:#1b2d23;color:#f1f4e9;max-width:760px;margin:auto;padding:18px}h1{font-size:24px}article{background:#293f33;border:1px solid #78977a;border-radius:12px;padding:12px;margin:10px 0}button,select{font:inherit;min-height:48px;width:100%;border-radius:10px;margin:6px 0;padding:10px;box-sizing:border-box}button{background:#c6dca4;color:#172b1e;border:0;font-weight:700}button:disabled{opacity:.6}.exclude{color:#ffb9b0}.review{color:#ffe0a0}.candidate{color:#b9e6c3}small{color:#d1e1d0}#status{white-space:pre-line}</style></head><body><h1>Audyt silnika Valhalla</h1><p>Test cyfrowy na publicznych danych OSM. Nie służy do nawigacji. Nie korzysta z położenia telefonu. Wysyłamy wyłącznie współrzędne testowych odcinków do publicznego serwera demonstracyjnego.</p><label for="sample">Przykład</label><select id="sample"><option value="70693356">Ścieżka szutrowa — 70693356</option><option value="496733515">Chodnik — 496733515</option></select><label for="mode">Profil</label><select id="mode"><option value="drive">Samochód</option><option value="walk">Pieszo</option></select><button id="run">Oblicz i sprawdź odcinki</button><p id="status" role="status"></p><main id="results"></main><small>© OpenStreetMap contributors. Valhalla / FOSSGIS. Maksymalnie 6 zapytań do Valhalli w jednej sesji strony. Nie próbuj pokonywać testowych tras pojazdem.</small><script src="../staging-trips/routing-core.js"></script><script src="./road-access-core.js?v=local-access2"></script><script>
+'use strict';
+const $=id=>document.getElementById(id), R=window.NordicRoutingCore,A=window.NTRoadAudit;
+const base='https://valhalla1.openstreetmap.de/',overpass='https://overpass-api.de/api/interpreter';
+let calls=0,last=0;
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function getJSON(url,options={},timeout=45000){
+ const c=new AbortController(),timer=setTimeout(()=>c.abort(),timeout);
+ try{const r=await fetch(url,{...options,credentials:'omit',referrerPolicy:'no-referrer',signal:c.signal});if(!r.ok)throw Error('HTTP '+r.status);return await r.json();}catch(e){if(c.signal.aborted)throw Error('Przekroczono czas odpowiedzi.');throw e;}finally{clearTimeout(timer);}
+}
+async function osm(query){const d=await getJSON(overpass+'?data='+encodeURIComponent(query),{},60000);if(d.remark||!Array.isArray(d.elements))throw Error('Niekompletne dane OSM.');return d.elements;}
+async function val(action,payload){if(calls>=6)throw Error('Osiągnięto limit testów w tej sesji.');await wait(Math.max(0,1700-(Date.now()-last)));calls++;last=Date.now();return getJSON(base+action,{method:'POST',headers:{'Content-Type':'application/json','X-Client-Id':'nordic-trail.github.io'},body:JSON.stringify(payload)});}
+const distance=(a,b)=>{const k=Math.PI/180,x=(b.lon-a.lon)*k*Math.cos((a.lat+b.lat)*k/2),y=(b.lat-a.lat)*k;return 6371000*Math.hypot(x,y);};
+function pointAt(points,part){const lengths=points.slice(1).map((p,i)=>distance(points[i],p)),total=lengths.reduce((a,b)=>a+b,0);if(total<15||total>5000)throw Error('Odcinek testowy poza zakresem długości.');let d=total*part;for(let i=0;i<lengths.length;i++){if(d<=lengths[i]&&lengths[i]>0){const t=d/lengths[i];return R.coord({lat:points[i].lat+(points[i+1].lat-points[i].lat)*t,lon:points[i].lon+(points[i+1].lon-points[i].lon)*t});}d-=lengths[i];}return R.coord(points.at(-1));}
+function add(title,body,cls){const a=document.createElement('article'),h=document.createElement('strong'),p=document.createElement('p');h.textContent=title;p.textContent=body;if(cls)p.className=cls;a.append(h,p);$('results').append(a);}
+function coverage(edges,pts){if(!edges.length||pts.length<2)return false;let end=0;for(const e of edges){if(!Number.isInteger(e.begin_shape_index)||!Number.isInteger(e.end_shape_index)||e.begin_shape_index!==end||e.end_shape_index<=end||e.end_shape_index>=pts.length)return false;end=e.end_shape_index;}return end===pts.length-1;}
+$('run').onclick=async()=>{
+ const button=$('run'),sample=$('sample'),mode=$('mode');button.disabled=sample.disabled=mode.disabled=true;$('results').replaceChildren();let stage='OSM';
+ try{
+  if(calls>4)throw Error('Brak limitu na pełny test w tej sesji.');
+  const id=Number(sample.value),m=mode.value;if(![70693356,496733515].includes(id)||!['drive','walk'].includes(m))throw Error('Nieznany test.');
+  $('status').textContent='Odczyt odcinka testowego OSM…';
+  const seed=(await osm('[out:json][timeout:30];way('+id+');out tags geom;')).find(w=>w.type==='way'&&w.id===id);
+  if(!seed||!Array.isArray(seed.geometry)||seed.geometry.length<2)throw Error('Brak geometrii odcinka testowego.');
+  if(!['path','footway'].includes(seed.tags?.highway))throw Error('Klasyfikacja odcinka testowego zmieniła się.');
+  const from=pointAt(seed.geometry,.2),to=pointAt(seed.geometry,.8);
+  add('Odcinek testowy '+id,'highway='+seed.tags.highway+' · surface='+(seed.tags.surface||'brak danych'));
+  stage='Valhalla / route';$('status').textContent='Obliczanie trasy testowej…';
+  const response=await val('route',R.request(from,to,m)),leg=response.trip?.legs?.[0];
+  const route=R.parseValhallaResponse(response,from,to,m);
+  const startGap=Math.round(distance(from,route.points[0])),endGap=Math.round(distance(to,route.points.at(-1)));
+  add('Wynik obliczenia','Długość: '+route.km.toFixed(3)+' km. Odchylenie początku: '+startGap+' m; końca: '+endGap+' m.',startGap>50||endGap>50?'review':'');
+  if(route.points.length>2000)throw Error('Za dużo punktów do testu demonstracyjnego.');
+  stage='Valhalla / trace_attributes';$('status').textContent='Odczyt identyfikatorów dróg…';
+  const trace=await val('trace_attributes',{shape:route.points,costing:R.profile(m),shape_match:'edge_walk',filters:{action:'include',attributes:['shape','edge.way_id','edge.use','edge.surface','edge.travel_mode','edge.begin_shape_index','edge.end_shape_index']}});
+  if(!Array.isArray(trace.edges)||!trace.edges.length||typeof trace.shape!=='string')throw Error('Niekompletne atrybuty odcinków.');
+  const pts=R.decodePolyline6(trace.shape),covered=coverage(trace.edges,pts),same=trace.shape===leg.shape;
+  const ids=[...new Set(trace.edges.map(e=>e.way_id))];
+  if(ids.length>80||ids.some(id=>!Number.isSafeInteger(id)||id<=0))throw Error('Brak jednoznacznych identyfikatorów OSM lub zbyt dużo dróg.');
+  add('Dopasowanie geometrii','Odcinki Valhalla: '+trace.edges.length+'. Pokrycie indeksami: '+(covered?'pełne':'niepełne')+'. Identyczna zakodowana geometria: '+(same?'tak':'nie')+'.',covered&&same?'':'review');
+  stage='OSM / atrybuty';$('status').textContent='Sprawdzanie klasyfikacji dróg…';
+  const ways=await osm('[out:json][timeout:30];way(id:'+ids.join(',')+');out tags;');
+  const byId=new Map(ways.filter(w=>w.type==='way').map(w=>[w.id,w]));
+  let excluded=0,review=0,missing=0;
+  for(const id of ids){const w=byId.get(id);if(!w?.tags){missing++;add('OSM '+id,'Brak aktualnych danych.','review');continue;}
+   const a=A.assess({match:'exact',osm:w.tags});if(a.status==='exclude')excluded++;if(a.status==='review')review++;
+   add('OSM '+id,'highway='+(w.tags.highway||'brak')+' · surface='+(w.tags.surface||'brak')+' · '+(m==='drive'?a.reason:'Ocena samochodowa dla porównania: '+a.reason),a.status);
+  }
+  const targetUsed=ids.includes(id),complete=covered&&same&&missing===0;
+  const headline=m==='drive'?(excluded?'WYKRYTO ODCINEK WYKLUCZONY':!complete||review||startGap>50||endGap>50?'WYMAGA WERYFIKACJI':'Nie wykryto wykluczeń w badanej klasyfikacji'):'Test pieszy — '+(targetUsed?'silnik wskazał badaną ścieżkę':'silnik wskazał inny przebieg');
+  add(headline,'Badana ścieżka w przebiegu: '+(targetUsed?'tak':'nie')+'. Wykluczenia samochodowe: '+excluded+'; do sprawdzenia: '+review+'; brak danych: '+missing+'. To nie jest potwierdzenie dostępności.',excluded&&m==='drive'?'exclude':'review');
+  $('status').textContent='Zakończono odczyt. Zapytania Valhalla: '+calls+'/6.';
+ }catch(e){console.warn(stage,e);$('status').textContent=stage+': test niepełny. '+e.message+' Nie potwierdzamy poprawności trasy.';}finally{button.disabled=calls>4;sample.disabled=mode.disabled=false;}
+};
+</script></body></html>
