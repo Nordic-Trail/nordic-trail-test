@@ -320,7 +320,7 @@ function updateQuick(){
  }
  el('sheet-mode-title').textContent=activeMode==='walk'?'Trasa piesza':activeMode==='drive'?'Trasa samochodowa':'Planowanie trasy';
  el('sheet-prompt').textContent=picking?(pendingKind==='start'?'Wskaż start na mapie':pendingKind==='finish'?'Wskaż cel na mapie':'Dotykaj mapy, aby dodawać punkty'):'Wybierz działanie, a następnie miejsce na mapie';
- el('quick-start').disabled=busy||!activeMode||trip.waypoints.length>0;
+ el('quick-start').disabled=busy||trip.waypoints.length>0;
  el('quick-point').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
  el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS||trip.waypoints.at(-1).kind==='finish';
  el('quick-undo').disabled=busy||!history.length;
@@ -342,6 +342,7 @@ function updateQuick(){
 function chooseMode(mode){
  if(busy)return;
  if(activeMode===mode&&el('planner-sheet').dataset.sheet!=='closed'&&window.matchMedia('(max-width:800px)').matches){setSheet('closed');return;}
+ if(picking&&pendingKind==='start'){activeMode=mode;pendingMode=mode;setSheet('compact');updateQuick();return;}
  activeMode=mode;pendingMode=mode;pendingKind='stop';
  closeEditor();pick(false);setSheet('compact');updateQuick();
  message('notice',trip.waypoints.length?'Wybierz Punkt pośredni lub Cel, a następnie miejsce na mapie.':'Wybierz Start, a następnie miejsce na mapie.');
@@ -519,7 +520,7 @@ function refresh(){
  el('start-pick').hidden=trip.waypoints.length>0;
  el('toggle-trip-editor').disabled=busy||trip.waypoints.length===0;
  if(!trip.waypoints.length){el('trip-edit-section').hidden=true;el('toggle-trip-editor').setAttribute('aria-expanded','false');el('toggle-trip-editor').textContent='✎ Edycja trasy';}
- for(const id of ['add-drive-stage','add-walk-stage'])el(id).disabled=busy||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
+ for(const id of ['add-drive-stage','add-walk-stage'])el(id).disabled=busy||trip.waypoints.length>=M.MAX_POINTS;
  el('undo-step').disabled=busy||!history.length;
  el('export-gpx').disabled=busy||trip.waypoints.length<2;
  el('drive-km').textContent=stat('drive');el('walk-km').textContent=stat('walk');
@@ -844,17 +845,21 @@ el('cancel-planning').addEventListener('click',()=>{
  message('notice','Przywrócono ostatnią zapisaną trasę.');}
  catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
-el('start-pick').addEventListener('click',()=>{if(busy)return;pendingMode=activeMode||'drive';pendingKind='start';closeEditor();pick(true);message('notice','Wskaż punkt początkowy na mapie.');});
+function beginWaypoint(kind){
+ if(busy||activeGapDraft||trip.waypoints.length>=M.MAX_POINTS)return;
+ if(kind==='start'&&trip.waypoints.length||kind!=='start'&&!trip.waypoints.length)return;
+ if(kind==='finish'&&trip.waypoints.at(-1)?.kind==='finish')return;
+ if(!activeMode){activeMode=trip.waypoints.at(-1)?.mode==='walk'?'walk':'drive';}
+ pendingMode=activeMode;pendingKind=kind;closeEditor();
+ setSheet('compact');pick(true);
+ message('notice',kind==='start'?'Wskaż punkt początkowy na mapie.':kind==='stop'?'Dotykaj mapy, aby dodawać kolejne punkty. Wybierz Cel, aby zakończyć trasę.':'Wskaż cel na mapie.');
+}
+el('start-pick').addEventListener('click',()=>beginWaypoint('start'));
 for(const [id,mode] of [['add-drive-stage','drive'],['add-walk-stage','walk']]){
  el(id).addEventListener('click',()=>chooseMode(mode));
 }
 for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-goal','finish']]){
- el(id).addEventListener('click',()=>{
-  if(busy||!activeMode)return;
-  if(kind==='start'&&trip.waypoints.length||kind!=='start'&&!trip.waypoints.length)return;
-  pendingMode=activeMode;pendingKind=kind;closeEditor();pick(true);
-  message('notice',kind==='stop'?'Dotykaj mapy, aby dodawać kolejne punkty. Wybierz Cel, aby zakończyć trasę.':'Wskaż '+(kind==='start'?'start':'cel')+' na mapie.');
- });
+ el(id).addEventListener('click',()=>beginWaypoint(kind));
 }
 el('quick-undo').addEventListener('click',()=>el('undo-step').click());
 
@@ -1118,7 +1123,7 @@ try{
  if(!M||!R||!I||!G||!window.L)throw Error('Brak wymaganych modułów');
  map=L.map('map',{zoomControl:false}).setView([62.2,15.2],5);
   L.control.zoom({position:'topright'}).addTo(map);
- window.NTPlannerSearchBridge={getWaypoints:()=>trip.waypoints.map(p=>({name:p.name,lat:p.lat,lon:p.lon})),center:coords=>map.setView(coords,Math.max(14,map.getZoom()),{animate:false}),openTools:()=>setSheet('expanded'),openRoutes:showMyRoutes};
+ window.NTPlannerSearchBridge={getWaypoints:()=>trip.waypoints.map(p=>({name:p.name,lat:p.lat,lon:p.lon})),center:coords=>map.setView(coords,Math.max(14,map.getZoom()),{animate:false}),openTools:()=>{if(!activeMode&&trip.waypoints.length){activeMode=trip.waypoints.at(-1).mode==='walk'?'walk':'drive';pendingMode=activeMode;updateQuick();}setSheet('expanded');},openRoutes:showMyRoutes};
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:19,attribution:'© OpenStreetMap contributors'
  }).addTo(map);
@@ -1144,10 +1149,10 @@ try{
   if(added){
    const isGoal=pendingKind==='finish',isStart=n===0;
    if(isGoal){pick(false);setSheet('compact');}
-   else if(isStart){pick(false);}
+   else if(isStart){if(!activeMode)activeMode=pendingMode==='walk'?'walk':'drive';pick(false);setSheet('compact');}
    else{pick(true);}
    fit();updateQuick();
-   message('notice',isGoal?'Cel dodany. Możesz zapisać trasę.':isStart?'Dodano start. Wybierz Punkt pośredni lub Cel.':'Dodano punkt pośredni. Dodaj kolejny albo wybierz Cel.');
+   message('notice',isGoal?'Cel dodany. Możesz zapisać trasę.':isStart?'Dodano start. Wybierz Samochód lub Pieszo, następnie Punkt pośredni lub Cel.':'Dodano punkt pośredni. Dodaj kolejny albo wybierz Cel.');
   }
  });
 }catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
