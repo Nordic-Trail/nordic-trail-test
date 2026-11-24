@@ -1,0 +1,4 @@
+# Road access audit prototype — 2026-11-24
+Isolated synthetic tests only. No calls to the routing service or user data. No changes to the integrated app.
+Run `node road-access.test.js` or open index.html.
+A candidate is NOT legal/physical approval. Exact correspondence, NVDB transport network, live OSM tags, direction, barriers, and STFS restrictions need a separately validated adapter; prototype does not implement those checks against real data. Access hierarchy follows https://wiki.openstreetmap.org/wiki/Key:access . Special access, conditional and directional tags require conservative review or exclusion. No assumption of car access from gravel or missing width. The next gate is real-world digital comparisons, including parallel sidewalk/road matching and actual Valhalla responses.
