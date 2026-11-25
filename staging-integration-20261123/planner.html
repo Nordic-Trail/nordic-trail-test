@@ -30,6 +30,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 #quick-parking-action{width:100%;margin-top:7px;min-height:44px}
 #quick-parking-action[hidden]{display:none!important}
 .number.group{background:#2a5265;border-color:#d7f0fa;width:36px;height:36px;font-size:13px}
+.nt-route-info{display:grid;gap:9px;min-width:190px;color:#20382b;font-size:13px;line-height:1.4}
+.nt-route-info h3{margin:0;font-size:15px}
+.nt-route-info section{border-top:1px solid #d4dfd2;padding-top:7px}
+.nt-route-info section:first-of-type{border-top:0;padding-top:0}
+.nt-route-info p{margin:3px 0}
+.nt-route-info .nt-info-note{color:#526454;font-size:12px}
+.nt-route-info .nt-info-warning{color:#81530d;font-size:12px}
 .group-menu{display:grid;gap:6px;min-width:190px;color:#1c3023}
 .group-menu button{display:block;width:100%;text-align:left;font-size:13px;min-height:38px}
 @media(max-width:800px){main{display:block;padding:8px}#map{height:47dvh;min-height:260px}.panel{margin-top:10px}header{padding:9px;font-size:13px}}
@@ -311,6 +318,7 @@ function button(name,callback,disabled=false){
 }
 function pick(yes){
  if(spiderOpen)drawMarkers();
+ if(yes&&map)map.closePopup();
  picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt początkowy';
  el('cancel-pick').hidden=!yes;
  if(map)map.getContainer().style.cursor=yes?'crosshair':'';
@@ -441,6 +449,48 @@ function showPoint(id){
  if(!p||!map)return;
  map.setView([p.lat,p.lon],Math.max(12,map.getZoom()),{animate:false});
  el('map').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function routeHitIndices(all,project,target,distance,tolerance=14){
+ const hits=[];
+ for(let i=0;i<all.length;i++){
+  const seg=all[i];let best=Infinity;
+  for(let j=1;j<seg.points.length;j++){
+   const a=project(seg.points[j-1]),b=project(seg.points[j]);
+   best=Math.min(best,distance(target,a,b));
+  }
+  if(best<=tolerance)hits.push({index:i,distance:best});
+ }
+ return hits.sort((a,b)=>a.distance-b.distance||a.index-b.index).map(x=>x.index);
+}
+function showRouteInfo(event){
+ if(!map||busy||picking||activeGapDraft)return;
+ const all=segments();
+ const visible=all.map((seg,index)=>({seg,index})).filter(({seg})=>
+  seg.mode==='drive'?el('visible-drive').checked:el('visible-walk').checked);
+ const projected=p=>map.latLngToLayerPoint([p.lat,p.lon]);
+ const hit=routeHitIndices(visible.map(x=>x.seg),projected,map.latLngToLayerPoint(event.latlng),
+  (p,a,b)=>L.LineUtil.pointToSegmentDistance(p,a,b));
+ if(!hit.length)return;
+ const card=document.createElement('div');card.className='nt-route-info';
+ const add=(parent,tag,value,cls)=>{const node=document.createElement(tag);node.textContent=value;if(cls)node.className=cls;parent.appendChild(node);return node;};
+ add(card,'h3',hit.length===1?'Informacja o odcinku':'Odcinki w tym miejscu ('+hit.length+')');
+ const audit=endpointAudit(all);
+ for(const h of hit){
+  const {seg,index}=visible[h],from=trip.waypoints[index],to=trip.waypoints[index+1],row=document.createElement('section');
+  card.appendChild(row);
+  add(row,'strong',(seg.mode==='drive'?'Samochód':'Pieszo')+' · '+(index+1)+' → '+(index+2));
+  add(row,'p',(from?.name||'Punkt '+(index+1))+' → '+(to?.name||'Punkt '+(index+2)));
+  const length=seg.km<1?Math.round(seg.km*1000)+' m':km(seg.km);
+  add(row,'p',(seg.status==='routed'?'Długość trasy: ':'Odległość w linii prostej: ')+length);
+  add(row,'p',seg.status==='routed'?'Przebieg obliczony · OSM':'Szkic · przebieg nieobliczony','nt-info-note');
+  if(audit[index]?.warning)add(row,'p','Uwaga: wyznaczony odcinek nie dochodzi dokładnie do wskazanego punktu.','nt-info-warning');
+ }
+ add(card,'p','Dostępność i prawo przejazdu lub przejścia niepotwierdzone.','nt-info-note');
+ if(spiderOpen)drawMarkers();
+ // Hide the planning sheet while reading, without altering the route or selected mode.
+ if(window.matchMedia('(max-width:800px)').matches)setSheet('closed');
+ L.popup({autoPan:true,autoPanPaddingTopLeft:[20,95],autoPanPaddingBottomRight:[60,90],maxWidth:265,maxHeight:270})
+  .setLatLng(event.latlng).setContent(card).openOn(map);
 }
 function redraw(){
  if(!map)return;
@@ -1327,7 +1377,8 @@ try{
    }else activeGapDraft.via.push(newPos);
    redraw();updateGapSketchHint();return;
   }
-   if(!picking||busy)return;
+   if(busy)return;
+   if(!picking){showRouteInfo(event);return;}
    addPickedWaypoint(event.latlng.lat,event.latlng.lng);
  });
 }catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
