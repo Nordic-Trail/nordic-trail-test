@@ -250,7 +250,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <p class="hint">Pokazane odległości są mierzone w linii prostej — nie oznaczają długości istniejącej ścieżki. Ostrzegamy, jeśli przerwa przekracza 50 m. Nawet gdy trasa kończy się blisko punktu, sprawdź dojście w terenie.</p>
 <details id="route-audit-advanced"><summary>Dodatkowe sprawdzenie trasy (test)</summary><div class="buttons"><button type="button" id="test-radius" class="secondary">Sprawdź, czy jest bliższa ścieżka</button></div><p class="hint">To próba ponownego wyszukania trasy przy mniejszym obszarze dopasowania punktów (50 m). Test wymaga zaznaczenia zgody na wysłanie współrzędnych powyżej. Nie zmienia zapisanej trasy.</p><p id="radius-test-status" role="status" aria-live="polite" hidden></p></details>
 </section>
-<section class="card"><h2>Zapis i eksport</h2><p id="gpx-export-audit" role="status" class="hint">Eksport nie łączy automatycznie przerw między odcinkami.</p>
+<section class="card" id="road-check-card" hidden aria-label="Kontrola klasyfikacji dróg"><h2>Kontrola dróg – test OSM</h2><p class="hint">Kontrola informacyjna etapów samochodowych. Nie zmienia przebiegu ani nie potwierdza prawa przejazdu. NVDB, szlabany i STFS nie są jeszcze sprawdzane. Tylko publiczne punkty testowe, nie prywatne adresy.</p><button type="button" id="road-check-run" class="secondary">Sprawdź klasyfikację dróg</button><p id="road-check-status" role="status" aria-live="polite"></p><ol id="road-check-list"></ol></section><section class="card"><h2>Zapis i eksport</h2><p id="gpx-export-audit" role="status" class="hint">Eksport nie łączy automatycznie przerw między odcinkami.</p>
 <div class="export-actions"><button id="open-my-trips" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-folder"/></svg>Moje trasy</button><div class="export-stack"><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><p class="small-note">GPX zawiera tylko wyznaczone odcinki, każdy osobno, oraz punkty wyprawy. Brakujące fragmenty i ręczne szkice nie są śladami.</p></div></div>
  <div class="buttons"><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
 <p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></section>
@@ -260,7 +260,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <script src="../staging-trips/route-model.js"></script>
 <script src="../staging-trips/routing-core.js"></script>
 <script src="../staging-trips-integrated/integration-model.js"></script>
-<script src="../staging-trips-integrated/marker-groups.js"></script>
+<script src="../staging-trips-integrated/marker-groups.js"></script><script src="../staging-road-access-audit-20261124/road-access-core.js?v=local-access2"></script><script src="./planner-road-audit.js?v=1"></script>
 <script>
 'use strict';
 (()=>{
@@ -282,6 +282,7 @@ const TEST_STORAGE={
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null,gapLines=null,manualGapLines=null;
 let currentRouteId=null,editingRouteId=null;
+ let roadCheckKey=null,roadCheckReport=null;
  let routeConsentAsked=false,autoAttemptKey=null;
  let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',pendingKind='stop',activeMode=null,showResults=false;
 const history=[];
@@ -365,7 +366,7 @@ function setBusy(value){
  for(const id of ['start-pick','cancel-pick','save-point','open-my-trips','export-gpx','new-trip','compute-routes','test-radius','clear-routes','add-drive-stage','add-walk-stage','undo-step','cancel-planning']){
   el(id).disabled=value;
  }
- if(!value){el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;el('undo-step').disabled=!history.length;}updateQuick();
+ if(!value){el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;el('undo-step').disabled=!history.length;}updateQuick();el('road-check-run').disabled=value||!segments().some(x=>x.mode==='drive'&&x.status==='routed')||!window.NTPlannerRoadAudit||!window.NTRoadAudit;
 }
 function closeEditor(){selected=null;el('editor').hidden=true;}
 function dataSegments(){return I.pack(trip,routes).routes;}
@@ -528,6 +529,7 @@ function refresh(){
     km(list.filter(s=>s.status==='draft').reduce((n,s)=>n+s.km,0))+' szkic';
  }
  renderEndpointAudit(all);
+  renderRoadCheck(all);
  el('count').textContent=String(trip.waypoints.length);
  el('route-results').hidden=!showResults;
  el('start-pick').hidden=trip.waypoints.length>0;
@@ -789,6 +791,60 @@ async function testStrictRadius(){
 }
 el('test-radius').addEventListener('click',testStrictRadius);
 
+function roadFingerprint(all){return JSON.stringify(all.map(s=>[s.key,s.mode,s.status,s.points]));}
+function renderRoadCheck(all=segments()){
+ const car=all.filter(s=>s.mode==='drive'),routed=car.filter(s=>s.status==='routed');
+ el('road-check-card').hidden=!car.length;
+ const key=roadFingerprint(all);
+ if(roadCheckKey!==key){roadCheckKey=key;roadCheckReport=null;}
+ el('road-check-run').disabled=busy||!routed.length||!window.NTPlannerRoadAudit||!window.NTRoadAudit;
+ const list=el('road-check-list');list.replaceChildren();
+ if(!roadCheckReport){el('road-check-status').textContent=routed.length?'Nie sprawdzono klasyfikacji. Wyznaczenie trasy nie potwierdza dostępności.':'Brak obliczonych odcinków samochodowych.';return;}
+ el('road-check-status').textContent=roadCheckReport.summary;
+ for(const row of roadCheckReport.rows){const li=document.createElement('li');li.textContent=row;list.appendChild(li);}
+}
+async function roadJSON(url,options={},timeout=25000){
+ const c=new AbortController(),timer=setTimeout(()=>c.abort(),timeout);
+ try{const res=await fetch(url,{...options,signal:c.signal,credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status);const raw=await res.text();if(raw.length>2000000)throw Error('Za duża odpowiedź');return JSON.parse(raw);}finally{clearTimeout(timer);}
+}
+el('road-check-run').addEventListener('click',async()=>{
+ if(busy)return;
+ const all=segments(),car=all.filter(s=>s.mode==='drive'),routed=car.filter(s=>s.status==='routed');
+ if(!routed.length)return;
+ if(routed.length>MAX_CALLS-calls||routed.length>MAX_SEGMENTS||routed.some(s=>s.points.length>2000)){roadCheckReport={summary:'Kontrola niepełna — limit demonstracyjny lub zbyt długa geometria. Nie potwierdzamy dostępności.',rows:[]};renderRoadCheck(all);return;}
+ if(!el('route-consent').checked){roadCheckReport={summary:'Kontrola nie została uruchomiona — brak zgody na obliczenia online.',rows:[]};renderRoadCheck(all);return;}
+ if(!confirm('Sprawdzić klasyfikację wyznaczonych etapów samochodowych? Geometria trasy zostanie wysłana do publicznego serwera Valhalla/FOSSGIS, identyfikatory dróg do API OSM. Nie wysyłamy nazw ani konta. Używaj wyłącznie publicznych punktów testowych. Wynik pozostaje w pamięci strony.'))return;
+ const key=roadFingerprint(all);roadCheckReport=null;setBusy(true);el('road-check-run').disabled=true;
+ const rows=[];let completed=0,excluded=0,review=0,missing=0,failed=0;
+ try{
+  for(const seg of routed){
+   const index=all.indexOf(seg)+1;
+   if(!el('route-consent').checked){failed++;rows.push('Kontrola przerwana — wycofano zgodę.');break;}
+   el('road-check-status').textContent='Kontrola odcinka '+index+'…';
+   const wait=Math.max(0,MIN_INTERVAL-(Date.now()-lastRequestTime));if(wait)await delay(wait);
+   if(!el('route-consent').checked){failed++;break;}
+   calls++;lastRequestTime=Date.now();
+   try{
+    const trace=await roadJSON('https://valhalla1.openstreetmap.de/trace_attributes',{method:'POST',mode:'cors',headers:{'Content-Type':'application/json','X-Client-Id':'nordic-trail.github.io'},body:JSON.stringify({shape:seg.points,costing:R.profile('drive'),shape_match:'edge_walk',filters:{action:'include',attributes:['shape','edge.way_id','edge.begin_shape_index','edge.end_shape_index']}})});
+    const ids=window.NTPlannerRoadAudit.traceIds(trace,seg.points,R);
+    if(!el('route-consent').checked)throw Error('Wycofano zgodę.');
+    const data=await roadJSON('https://api.openstreetmap.org/api/0.6/ways.json?ways='+ids.join(','));
+    if(!el('route-consent').checked)throw Error('Wycofano zgodę.');
+    const results=window.NTPlannerRoadAudit.evaluate(ids,data,window.NTRoadAudit);
+    completed++;
+    for(const r of results){if(r.status==='exclude')excluded++;if(r.status==='review')review++;if(r.status==='missing')missing++;if(r.status!=='candidate')rows.push('Etap '+index+' · OSM '+r.id+': '+(r.status==='exclude'?'Wykluczenie wg klasyfikacji':r.status==='review'?'Wymaga weryfikacji':'Brak danych')+'. '+r.reason);}
+    if(!results.some(r=>r.status!=='candidate'))rows.push('Etap '+index+': nie wykryto wykluczeń w odczytanych klasach OSM ('+ids.length+' dróg). Dostępność niezweryfikowana.');
+   }catch(e){failed++;rows.push('Etap '+index+': kontrola niepełna — '+String(e.message||e)+'.');if(String(e.message||e).includes('429'))break;}
+  }
+ }finally{
+  if(key===roadFingerprint(segments())){
+   roadCheckKey=key;
+   const incomplete=failed||missing||completed!==car.length;
+   roadCheckReport={summary:(excluded?'Wykryto odcinki wykluczone w klasyfikacji OSM. ':review?'Wymaga weryfikacji. ':'')+(incomplete?'Kontrola niepełna. ':'')+'Sprawdzono '+completed+'/'+car.length+' etapów samochodowych; wykluczenia: '+excluded+', do weryfikacji: '+review+', brak danych: '+missing+'. Nie potwierdzamy prawa przejazdu ani dostępności.',rows};
+  }
+  setBusy(false);renderRoadCheck();
+ }
+});
 function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
 function isCompleteRoute(){return trip.waypoints.length>=2&&trip.waypoints.at(-1).kind==='finish';}
 function routeGeometryKey(){return JSON.stringify(trip.waypoints.map(p=>[p.id,p.lat,p.lon,p.mode,p.kind==='finish']));}
