@@ -282,6 +282,7 @@ const TEST_STORAGE={
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null,gapLines=null,manualGapLines=null;
 let currentRouteId=null,editingRouteId=null;
+let spiderOpen=false;
  let roadCheckKey=null,roadCheckReport=null;
  let routeConsentAsked=false,autoAttemptKey=null;
  let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',pendingKind='stop',activeMode=null,showResults=false;
@@ -304,6 +305,7 @@ function button(name,callback,disabled=false){
  b.className='secondary';b.disabled=disabled;b.addEventListener('click',callback);return b;
 }
 function pick(yes){
+ if(spiderOpen)drawMarkers();
  picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt początkowy';
  el('cancel-pick').hidden=!yes;
  if(map)map.getContainer().style.cursor=yes?'crosshair':'';
@@ -335,7 +337,7 @@ function updateQuick(){
  el('sheet-prompt').textContent=picking?(pendingKind==='start'?'Wskaż start na mapie':pendingKind==='finish'?'Wskaż cel na mapie':'Dotykaj mapy, aby dodawać punkty'):'Wybierz działanie, a następnie miejsce na mapie';
  el('quick-start').disabled=busy||trip.waypoints.length>0;
  el('quick-point').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
- el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS||trip.waypoints.at(-1).kind==='finish';
+ el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
  el('quick-undo').disabled=busy||!history.length;
  const complete=trip.waypoints.length>=2&&trip.waypoints.at(-1).kind==='finish';
  el('quick-done').disabled=busy||!complete;
@@ -467,7 +469,7 @@ function redraw(){
 }
 function drawMarkers(){
  if(!map||!pins)return;
- pins.clearLayers();
+ spiderOpen=false; pins.clearLayers();
  if(!el('nt-plan-layer-points').checked)return;
  const groups=G.group(trip.waypoints,p=>map.latLngToContainerPoint([p.lat,p.lon]),46);
  groups.forEach(g=>{
@@ -493,6 +495,8 @@ function drawMarkers(){
    iconSize:[36,36],iconAnchor:[18,18]});
   const marker=L.marker([g.lat,g.lon],{icon}).addTo(pins);
   marker.on('click',()=>{
+   if(spiderOpen){drawMarkers();return;}
+   if(g.indices.length<=8){expandMarkerGroup(g,marker);return;}
    const menu=document.createElement('div');
    menu.className='group-menu';
    const title=document.createElement('strong');
@@ -518,6 +522,26 @@ function drawMarkers(){
    }
    marker.bindPopup(menu,{autoPan:true,maxWidth:290}).openPopup();
   });
+ });
+}
+function expandMarkerGroup(g,marker){
+ map.closePopup();spiderOpen=true;
+ // Display-only offsets: never write these positions to trip, routing cache or storage.
+ const n=g.indices.length,radius=n===2?43:n<=5?53:72;
+ const origin=map.latLngToContainerPoint([g.lat,g.lon]),size=map.getSize();
+ const margin=radius+22,clamp=(v,lo,hi)=>hi<lo?(lo+hi)/2:Math.max(lo,Math.min(hi,v));
+ const mapRect=map.getContainer().getBoundingClientRect();
+ const mobile=window.matchMedia('(max-width:800px)').matches;
+ const bottom=mobile?Math.min(size.y,el('route-modes').getBoundingClientRect().top-mapRect.top):size.y;
+ const center=L.point(clamp(origin.x,margin,size.x-margin),clamp(origin.y,margin+45,bottom-margin));
+ marker.setZIndexOffset(1000);
+ g.indices.forEach((i,j)=>{
+  const p=trip.waypoints[i],angle=2*Math.PI*j/n+(n===2?0:-Math.PI/2);
+  const display=map.containerPointToLatLng(L.point(center.x+radius*Math.cos(angle),center.y+radius*Math.sin(angle)));
+  L.polyline([[p.lat,p.lon],display],{color:'#536d60',weight:2,dashArray:'3 4',opacity:.9,interactive:false}).addTo(pins);
+  const icon=L.divIcon({className:'',html:'<div class="number'+(i===0?' start':'')+'">'+(i+1)+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
+  const item=L.marker(display,{icon,draggable:false,bubblingMouseEvents:false,zIndexOffset:1100,title:(i+1)+'. '+p.name,alt:'Punkt '+(i+1)}).addTo(pins);
+  item.on('click',()=>{drawMarkers();edit(p.id);});
  });
 }
 function refresh(){
@@ -946,7 +970,6 @@ el('cancel-planning').addEventListener('click',()=>{
 function beginWaypoint(kind){
  if(busy||activeGapDraft||trip.waypoints.length>=M.MAX_POINTS)return;
  if(kind==='start'&&trip.waypoints.length||kind!=='start'&&!trip.waypoints.length)return;
- if(kind==='finish'&&trip.waypoints.at(-1)?.kind==='finish')return;
  if(!activeMode){activeMode=trip.waypoints.at(-1)?.mode==='walk'?'walk':'drive';}
  pendingMode=activeMode;pendingKind=kind;closeEditor();
  setSheet('compact');pick(true);
@@ -1231,6 +1254,7 @@ try{
  lines=L.layerGroup().addTo(map);gapLines=L.layerGroup().addTo(map);manualGapLines=L.layerGroup().addTo(map);pins=L.layerGroup().addTo(map);
  map.on('zoomend moveend',drawMarkers);
  map.on('click',event=>{
+  if(spiderOpen){drawMarkers();return;}
   if(activeGapDraft){
    if(activeGapDraft.via.length>=20){showToast('Maksymalnie 20 załamań szkicu.',true);return;}
    const newPos=R.coord({lat:Number(event.latlng.lat.toFixed(6)),lon:Number(event.latlng.lng.toFixed(6))});
