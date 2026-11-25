@@ -25,6 +25,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .point-meta{font-size:12px;color:#c4d3c2}.point-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.point-actions button{min-height:40px;font-size:12px}
 .warning{padding:10px;border-left:4px solid #ecc383;background:#304433;border-radius:7px;font-size:13px}
 .number{background:#163d2b;color:white;border:2px solid white;width:30px;height:30px;border-radius:100%;display:grid;place-items:center;font-weight:700;box-shadow:0 2px 5px #0008}.number.start{background:#714f19;border-color:#ffe3a3}
+.number.parking{background:#275d81;border-color:#e3f4ff;position:relative}
+.number.parking::after{content:'P';position:absolute;top:-9px;right:-9px;background:#275d81;border:1px solid white;color:white;border-radius:4px;font-size:10px;line-height:15px;width:15px;text-align:center}
+#quick-parking-action{width:100%;margin-top:7px;min-height:44px}
+#quick-parking-action[hidden]{display:none!important}
 .number.group{background:#2a5265;border-color:#d7f0fa;width:36px;height:36px;font-size:13px}
 .group-menu{display:grid;gap:6px;min-width:190px;color:#1c3023}
 .group-menu button{display:block;width:100%;text-align:left;font-size:13px;min-height:38px}
@@ -218,6 +222,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button><button id="sheet-close-all" type="button" aria-label="Schowaj panel planowania" title="Schowaj panel planowania">×</button>
 <div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
 <div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt<br>pośredni</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Zapisz</button></div>
+<button id="quick-parking-action" type="button" class="secondary" hidden></button>
 <button id="quick-delete-route" type="button" class="secondary" disabled><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></g></svg>Usuń z mapy</button>
 <p id="auto-route-status" role="status" aria-live="polite" hidden></p>
 </div>
@@ -339,7 +344,8 @@ function updateQuick(){
  el('quick-point').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
  el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
  el('quick-undo').disabled=busy||!history.length;
- const complete=trip.waypoints.length>=2&&trip.waypoints.at(-1).kind==='finish';
+ const complete=isCompleteRoute();
+ updateParkingAction();
  el('quick-done').disabled=busy||!complete;
  el('quick-delete-route').disabled=busy||!complete||!!activeGapDraft;
  el('delete-point').disabled=busy||!selected;
@@ -475,11 +481,11 @@ function drawMarkers(){
  groups.forEach(g=>{
   if(g.indices.length===1){
    const i=g.indices[0],p=trip.waypoints[i];
-   const icon=L.divIcon({className:'',html:'<div class="number'+(i===0?' start':'')+'">'+(i+1)+'</div>',
+   const icon=L.divIcon({className:'',html:'<div class="number'+(p.kind==='parking'?' parking':i===0?' start':'')+'">'+(i+1)+'</div>',
     iconSize:[30,30],iconAnchor:[15,15]});
    const canDrag=!el('trip-edit-section').hidden&&!busy&&!picking;
     const marker=L.marker([p.lat,p.lon],{icon,draggable:canDrag,autoPan:false}).addTo(pins);
-    marker.on('click',()=>edit(p.id));
+    marker.on('click',()=>activateWaypoint(p.id));
     if(canDrag)marker.on('dragend',()=>{
       const pos=marker.getLatLng(),lat=Number(pos.lat.toFixed(6)),lon=Number(pos.lng.toFixed(6));
       if(Math.abs(lat-p.lat)<0.000001&&Math.abs(lon-p.lon)<0.000001)return;
@@ -506,7 +512,7 @@ function drawMarkers(){
     const p=trip.waypoints[i];
     const item=document.createElement('button');
     item.type='button';item.textContent=(i+1)+'. '+p.name;
-    item.addEventListener('click',()=>{map.closePopup();edit(p.id);});
+    item.addEventListener('click',()=>{map.closePopup();activateWaypoint(p.id);});
     menu.appendChild(item);
    });
    if(map.getZoom()<17){
@@ -539,9 +545,9 @@ function expandMarkerGroup(g,marker){
   const p=trip.waypoints[i],angle=2*Math.PI*j/n+(n===2?0:-Math.PI/2);
   const display=map.containerPointToLatLng(L.point(center.x+radius*Math.cos(angle),center.y+radius*Math.sin(angle)));
   L.polyline([[p.lat,p.lon],display],{color:'#536d60',weight:2,dashArray:'3 4',opacity:.9,interactive:false}).addTo(pins);
-  const icon=L.divIcon({className:'',html:'<div class="number'+(i===0?' start':'')+'">'+(i+1)+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
+  const icon=L.divIcon({className:'',html:'<div class="number'+(p.kind==='parking'?' parking':i===0?' start':'')+'">'+(i+1)+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
   const item=L.marker(display,{icon,draggable:false,bubblingMouseEvents:false,zIndexOffset:1100,title:(i+1)+'. '+p.name,alt:'Punkt '+(i+1)}).addTo(pins);
-  item.on('click',()=>{drawMarkers();edit(p.id);});
+  item.on('click',()=>{drawMarkers();activateWaypoint(p.id);});
  });
 }
 function refresh(){
@@ -870,8 +876,8 @@ el('road-check-run').addEventListener('click',async()=>{
  }
 });
 function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
-function isCompleteRoute(){return trip.waypoints.length>=2&&trip.waypoints.at(-1).kind==='finish';}
-function routeGeometryKey(){return JSON.stringify(trip.waypoints.map(p=>[p.id,p.lat,p.lon,p.mode,p.kind==='finish']));}
+function isCompleteRoute(){return trip.waypoints.length>=2&&['finish','parking'].includes(trip.waypoints.at(-1).kind);}
+function routeGeometryKey(){return JSON.stringify(trip.waypoints.map(p=>[p.id,p.lat,p.lon,p.mode,['finish','parking'].includes(p.kind)]));}
 function routeStatus(text,error=false){
  message('routing-status',text,error);message('auto-route-status',text,error);
 }
@@ -967,6 +973,61 @@ el('cancel-planning').addEventListener('click',()=>{
  message('notice','Przywrócono ostatnią zapisaną trasę.');}
  catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
+function parkingAction(){
+ const last=trip.waypoints.at(-1);
+ if(!last||!activeMode||busy||activeGapDraft)return null;
+ if(last.mode==='drive'&&last.kind==='finish')return {kind:'mark',point:last,index:trip.waypoints.length};
+ if(activeMode!=='walk'||trip.waypoints.length>=M.MAX_POINTS)return null;
+ let i=trip.waypoints.length-1;
+ while(i>=0&&!(trip.waypoints[i].kind==='parking'&&trip.waypoints[i].mode==='drive'))i--;
+ if(i<0)return null;
+ const p=trip.waypoints[i];
+ if(last.lat===p.lat&&last.lon===p.lon)return null;
+ // An intervening drive segment may have moved the car.
+ if(trip.waypoints.slice(i+1).some(x=>x.mode==='drive'))return null;
+ return {kind:'return',point:p,index:i+1};
+}
+function updateParkingAction(){
+ const b=el('quick-parking-action'),action=parkingAction();
+ b.hidden=!action;b.disabled=!action;
+ if(action)b.textContent=action.kind==='mark'?'P · Oznacz punkt '+action.index+' jako parking':'Wróć na parking · punkt '+action.index;
+}
+el('quick-parking-action').addEventListener('click',()=>{
+ const action=parkingAction();if(!action)return;
+ const p=action.point;
+ if(action.kind==='mark'){
+  if(modify(()=>M.change(trip,p.id,{kind:'parking',name:p.name==='Punkt '+action.index?'Parking':p.name}))){
+   closeEditor();pick(false);setSheet('compact');refresh();showToast('Oznaczono planowany parking. Dostępność niezweryfikowana.');
+  }
+ }else{
+  beginWaypoint('finish');
+  if(picking&&pendingKind==='finish')addPickedWaypoint(p.lat,p.lon,'Powrót na parking');
+ }
+});
+function activateWaypoint(id){
+ if(busy||activeGapDraft)return;
+ const p=trip.waypoints.find(x=>x.id===id);if(!p)return;
+ if(picking&&(pendingKind==='stop'||pendingKind==='finish')){
+  addPickedWaypoint(p.lat,p.lon);return;
+ }
+ edit(id);
+}
+function addPickedWaypoint(lat,lon,name){
+ if(!picking||busy||activeGapDraft||trip.waypoints.length>=M.MAX_POINTS)return false;
+ const n=trip.waypoints.length,last=trip.waypoints.at(-1);
+ lat=Number(lat.toFixed(6));lon=Number(lon.toFixed(6));
+ if(last&&last.lat===lat&&last.lon===lon){showToast('To aktualny koniec trasy. Wybierz inny punkt.',true);return false;}
+ const isGoal=pendingKind==='finish',isStart=n===0;
+ const added=modify(()=>M.add(trip,{lat,lon,name:isStart?'Start':name||'Punkt '+(n+1),
+  kind:isStart?'start':isGoal?'finish':'stop',mode:isStart?'none':pendingMode}));
+ if(!added)return false;
+ if(isGoal){pick(false);setSheet('compact');autoCalculate();}
+ else if(isStart){if(!activeMode)activeMode=pendingMode==='walk'?'walk':'drive';pick(false);setSheet('compact');}
+ else{pick(true);}
+ fit();updateQuick();
+ message('notice',isGoal?'Cel dodany. Sprawdź wynik obliczenia przebiegu trasy.':isStart?'Dodano start. Wybierz Samochód lub Pieszo, następnie Punkt pośredni lub Cel.':'Dodano punkt pośredni. Dodaj kolejny albo wybierz Cel.');
+ return true;
+}
 function beginWaypoint(kind){
  if(busy||activeGapDraft||trip.waypoints.length>=M.MAX_POINTS)return;
  if(kind==='start'&&trip.waypoints.length||kind!=='start'&&!trip.waypoints.length)return;
@@ -1094,7 +1155,7 @@ function resetCurrentRoute(){
  setSheet('closed');refresh();
 }
 function clearCurrentRoute(){
- if(busy||trip.waypoints.length<2||trip.waypoints.at(-1).kind!=='finish'||activeGapDraft)return;
+ if(busy||!isCompleteRoute()||activeGapDraft)return;
  if(!confirm('Usunąć bieżącą trasę z mapy? Niezapisane zmiany przepadną. Zapisane trasy pozostaną w folderze Moje trasy.'))return;
  try{const archive=readArchive();localStorage.setItem(ARCHIVE_KEY,JSON.stringify({...archive,activeId:null}));}
  catch(e){showToast('Nie udało się zakończyć edycji: '+String(e.message||e),true);return;}
@@ -1266,19 +1327,8 @@ try{
    }else activeGapDraft.via.push(newPos);
    redraw();updateGapSketchHint();return;
   }
-  if(!picking||busy)return;
-  const n=trip.waypoints.length;
-  const added=modify(()=>M.add(trip,{lat:Number(event.latlng.lat.toFixed(6)),
-   lon:Number(event.latlng.lng.toFixed(6)),name:n===0?'Start':'Punkt '+(n+1),
-   kind:n===0?'start':pendingKind==='finish'?'finish':'stop',mode:n===0?'none':pendingMode}));
-  if(added){
-   const isGoal=pendingKind==='finish',isStart=n===0;
-   if(isGoal){pick(false);setSheet('compact');autoCalculate();}
-   else if(isStart){if(!activeMode)activeMode=pendingMode==='walk'?'walk':'drive';pick(false);setSheet('compact');}
-   else{pick(true);}
-   fit();updateQuick();
-   message('notice',isGoal?'Cel dodany. Sprawdź wynik obliczenia przebiegu trasy.':isStart?'Dodano start. Wybierz Samochód lub Pieszo, następnie Punkt pośredni lub Cel.':'Dodano punkt pośredni. Dodaj kolejny albo wybierz Cel.');
-  }
+   if(!picking||busy)return;
+   addPickedWaypoint(event.latlng.lat,event.latlng.lng);
  });
 }catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
 refresh();fit();updateQuick();
