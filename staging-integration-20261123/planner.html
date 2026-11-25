@@ -250,7 +250,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <p class="hint">Pokazane odległości są mierzone w linii prostej — nie oznaczają długości istniejącej ścieżki. Ostrzegamy, jeśli przerwa przekracza 50 m. Nawet gdy trasa kończy się blisko punktu, sprawdź dojście w terenie.</p>
 <details id="route-audit-advanced"><summary>Dodatkowe sprawdzenie trasy (test)</summary><div class="buttons"><button type="button" id="test-radius" class="secondary">Sprawdź, czy jest bliższa ścieżka</button></div><p class="hint">To próba ponownego wyszukania trasy przy mniejszym obszarze dopasowania punktów (50 m). Test wymaga zaznaczenia zgody na wysłanie współrzędnych powyżej. Nie zmienia zapisanej trasy.</p><p id="radius-test-status" role="status" aria-live="polite" hidden></p></details>
 </section>
-<section class="card" id="road-check-card" hidden aria-label="Kontrola klasyfikacji dróg"><h2>Kontrola dróg – test OSM</h2><p class="hint">Kontrola informacyjna etapów samochodowych. Nie zmienia przebiegu ani nie potwierdza prawa przejazdu. NVDB, szlabany i STFS nie są jeszcze sprawdzane. Tylko publiczne punkty testowe, nie prywatne adresy.</p><button type="button" id="road-check-run" class="secondary">Sprawdź klasyfikację dróg</button><p id="road-check-status" role="status" aria-live="polite"></p><ol id="road-check-list"></ol></section><section class="card"><h2>Zapis i eksport</h2><p id="gpx-export-audit" role="status" class="hint">Eksport nie łączy automatycznie przerw między odcinkami.</p>
+<section class="card" id="road-check-card" hidden aria-label="Kontrola klasyfikacji dróg"><h2>Kontrola dróg – test OSM</h2><p class="hint">Wersja 2 · kontrola geometrii Polyline6</p><p class="hint">Kontrola informacyjna etapów samochodowych. Nie zmienia przebiegu ani nie potwierdza prawa przejazdu. NVDB, szlabany i STFS nie są jeszcze sprawdzane. Tylko publiczne punkty testowe, nie prywatne adresy.</p><button type="button" id="road-check-run" class="secondary">Sprawdź klasyfikację dróg</button><p id="road-check-status" role="status" aria-live="polite"></p><ol id="road-check-list"></ol></section><section class="card"><h2>Zapis i eksport</h2><p id="gpx-export-audit" role="status" class="hint">Eksport nie łączy automatycznie przerw między odcinkami.</p>
 <div class="export-actions"><button id="open-my-trips" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-folder"/></svg>Moje trasy</button><div class="export-stack"><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><p class="small-note">GPX zawiera tylko wyznaczone odcinki, każdy osobno, oraz punkty wyprawy. Brakujące fragmenty i ręczne szkice nie są śladami.</p></div></div>
  <div class="buttons"><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
 <p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></section>
@@ -260,7 +260,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <script src="../staging-trips/route-model.js"></script>
 <script src="../staging-trips/routing-core.js"></script>
 <script src="../staging-trips-integrated/integration-model.js"></script>
-<script src="../staging-trips-integrated/marker-groups.js"></script><script src="../staging-road-access-audit-20261124/road-access-core.js?v=local-access2"></script><script src="./planner-road-audit.js?v=1"></script>
+<script src="../staging-trips-integrated/marker-groups.js"></script><script src="../staging-road-access-audit-20261124/road-access-core.js?v=local-access2"></script><script src="./planner-road-audit.js?v=2"></script>
 <script>
 'use strict';
 (()=>{
@@ -825,7 +825,7 @@ el('road-check-run').addEventListener('click',async()=>{
    if(!el('route-consent').checked){failed++;break;}
    calls++;lastRequestTime=Date.now();
    try{
-    const trace=await roadJSON('https://valhalla1.openstreetmap.de/trace_attributes',{method:'POST',mode:'cors',headers:{'Content-Type':'application/json','X-Client-Id':'nordic-trail.github.io'},body:JSON.stringify({shape:seg.points,costing:R.profile('drive'),shape_match:'edge_walk',filters:{action:'include',attributes:['shape','edge.way_id','edge.begin_shape_index','edge.end_shape_index']}})});
+    const trace=await roadJSON('https://valhalla1.openstreetmap.de/trace_attributes',{method:'POST',mode:'cors',headers:{'Content-Type':'application/json','X-Client-Id':'nordic-trail.github.io'},body:JSON.stringify({encoded_polyline:window.NTPlannerRoadAudit.encode(seg.points,R),costing:R.profile('drive'),shape_match:'edge_walk',filters:{action:'include',attributes:['shape','edge.way_id','edge.begin_shape_index','edge.end_shape_index']}})});
     const ids=window.NTPlannerRoadAudit.traceIds(trace,seg.points,R);
     if(!el('route-consent').checked)throw Error('Wycofano zgodę.');
     const data=await roadJSON('https://api.openstreetmap.org/api/0.6/ways.json?ways='+ids.join(','));
@@ -840,7 +840,7 @@ el('road-check-run').addEventListener('click',async()=>{
   if(key===roadFingerprint(segments())){
    roadCheckKey=key;
    const incomplete=failed||missing||completed!==car.length;
-   roadCheckReport={summary:(excluded?'Wykryto odcinki wykluczone w klasyfikacji OSM. ':review?'Wymaga weryfikacji. ':'')+(incomplete?'Kontrola niepełna. ':'')+'Sprawdzono '+completed+'/'+car.length+' etapów samochodowych; wykluczenia: '+excluded+', do weryfikacji: '+review+', brak danych: '+missing+'. Nie potwierdzamy prawa przejazdu ani dostępności.',rows};
+   roadCheckReport={summary:(excluded?'Wykryto odcinki wykluczone w klasyfikacji OSM. ':review?'Wymaga weryfikacji. ':'')+(incomplete?'Kontrola niepełna. ':'')+'Sprawdzono '+completed+'/'+car.length+' etapów samochodowych. '+(completed?'W sprawdzonych etapach: wykluczenia '+excluded+', do weryfikacji '+review+', brak danych '+missing+'. ':'Brak oceny klasyfikacji dróg. ')+'Nie potwierdzamy prawa przejazdu ani dostępności.',rows};
   }
   setBusy(false);renderRoadCheck();
  }
