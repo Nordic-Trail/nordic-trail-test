@@ -94,7 +94,10 @@ h3{font-size:15px;margin:13px 0 6px}
  .sheet-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;padding:2px 2px 10px}
  .sheet-heading strong{font-size:15px}
  #sheet-prompt{color:#e2eddd;font-size:11px;text-align:right;max-width:53%}
- .quick-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+ .quick-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+ .quick-history{display:grid;grid-template-columns:1fr 1fr 2fr;gap:5px;margin-top:6px}
+ .quick-history button{min-width:0;min-height:44px;padding:5px 3px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:3px}
+ .quick-history .ui-icon{width:21px;height:21px;margin:0}
  .quick-actions button{min-width:0;min-height:46px;font-size:12px;padding:6px 1px}
  .quick-actions button.active{outline:2px solid white}
   #save-toast{position:fixed;z-index:900;top:calc(72px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);padding:13px 18px;border-radius:12px;background:#254934;color:white;border:1px solid #d7ead3;box-shadow:0 5px 22px #091e1288;text-align:center;font-weight:700;pointer-events:none}
@@ -215,7 +218,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <label class="layer"><input type="checkbox" id="nt-plan-layer-walk" checked> Pieszo</label>
 <label class="layer"><input type="checkbox" id="nt-plan-layer-points" checked> Punkty trasy</label>
 </div>
-<div id="nt-plan-menu-box" class="nt-map-tool-panel" hidden><div class="nt-tool-panel-head"><strong>Narzędzia</strong><button id="nt-plan-menu-close" type="button" aria-label="Zamknij menu">×</button></div><button type="button" id="nt-plan-my-routes" class="secondary nt-plan-submit"><svg class="ui-icon" aria-hidden="true"><use href="#nt-folder"/></svg>Moje trasy</button><button type="button" id="nt-plan-current-tools" class="secondary nt-plan-submit">Planowanie tras</button></div>
+<div id="nt-plan-menu-box" class="nt-map-tool-panel" hidden><div class="nt-tool-panel-head"><strong>Narzędzia</strong><button id="nt-plan-menu-close" type="button" aria-label="Zamknij menu">×</button></div><button type="button" id="nt-plan-new-route" class="secondary nt-plan-submit">＋ Nowa trasa</button><button type="button" id="nt-plan-my-routes" class="secondary nt-plan-submit"><svg class="ui-icon" aria-hidden="true"><use href="#nt-folder"/></svg>Moje trasy</button><button type="button" id="nt-plan-current-tools" class="secondary nt-plan-submit">Planowanie tras</button></div>
 <form id="nt-plan-search-box" class="nt-map-tool-panel" hidden>
 <div class="nt-tool-panel-head"><strong>Szukaj w wyprawie</strong><button id="nt-plan-search-close" type="button" aria-label="Zamknij wyszukiwanie">×</button></div>
 <label for="nt-plan-search-input">Punkt lub współrzędne</label><input id="nt-plan-search-input" maxlength="120" placeholder="Np. Punkt 2 lub 59.31, 18.06" required autocomplete="off">
@@ -234,7 +237,8 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <div class="sheet-chrome">
 <button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button><button id="sheet-close-all" type="button" aria-label="Schowaj panel planowania" title="Schowaj panel planowania">×</button>
 <div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
-<div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt<br>pośredni</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Zapisz</button></div>
+<div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt<br>pośredni</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-done">Zapisz</button></div>
+<div class="quick-history" role="group" aria-label="Historia i nowa trasa"><button id="quick-undo" type="button" class="secondary" aria-label="Cofnij" title="Cofnij"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5 3 11l6 6M3 11h10a7 7 0 0 1 7 7"/></svg>Cofnij</button><button id="quick-redo" type="button" class="secondary" aria-label="Ponów" title="Ponów"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 6 6-6 6M21 11H11a7 7 0 0 0-7 7"/></svg>Ponów</button><button id="quick-new-trip" type="button" class="secondary">＋ Nowa trasa</button></div>
 <button id="quick-parking-action" type="button" class="secondary" hidden></button>
 <div id="quick-return-tools" hidden><label for="quick-return-target">Lub wybierz miejsce powrotu (od razu doda cel)</label><select id="quick-return-target" aria-label="Miejsce powrotu"></select></div>
 <button id="quick-delete-route" type="button" class="secondary" disabled><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></g></svg>Usuń z mapy</button>
@@ -305,7 +309,7 @@ let spiderOpen=false;
  let roadCheckKey=null,roadCheckReport=null;
  let routeConsentAsked=false,autoAttemptKey=null;
  let busy=false,calls=0,lastRequestTime=0,pendingMode='drive',pendingKind='stop',activeMode=null,showResults=false;
-const history=[];
+const history=[],redoHistory=[];
 const manualGapDrafts=Object.create(null); // Serialized with named route only after explicit save
 let activeGapDraft=null,selectedGapViaIndex=null;
 let toastTimer=null;
@@ -346,7 +350,25 @@ function showToast(text,error=false){
  const t=el('save-toast');t.textContent=text;t.classList.toggle('error',error);t.hidden=false;
  if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},4500);
 }
-function remember(){history.push({trip:JSON.parse(JSON.stringify(trip)),routes:JSON.parse(JSON.stringify(routes)),showResults});if(history.length>25)history.shift();}
+function captureHistory(){
+ return {trip:JSON.parse(JSON.stringify(trip)),routes:JSON.parse(JSON.stringify(routes)),showResults,
+  manualGaps:JSON.parse(JSON.stringify(manualGapDrafts)),currentRouteId,editingRouteId,activeMode,pendingMode};
+}
+function pushHistory(stack,state){stack.push(state);if(stack.length>25)stack.shift();}
+function remember(){pushHistory(history,captureHistory());redoHistory.length=0;}
+function resetHistory(){history.length=0;redoHistory.length=0;}
+function restoreHistory(state){
+ trip=state.trip;routes=state.routes;showResults=state.showResults;currentRouteId=state.currentRouteId;editingRouteId=state.editingRouteId;
+ activeMode=state.activeMode;pendingMode=state.pendingMode;pendingKind='stop';autoAttemptKey=routeGeometryKey();
+ clearManualGapDrafts();Object.assign(manualGapDrafts,state.manualGaps);
+ el('auto-route-status').hidden=true;el('routing-status').hidden=true;
+ closeEditor();pick(false);refresh();fit();
+}
+function stepHistory(from,to,notice){
+ if(busy||activeGapDraft||!from.length)return;
+ cancelMapTap();pushHistory(to,captureHistory());restoreHistory(from.pop());
+ message('notice',notice);showToast(notice);
+}
 function message(id,text,error=false){
  const node=el(id);node.textContent=text;node.classList.toggle('error',error);node.hidden=false;
 }
@@ -392,7 +414,10 @@ function updateQuick(){
  el('quick-start').disabled=busy||trip.waypoints.length>0;
  el('quick-point').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
  el('quick-goal').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
- el('quick-undo').disabled=busy||!history.length;
+ el('quick-undo').disabled=busy||!!activeGapDraft||!history.length;
+ el('quick-redo').disabled=busy||!!activeGapDraft||!redoHistory.length;
+ el('quick-new-trip').disabled=busy||!!activeGapDraft;
+ el('nt-plan-new-route').disabled=busy||!!activeGapDraft;
  const complete=isCompleteRoute();
  updateParkingAction();
  el('quick-done').disabled=busy||picking||!complete;
@@ -876,6 +901,7 @@ el('gap-sketch-finish').addEventListener('click',()=>{
  if(!activeGapDraft)return;
  if(!activeGapDraft.via.length){showToast('Dodaj co najmniej jeden punkt pomocniczy.',true);return;}
  const draft=activeGapDraft;
+ remember();
  manualGapDrafts[draft.key]={segmentKey:draft.segmentKey,key:draft.key,side:draft.side,
   point:{...draft.point},nearest:{...draft.nearest},via:draft.via.map(p=>({...p}))};
  const metres=Math.round(gapLength(draft));
@@ -1053,7 +1079,8 @@ el('clear-routes').addEventListener('click',()=>{
  remember();routes=Object.create(null);showResults=false;refresh();fit();
  autoAttemptKey=routeGeometryKey();routeStatus('Przywrócono szkic. Zapis lokalny nie został zmieniony.');
 });
-el('undo-step').addEventListener('click',()=>{if(busy||!history.length)return;const prev=history.pop();trip=prev.trip;routes=prev.routes;showResults=prev.showResults;closeEditor();pick(false);refresh();fit();message('notice','Cofnięto ostatnią zmianę.');});
+el('undo-step').addEventListener('click',()=>stepHistory(history,redoHistory,'Cofnięto ostatnią zmianę.'));
+el('quick-redo').addEventListener('click',()=>stepHistory(redoHistory,history,'Ponowiono ostatnią zmianę.'));
 el('cancel-planning').addEventListener('click',()=>{
  if(busy)return;
  if(picking){pick(false);message('notice','Anulowano wybór punktu.');return;}
@@ -1061,7 +1088,7 @@ el('cancel-planning').addEventListener('click',()=>{
  if(!confirm('Przywrócić ostatnią zapisaną wyprawę? Niezapisane zmiany zostaną utracone.'))return;
  try{const archive=readArchive(),active=archive.items.find(x=>x.id===archive.activeId);
  const saved=active?I.unpack(active.data):I.load(OLD_TEST_STORAGE);
- currentRouteId=active?active.id:null;editingRouteId=null;trip=syncReturnNames(saved.trip,saved.trip);routes=saved.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');restoreManualGapDrafts(active&&active.manualGaps);refresh();fit();
+ currentRouteId=active?active.id:null;editingRouteId=null;trip=syncReturnNames(saved.trip,saved.trip);routes=saved.routes;resetHistory();showResults=segments().some(x=>x.status==='routed');restoreManualGapDrafts(active&&active.manualGaps);refresh();fit();
  message('notice','Przywrócono ostatnią zapisaną trasę.');}
  catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
@@ -1249,7 +1276,7 @@ function commitNamedRoute(){
   const item={id,name,createdAt:existing?existing.createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),data,manualGaps};
   const items=existing?archive.items.map(x=>x.id===id?item:x):[item,...archive.items];
   localStorage.setItem(ARCHIVE_KEY,JSON.stringify({version:1,activeId:id,items}));
-  currentRouteId=id;editingRouteId=null;trip=data.trip;routes=data.routes;history.length=0;
+  currentRouteId=id;editingRouteId=null;trip=data.trip;routes=data.routes;resetHistory();
   el('save-dialog').close();pick(false);closeEditor();activeMode=null;pendingKind='stop';setSheet('closed');refresh();
   message('action-status','✓ Zapisano trasę: '+name);
   showToast('✓ Trasa zapisana: '+name+' · szkice: '+manualGaps.length);
@@ -1260,11 +1287,11 @@ function loadNamedRoute(id,editMode=false){
  try{
   const archive=readArchive(),item=archive.items.find(x=>x.id===id);
   if(!item)throw Error('Nie znaleziono trasy.');
-  if(history.length&&!confirm('Otworzyć trasę? Niezapisane zmiany zostaną utracone.'))return;
+  if((history.length||redoHistory.length)&&!confirm('Otworzyć trasę? Niezapisane zmiany zostaną utracone.'))return;
   const data=I.unpack(item.data);
   localStorage.setItem(ARCHIVE_KEY,JSON.stringify({...archive,activeId:id}));
   currentRouteId=id;editingRouteId=editMode?id:null;autoAttemptKey=null;el('auto-route-status').hidden=true;el('routing-status').hidden=true;
-  trip=syncReturnNames(data.trip,data.trip);routes=data.routes;history.length=0;showResults=segments().some(x=>x.status==='routed');
+  trip=syncReturnNames(data.trip,data.trip);routes=data.routes;resetHistory();showResults=segments().some(x=>x.status==='routed');
   const restored=restoreManualGapDrafts(item.manualGaps);
   closeEditor();pick(false);activeMode=null;setSheet('closed');refresh();fit();
   el('trips-dialog').close();
@@ -1274,7 +1301,7 @@ function loadNamedRoute(id,editMode=false){
 }
 function resetCurrentRoute(){
  autoAttemptKey=null;el('auto-route-status').hidden=true;el('routing-status').hidden=true;
- trip=M.emptyTrip();routes=Object.create(null);history.length=0;showResults=false;clearManualGapDrafts();
+ trip=M.emptyTrip();routes=Object.create(null);resetHistory();showResults=false;clearManualGapDrafts();
  currentRouteId=null;editingRouteId=null;activeMode=null;pendingKind='stop';closeEditor();pick(false);
  setSheet('closed');refresh();
 }
@@ -1405,13 +1432,20 @@ el('export-gpx').addEventListener('click',()=>{
   message('action-status','Nie można wyeksportować GPX: '+String(error.message||error),true);
  }
 });
-el('new-trip').addEventListener('click',()=>{
- if(busy||!confirm('Utworzyć pustą wyprawę? Niezapisane zmiany znikną.'))return;
- currentRouteId=null;editingRouteId=null;autoAttemptKey=null;el('auto-route-status').hidden=true;el('routing-status').hidden=true;remember();trip=M.emptyTrip();routes=Object.create(null);showResults=false;clearManualGapDrafts();
- el('routing-status').hidden=true;el('routing-status').textContent='';
- closeEditor();pick(false);refresh();
- message('action-status','Nowa wyprawa. Poprzedni zapis v1/v2 nie został usunięty.');
-});
+function startNewTrip(){
+ if(busy||activeGapDraft)return;
+ if(trip.waypoints.length){
+  if(history.length&&!confirm('Rozpocząć nową trasę? Bieżące niezapisane zmiany możesz odzyskać przyciskiem Cofnij przed zapisaniem lub otwarciem innej trasy.'))return;
+  remember();
+ }
+ currentRouteId=null;editingRouteId=null;autoAttemptKey=null;el('auto-route-status').hidden=true;el('routing-status').hidden=true;
+ trip=M.emptyTrip();routes=Object.create(null);showResults=false;clearManualGapDrafts();
+ pendingKind='stop';closeEditor();pick(false);setSheet('compact');refresh();
+ message('action-status','Nowa trasa. Zapisane trasy pozostają w Moich trasach.');
+ showToast('Nowa trasa. Wybierz Start.');
+}
+el('new-trip').addEventListener('click',startNewTrip);
+el('quick-new-trip').addEventListener('click',startNewTrip);
 try{
  const archive=readArchive();
  const active=archive.items.find(x=>x.id===archive.activeId);
@@ -1433,7 +1467,7 @@ try{
  map=L.map('map',{zoomControl:false,doubleClickZoom:false,touchZoom:true,scrollWheelZoom:true}).setView([62.2,15.2],5);
  initMapTapGuard();
   L.control.zoom({position:'topright'}).addTo(map);
- window.NTPlannerSearchBridge={getWaypoints:()=>trip.waypoints.map(p=>({name:p.name,lat:p.lat,lon:p.lon})),center:coords=>map.setView(coords,Math.max(14,map.getZoom()),{animate:false}),openTools:()=>{if(!activeMode&&trip.waypoints.length){activeMode=trip.waypoints.at(-1).mode==='walk'?'walk':'drive';pendingMode=activeMode;updateQuick();}setSheet('expanded');},openRoutes:showMyRoutes};
+ window.NTPlannerSearchBridge={getWaypoints:()=>trip.waypoints.map(p=>({name:p.name,lat:p.lat,lon:p.lon})),center:coords=>map.setView(coords,Math.max(14,map.getZoom()),{animate:false}),openTools:()=>{if(!activeMode&&trip.waypoints.length){activeMode=trip.waypoints.at(-1).mode==='walk'?'walk':'drive';pendingMode=activeMode;updateQuick();}setSheet('expanded');},openRoutes:showMyRoutes,newRoute:startNewTrip};
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:19,attribution:'© OpenStreetMap contributors'
  }).addTo(map);
@@ -1476,6 +1510,7 @@ get('visible-drive').addEventListener('change',()=>{get('nt-plan-layer-drive').c
 get('visible-walk').addEventListener('change',()=>{get('nt-plan-layer-walk').checked=get('visible-walk').checked;});
 menuBtn.addEventListener('click',()=>toggle(menuBox,menuBtn));
  get('nt-plan-menu-close').addEventListener('click',hidePanels);
+ get('nt-plan-new-route').addEventListener('click',()=>{hidePanels();window.NTPlannerSearchBridge?.newRoute?.();});
  get('nt-plan-my-routes').addEventListener('click',()=>{hidePanels();window.NTPlannerSearchBridge?.openRoutes?.();});
  get('nt-plan-current-tools').addEventListener('click',()=>{hidePanels();window.NTPlannerSearchBridge?.openTools?.();});
 get('nt-plan-search-box').addEventListener('submit',event=>{
