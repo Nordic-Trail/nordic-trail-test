@@ -28,7 +28,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .number.parking{background:#275d81;border-color:#e3f4ff;position:relative}
 .number.parking::after{content:'P';position:absolute;top:-9px;right:-9px;background:#275d81;border:1px solid white;color:white;border-radius:4px;font-size:10px;line-height:15px;width:15px;text-align:center}
 #quick-parking-action{width:100%;margin-top:7px;min-height:44px}
-#quick-parking-action[hidden]{display:none!important}
+#quick-parking-action[hidden],#quick-return-tools[hidden]{display:none!important}
+#quick-return-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:end;margin-top:7px}
+#quick-return-tools label{grid-column:1/-1;margin:0;font-size:12px}
+#quick-return-tools select{min-width:0;margin:0}
+#quick-return-confirm{min-height:44px;padding:8px 11px}
 .number.group{background:#2a5265;border-color:#d7f0fa;width:36px;height:36px;font-size:13px}
 .nt-group-stack{position:relative;width:46px;height:44px;isolation:isolate}
 .nt-group-stack .number.group{position:absolute;left:0;top:8px;z-index:2}
@@ -233,6 +237,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
 <div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt<br>pośredni</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-undo" class="secondary">Cofnij</button><button type="button" id="quick-done">Zapisz</button></div>
 <button id="quick-parking-action" type="button" class="secondary" hidden></button>
+<div id="quick-return-tools" hidden><label for="quick-return-target">Lub wróć do wcześniejszego punktu</label><select id="quick-return-target" aria-label="Miejsce powrotu"></select><button id="quick-return-confirm" type="button" class="secondary" disabled>Wróć</button></div>
 <button id="quick-delete-route" type="button" class="secondary" disabled><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></g></svg>Usuń z mapy</button>
 <p id="auto-route-status" role="status" aria-live="polite" hidden></p>
 </div>
@@ -1026,35 +1031,44 @@ el('cancel-planning').addEventListener('click',()=>{
  message('notice','Przywrócono ostatnią zapisaną trasę.');}
  catch(_){message('notice','Nie udało się przywrócić zapisu.',true);}
 });
+function returnTargets(waypoints){const last=waypoints.at(-1);if(!last)return [];return waypoints.slice(0,-1).map((point,i)=>({point,index:i+1})).filter(({point})=>point.lat!==last.lat||point.lon!==last.lon);}
 function parkingAction(){
  const last=trip.waypoints.at(-1);
- if(!last||!activeMode||busy||activeGapDraft)return null;
- if(last.mode==='drive'&&last.kind==='finish')return {kind:'mark',point:last,index:trip.waypoints.length};
- if(activeMode!=='walk'||trip.waypoints.length>=M.MAX_POINTS)return null;
- let i=trip.waypoints.length-1;
- while(i>=0&&!(trip.waypoints[i].kind==='parking'&&trip.waypoints[i].mode==='drive'))i--;
- if(i<0)return null;
- const p=trip.waypoints[i];
- if(last.lat===p.lat&&last.lon===p.lon)return null;
- // An intervening drive segment may have moved the car.
- if(trip.waypoints.slice(i+1).some(x=>x.mode==='drive'))return null;
- return {kind:'return',point:p,index:i+1};
+ if(!last||activeMode!=='drive'||picking||busy||activeGapDraft)return null;
+ return last.mode==='drive'&&last.kind==='finish'?{point:last,index:trip.waypoints.length}:null;
 }
+function currentReturnTargets(){
+ if(!picking||pendingKind!=='finish'||!activeMode||busy||activeGapDraft||trip.waypoints.length>=M.MAX_POINTS)return [];
+ return returnTargets(trip.waypoints);
+}
+function returnLabel(p){return ['parking','stop','camp','start'].includes(p.kind)?M.KIND_LABELS[p.kind]:'Inne miejsce';}
 function updateParkingAction(){
  const b=el('quick-parking-action'),action=parkingAction();
  b.hidden=!action;b.disabled=!action;
- if(action)b.textContent=action.kind==='mark'?'P · Oznacz punkt '+action.index+' jako parking':'Wróć na parking · punkt '+action.index;
+ if(action)b.textContent='P · Oznacz punkt '+action.index+' jako parking';
+ const tools=el('quick-return-tools'),select=el('quick-return-target'),confirm=el('quick-return-confirm');
+ const targets=currentReturnTargets(),previous=select.value;
+ tools.hidden=!targets.length;select.disabled=!targets.length;
+ select.replaceChildren(new Option('Wybierz miejsce powrotu',''));
+ for(const {point,index} of targets){
+  const label=returnLabel(point);
+  select.add(new Option(index+'. '+label+(point.name===label?'':' — '+point.name),point.id));
+ }
+ if(targets.some(({point})=>point.id===previous))select.value=previous;
+ confirm.disabled=!select.value||!targets.length;
 }
+el('quick-return-target').addEventListener('change',()=>{el('quick-return-confirm').disabled=!el('quick-return-target').value;});
+el('quick-return-confirm').addEventListener('click',()=>{
+ const target=currentReturnTargets().find(({point})=>point.id===el('quick-return-target').value);
+ if(!target)return;
+ const p=target.point;
+ addPickedWaypoint(p.lat,p.lon,'Powrót: '+returnLabel(p)+' · punkt '+target.index);
+});
 el('quick-parking-action').addEventListener('click',()=>{
  const action=parkingAction();if(!action)return;
  const p=action.point;
- if(action.kind==='mark'){
-  if(modify(()=>M.change(trip,p.id,{kind:'parking',name:p.name==='Punkt '+action.index?'Parking':p.name}))){
-   closeEditor();pick(false);setSheet('compact');refresh();showToast('Oznaczono planowany parking. Dostępność niezweryfikowana.');
-  }
- }else{
-  beginWaypoint('finish');
-  if(picking&&pendingKind==='finish')addPickedWaypoint(p.lat,p.lon,'Powrót na parking');
+ if(modify(()=>M.change(trip,p.id,{kind:'parking',name:p.name==='Punkt '+action.index?'Parking':p.name}))){
+  closeEditor();pick(false);setSheet('compact');refresh();showToast('Oznaczono planowany parking. Dostępność niezweryfikowana.');
  }
 });
 function activateWaypoint(id){
