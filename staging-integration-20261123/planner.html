@@ -30,6 +30,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 #quick-parking-action{width:100%;margin-top:7px;min-height:44px}
 #quick-parking-action[hidden]{display:none!important}
 .number.group{background:#2a5265;border-color:#d7f0fa;width:36px;height:36px;font-size:13px}
+.nt-group-stack{position:relative;width:46px;height:44px;isolation:isolate}
+.nt-group-stack .number.group{position:absolute;left:0;top:8px;z-index:2}
+.nt-group-stack::before{content:'';position:absolute;left:10px;top:0;width:36px;height:36px;border:2px solid #d7f0fa;border-radius:50%;background:#486e7c;box-shadow:0 2px 4px #0005;z-index:1;pointer-events:none}
 .nt-route-info{display:grid;gap:9px;min-width:190px;color:#20382b;font-size:13px;line-height:1.4}
 .nt-route-info h3{margin:0;font-size:15px}
 .nt-route-info section{border-top:1px solid #d4dfd2;padding-top:7px}
@@ -547,9 +550,9 @@ function drawMarkers(){
     });
    return;
   }
-  const icon=L.divIcon({className:'',html:'<div class="number group">'+g.indices.length+'</div>',
-   iconSize:[36,36],iconAnchor:[18,18]});
-  const marker=L.marker([g.lat,g.lon],{icon}).addTo(pins);
+  const icon=L.divIcon({className:'',html:'<div class="nt-group-stack"><div class="number group">'+g.indices.length+'</div></div>',
+   iconSize:[46,44],iconAnchor:[18,26]});
+  const marker=L.marker([g.lat,g.lon],{icon,title:'Grupa '+g.indices.length+' punktów',alt:'Grupa '+g.indices.length+' punktów'}).addTo(pins);
   marker.on('click',()=>{
    if(spiderOpen){drawMarkers();return;}
    if(g.indices.length<=8){expandMarkerGroup(g,marker);return;}
