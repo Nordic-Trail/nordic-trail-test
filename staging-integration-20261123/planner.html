@@ -309,6 +309,39 @@ const history=[];
 const manualGapDrafts=Object.create(null); // Serialized with named route only after explicit save
 let activeGapDraft=null,selectedGapViaIndex=null;
 let toastTimer=null;
+
+const MAP_TAP_DELAY=420,MAP_TAP_RADIUS=24;
+let queuedMapTap=null,lastMapPointer=null;
+function sameMapTap(a,b){
+ return a.type===b.type&&b.time-a.time>=0&&b.time-a.time<=MAP_TAP_DELAY&&Math.hypot(a.x-b.x,a.y-b.y)<=MAP_TAP_RADIUS;
+}
+function cancelMapTap(){if(queuedMapTap){clearTimeout(queuedMapTap.timer);queuedMapTap=null;}}
+function routeTapState(){return {trip,picking,pendingKind,pendingMode,activeGapDraft,selectedGapViaIndex,spiderOpen};}
+function validMapTap(s){return !busy&&s.trip===trip&&s.picking===picking&&s.pendingKind===pendingKind&&s.pendingMode===pendingMode&&s.activeGapDraft===activeGapDraft&&s.selectedGapViaIndex===selectedGapViaIndex&&s.spiderOpen===spiderOpen;}
+function guardedMapTap(event,action){
+ const original=event.originalEvent;
+ const remembered=lastMapPointer&&performance.now()-lastMapPointer.time<1500?lastMapPointer.type:null;
+ const type=original?.pointerType||remembered||(original?.sourceCapabilities?.firesTouchEvents?'touch':'mouse');
+ if(!original||original.detail===0||type==='touch'||(type!=='mouse'&&type!=='pen')){cancelMapTap();action();return;}
+ const point=map.mouseEventToContainerPoint(original);
+ const tap={type,time:performance.now(),x:point.x,y:point.y,point,state:routeTapState(),action};
+ if(queuedMapTap){
+  const first=queuedMapTap;cancelMapTap();
+  if(sameMapTap(first,tap)&&validMapTap(first.state)){map.closePopup();map.setZoomAround(tap.point,Math.min(map.getMaxZoom(),map.getZoom()+1));return;}
+  if(validMapTap(first.state))first.action();
+  if(!validMapTap(tap.state))return;
+ }
+ tap.timer=setTimeout(()=>{if(queuedMapTap!==tap)return;queuedMapTap=null;if(validMapTap(tap.state))tap.action();},MAP_TAP_DELAY);
+ queuedMapTap=tap;
+}
+function initMapTapGuard(){
+ const container=map.getContainer();
+ container.addEventListener('pointerdown',event=>{lastMapPointer={type:event.pointerType,time:performance.now()};if(event.pointerType==='touch')cancelMapTap();},true);
+ container.addEventListener('pointercancel',cancelMapTap,true);
+ document.addEventListener('pointerdown',event=>{if(!container.contains(event.target))cancelMapTap();},true);
+ map.on('movestart zoomstart dragstart',cancelMapTap);
+}
+
 function showToast(text,error=false){
  const t=el('save-toast');t.textContent=text;t.classList.toggle('error',error);t.hidden=false;
  if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},4500);
@@ -324,6 +357,7 @@ function button(name,callback,disabled=false){
  b.className='secondary';b.disabled=disabled;b.addEventListener('click',callback);return b;
 }
 function pick(yes){
+ cancelMapTap();
  if(spiderOpen)drawMarkers();
  if(yes&&map)map.closePopup();
  picking=yes;el('start-pick').textContent=yes?'Wskaż miejsce na mapie':'+ Dodaj punkt początkowy';
@@ -542,7 +576,7 @@ function drawMarkers(){
     iconSize:[30,30],iconAnchor:[15,15]});
    const canDrag=!el('trip-edit-section').hidden&&!busy&&!picking;
     const marker=L.marker([p.lat,p.lon],{icon,draggable:canDrag,autoPan:false}).addTo(pins);
-    marker.on('click',()=>activateWaypoint(p.id));
+    marker.on('click',event=>guardedMapTap(event,()=>activateWaypoint(p.id)));
     if(canDrag)marker.on('dragend',()=>{
       const pos=marker.getLatLng(),lat=Number(pos.lat.toFixed(6)),lon=Number(pos.lng.toFixed(6));
       if(Math.abs(lat-p.lat)<0.000001&&Math.abs(lon-p.lon)<0.000001)return;
@@ -557,7 +591,7 @@ function drawMarkers(){
   const icon=L.divIcon({className:'',html:'<div class="nt-group-stack"><div class="number group">'+g.indices.length+'</div></div>',
    iconSize:[46,44],iconAnchor:[18,26]});
   const marker=L.marker([g.lat,g.lon],{icon,title:'Grupa '+g.indices.length+' punktów',alt:'Grupa '+g.indices.length+' punktów'}).addTo(pins);
-  marker.on('click',()=>{
+  marker.on('click',event=>guardedMapTap(event,()=>{
    if(spiderOpen){drawMarkers();return;}
    if(g.indices.length<=8){expandMarkerGroup(g,marker);return;}
    const menu=document.createElement('div');
@@ -584,7 +618,7 @@ function drawMarkers(){
     menu.appendChild(zoom);
    }
    marker.bindPopup(menu,{autoPan:true,maxWidth:290}).openPopup();
-  });
+  }));
  });
 }
 function expandMarkerGroup(g,marker){
@@ -604,7 +638,7 @@ function expandMarkerGroup(g,marker){
   L.polyline([[p.lat,p.lon],display],{color:'#536d60',weight:2,dashArray:'3 4',opacity:.9,interactive:false}).addTo(pins);
   const icon=L.divIcon({className:'',html:'<div class="number'+(p.kind==='parking'?' parking':i===0?' start':'')+'">'+(i+1)+'</div>',iconSize:[30,30],iconAnchor:[15,15]});
   const item=L.marker(display,{icon,draggable:false,bubblingMouseEvents:false,zIndexOffset:1100,title:(i+1)+'. '+p.name,alt:'Punkt '+(i+1)}).addTo(pins);
-  item.on('click',()=>{drawMarkers();activateWaypoint(p.id);});
+  item.on('click',event=>guardedMapTap(event,()=>{drawMarkers();activateWaypoint(p.id);}));
  });
 }
 function refresh(){
@@ -650,6 +684,7 @@ function refresh(){
  redraw();updateQuick();
 }
 function modify(fn){
+ cancelMapTap();
  if(busy){message('notice','Trwa obliczanie tras. Zmiana niedostępna.',true);return false;}
  try{
   const previous=routeGeometryKey(),next=syncReturnNames(trip,fn()),nextRoutes=I.routesFor(next,routes);
@@ -781,9 +816,9 @@ function renderManualGapLines(){
     marker.on('dragstart',()=>{selectedGapViaIndex=null;rememberGapEdit();});
     marker.on('click',event=>{
       if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
-      selectedGapViaIndex=i;
+      guardedMapTap(event,()=>{selectedGapViaIndex=i;
       updateGapSketchHint();
-      showToast('Punkt '+(i+1)+' zaznaczony. Dotknij nowe miejsce na mapie.');
+      showToast('Punkt '+(i+1)+' zaznaczony. Dotknij nowe miejsce na mapie.');});
     });
     marker.on('drag',()=>{
       const location=marker.getLatLng();
@@ -1395,7 +1430,8 @@ try{
 }
 try{
  if(!M||!R||!I||!G||!window.L)throw Error('Brak wymaganych modułów');
- map=L.map('map',{zoomControl:false}).setView([62.2,15.2],5);
+ map=L.map('map',{zoomControl:false,doubleClickZoom:false,touchZoom:true,scrollWheelZoom:true}).setView([62.2,15.2],5);
+ initMapTapGuard();
   L.control.zoom({position:'topright'}).addTo(map);
  window.NTPlannerSearchBridge={getWaypoints:()=>trip.waypoints.map(p=>({name:p.name,lat:p.lat,lon:p.lon})),center:coords=>map.setView(coords,Math.max(14,map.getZoom()),{animate:false}),openTools:()=>{if(!activeMode&&trip.waypoints.length){activeMode=trip.waypoints.at(-1).mode==='walk'?'walk':'drive';pendingMode=activeMode;updateQuick();}setSheet('expanded');},openRoutes:showMyRoutes};
  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
@@ -1403,7 +1439,7 @@ try{
  }).addTo(map);
  lines=L.layerGroup().addTo(map);gapLines=L.layerGroup().addTo(map);manualGapLines=L.layerGroup().addTo(map);pins=L.layerGroup().addTo(map);
  map.on('zoomend moveend',drawMarkers);
- map.on('click',event=>{
+ map.on('click',event=>guardedMapTap(event,()=>{
   if(spiderOpen){drawMarkers();return;}
   if(activeGapDraft){
    if(activeGapDraft.via.length>=20){showToast('Maksymalnie 20 załamań szkicu.',true);return;}
@@ -1419,7 +1455,7 @@ try{
    if(busy)return;
    if(!picking){showRouteInfo(event);return;}
    addPickedWaypoint(event.latlng.lat,event.latlng.lng);
- });
+ }));
 }catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
 refresh();fit();updateQuick();
 })();
