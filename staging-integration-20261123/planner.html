@@ -218,7 +218,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <label class="layer"><input type="checkbox" id="nt-plan-layer-walk" checked> Pieszo</label>
 <label class="layer"><input type="checkbox" id="nt-plan-layer-points" checked> Punkty trasy</label>
 </div>
-<div id="nt-plan-menu-box" class="nt-map-tool-panel" hidden><div class="nt-tool-panel-head"><strong>Narzędzia</strong><button id="nt-plan-menu-close" type="button" aria-label="Zamknij menu">×</button></div><button type="button" id="nt-plan-new-route" class="secondary nt-plan-submit">＋ Nowa trasa</button><button type="button" id="nt-plan-my-routes" class="secondary nt-plan-submit"><svg class="ui-icon" aria-hidden="true"><use href="#nt-folder"/></svg>Moje trasy</button><button type="button" id="nt-plan-current-tools" class="secondary nt-plan-submit">Planowanie tras</button></div>
+<div id="nt-plan-menu-box" class="nt-map-tool-panel" hidden><div class="nt-tool-panel-head"><strong>Narzędzia</strong><button id="nt-plan-menu-close" type="button" aria-label="Zamknij menu">×</button></div><button type="button" id="nt-plan-new-route" class="secondary nt-plan-submit">＋ Nowa trasa</button><button type="button" id="nt-plan-my-routes" class="secondary nt-plan-submit"><svg class="ui-icon" aria-hidden="true"><use href="#nt-folder"/></svg>Moje trasy</button><button type="button" id="nt-plan-current-tools" class="secondary nt-plan-submit">Edytor tras</button></div>
 <form id="nt-plan-search-box" class="nt-map-tool-panel" hidden>
 <div class="nt-tool-panel-head"><strong>Szukaj w wyprawie</strong><button id="nt-plan-search-close" type="button" aria-label="Zamknij wyszukiwanie">×</button></div>
 <label for="nt-plan-search-input">Punkt lub współrzędne</label><input id="nt-plan-search-input" maxlength="120" placeholder="Np. Punkt 2 lub 59.31, 18.06" required autocomplete="off">
@@ -236,7 +236,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <div class="panel" id="planner-sheet" data-sheet="closed">
 <div class="sheet-chrome">
 <button id="sheet-handle" type="button" class="sheet-handle" aria-controls="sheet-more" aria-expanded="false" aria-label="Rozwiń narzędzia"><span class="sheet-grip" aria-hidden="true"></span><span id="sheet-chevron" class="sheet-chevron" aria-hidden="true">⌃</span></button><button id="sheet-close-all" type="button" aria-label="Schowaj panel planowania" title="Schowaj panel planowania">×</button>
-<div class="sheet-heading"><strong id="sheet-mode-title">Planowanie trasy</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
+<div class="sheet-heading"><strong id="sheet-mode-title">Edytor tras</strong><span id="sheet-prompt">Wybierz rodzaj trasy na mapie</span></div>
 <div class="quick-actions" role="group" aria-label="Podstawowe narzędzia etapu"><button type="button" id="quick-start" class="secondary">Start</button><button type="button" id="quick-point" class="secondary">Punkt<br>pośredni</button><button type="button" id="quick-goal" class="secondary">Cel</button><button type="button" id="quick-done">Zapisz</button></div>
 <div class="quick-history" role="group" aria-label="Historia i nowa trasa"><button id="quick-undo" type="button" class="secondary" aria-label="Cofnij" title="Cofnij"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5 3 11l6 6M3 11h10a7 7 0 0 1 7 7"/></svg>Cofnij</button><button id="quick-redo" type="button" class="secondary" aria-label="Ponów" title="Ponów"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 6 6-6 6M21 11H11a7 7 0 0 0-7 7"/></svg>Ponów</button><button id="quick-new-trip" type="button" class="secondary">＋ Nowa trasa</button></div>
 <button id="quick-parking-action" type="button" class="secondary" hidden></button>
@@ -245,7 +245,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <p id="auto-route-status" role="status" aria-live="polite" hidden></p>
 </div>
 <div id="sheet-more">
-<section class="card"><h1>Zaplanuj wyprawę</h1>
+<section class="card"><h1>Edytor tras</h1>
 <label for="trip-name">Nazwa wyprawy</label><input id="trip-name" maxlength="100" value="Nowa wyprawa">
  <div class="buttons"><button id="start-pick" type="button">+ Dodaj punkt początkowy</button><button id="cancel-pick" type="button" class="secondary" hidden>Anuluj wybór punktu</button></div>
  <div class="buttons"><button id="toggle-trip-editor" type="button" class="edit-primary" aria-controls="trip-edit-section" aria-expanded="false" disabled>✎ Edycja trasy</button></div>
@@ -409,7 +409,7 @@ function updateQuick(){
   el(id).setAttribute('aria-pressed',String(active));
   el(id).disabled=busy||trip.waypoints.length>=M.MAX_POINTS;
  }
- el('sheet-mode-title').textContent=activeMode==='walk'?'Trasa piesza':activeMode==='drive'?'Trasa samochodowa':'Planowanie trasy';
+ el('sheet-mode-title').textContent=activeMode==='walk'?'Edytor tras · pieszo':activeMode==='drive'?'Edytor tras · samochód':'Edytor tras';
  el('sheet-prompt').textContent=picking?(pendingKind==='start'?'Wskaż start na mapie':pendingKind==='finish'?'Wskaż cel na mapie':'Dotykaj mapy, aby dodawać punkty'):'Wybierz działanie, a następnie miejsce na mapie';
  el('quick-start').disabled=busy||trip.waypoints.length>0;
  el('quick-point').disabled=busy||!activeMode||!trip.waypoints.length||trip.waypoints.length>=M.MAX_POINTS;
