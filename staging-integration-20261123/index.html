@@ -555,7 +555,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 <!-- Only for integration testing: original map/auth remain unchanged. -->
 <section id="nt-integrated-route-overlay" role="dialog" aria-modal="true" aria-label="Planowanie trasy NORDIC TRAIL" hidden>
 <div class="nt-integrated-route-head"><div><strong>Planowanie trasy</strong><small>Test integracyjny · zapis lokalny · dostępność niepotwierdzona</small></div><button type="button" id="nt-close-planner-btn" aria-label="Zamknij planer i wróć do mapy">✕ Zamknij planer</button></div>
-<iframe id="nt-integrated-route-iframe" title="Planer tras NORDIC TRAIL" data-src="./planner.html?v=20261127-e7b1f890" referrerpolicy="same-origin"></iframe>
+<iframe id="nt-integrated-route-iframe" title="Planer tras NORDIC TRAIL" data-src="./planner.html?v=20261127-86644050" referrerpolicy="same-origin"></iframe>
 </section>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
@@ -1687,6 +1687,15 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     syncVisualViewport();
   });
   syncVisualViewport();
+  if(map)window.NTMainViewport=Object.freeze({
+    read(){const p=map.getCenter();return {lat:p.lat,lon:p.lng,zoom:map.getZoom()};},
+    apply(view){
+      if(!view||![view.lat,view.lon,view.zoom].every(Number.isFinite)||Math.abs(view.lat)>85.051129||Math.abs(view.lon)>180||view.zoom<0||view.zoom>19)return false;
+      map.invalidateSize({pan:false,animate:false});
+      map.setView([view.lat,view.lon],view.zoom,{animate:false});
+      return true;
+    }
+  });
   let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
   if(saved&&validKey(saved))connect(saved);
 })();
@@ -1696,18 +1705,29 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
  'use strict';
  const open=document.getElementById('nt-open-planner-btn'),close=document.getElementById('nt-close-planner-btn');
  const overlay=document.getElementById('nt-integrated-route-overlay'),frame=document.getElementById('nt-integrated-route-iframe');
- let wasFocused=null,oldOverflow='';
+ let wasFocused=null,oldOverflow='',pendingView=null;
+ function plannerViewport(){try{return frame.contentWindow?.NTPlannerViewport||null;}catch(_){return null;}}
+ function syncToPlanner(){
+  if(overlay.hidden||!pendingView)return;
+  const bridge=plannerViewport();
+  if(bridge?.apply(pendingView))pendingView=null;
+ }
+ frame.addEventListener('load',syncToPlanner);
  function showPlanner(){
   if(!overlay.hidden)return;
   wasFocused=document.activeElement;oldOverflow=document.body.style.overflow;
+  pendingView=window.NTMainViewport?.read()||null;
   overlay.hidden=false;document.body.style.overflow='hidden';open.setAttribute('aria-expanded','true');
   if(!frame.src||frame.src==='about:blank')frame.src=frame.dataset.src;
+  else requestAnimationFrame(syncToPlanner);
   close.focus();
  }
  function hidePlanner(){
   if(overlay.hidden)return;
+  const view=pendingView?null:plannerViewport()?.read();pendingView=null;
   overlay.hidden=true;open.setAttribute('aria-expanded','false');
   document.body.style.overflow=oldOverflow;
+  if(view)window.NTMainViewport?.apply(view);
   if(wasFocused&&typeof wasFocused.focus==='function')wasFocused.focus();else open.focus();
  }
  open.addEventListener('click',showPlanner);close.addEventListener('click',hidePlanner);
