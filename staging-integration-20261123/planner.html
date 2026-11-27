@@ -336,7 +336,7 @@ const TEST_STORAGE={
 };
 const ROUTER='https://valhalla1.openstreetmap.de/route',MAX_CALLS=6,MAX_SEGMENTS=4,MIN_INTERVAL=1650;
 let trip=M.emptyTrip(),routes=Object.create(null),selected=null,picking=false,map=null,lines=null,pins=null,gapLines=null,manualGapLines=null;
-let currentRouteId=null,editingRouteId=null;
+let currentRouteId=null,editingRouteId=null,closeBaseline=null;
 let spiderOpen=false;
  let roadCheckKey=null,roadCheckReport=null;
  let routeConsentAsked=false,autoAttemptKey=null;
@@ -1346,6 +1346,7 @@ async function showSaveDialog(){
  el('save-dialog').showModal();
  el('save-route-name').focus();
 }
+function planFingerprint(){return JSON.stringify([I.pack(trip,routes),packManualGapDrafts()]);}
 function commitNamedRoute(){
  const name=el('save-route-name').value.trim().slice(0,100),err=el('save-route-error');
  if(!name){err.textContent='Podaj nazwę trasy.';err.hidden=false;return;}
@@ -1361,7 +1362,7 @@ function commitNamedRoute(){
   const item={id,name,createdAt:existing?existing.createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),data,manualGaps};
   const items=existing?archive.items.map(x=>x.id===id?item:x):[item,...archive.items];
   localStorage.setItem(ARCHIVE_KEY,JSON.stringify({version:1,activeId:id,items}));
-  currentRouteId=id;editingRouteId=null;trip=data.trip;routes=data.routes;resetHistory();
+  currentRouteId=id;editingRouteId=null;trip=data.trip;routes=data.routes;resetHistory();closeBaseline=planFingerprint();
   el('save-dialog').close();pick(false);closeEditor();activeMode=null;pendingKind='stop';setSheet('closed');refresh();
   message('action-status','✓ Zapisano trasę: '+name);
   showToast('✓ Trasa zapisana: '+name+' · szkice: '+manualGaps.length);
@@ -1378,6 +1379,7 @@ function loadNamedRoute(id,editMode=false){
   currentRouteId=id;editingRouteId=editMode?id:null;autoAttemptKey=null;el('auto-route-status').hidden=true;el('routing-status').hidden=true;
   trip=syncReturnNames(data.trip,data.trip);routes=data.routes;resetHistory();showResults=segments().some(x=>x.status==='routed');
   const restored=restoreManualGapDrafts(item.manualGaps);
+  closeBaseline=planFingerprint();
   closeEditor();pick(false);activeMode=null;setSheet('closed');refresh();fit();
   el('trips-dialog').close();
   if(editMode){activeMode=trip.waypoints.at(-1)?.mode==='walk'?'walk':'drive';el('trip-edit-section').hidden=false;el('toggle-trip-editor').setAttribute('aria-expanded','true');el('toggle-trip-editor').textContent='✎ Zamknij edycję';setSheet('expanded');refresh();}
@@ -1387,7 +1389,7 @@ function loadNamedRoute(id,editMode=false){
 function resetCurrentRoute(){
  autoAttemptKey=null;el('auto-route-status').hidden=true;el('routing-status').hidden=true;
  trip=M.emptyTrip();routes=Object.create(null);resetHistory();showResults=false;clearManualGapDrafts();
- currentRouteId=null;editingRouteId=null;activeMode=null;pendingKind='stop';closeEditor();pick(false);
+ currentRouteId=null;editingRouteId=null;closeBaseline=null;activeMode=null;pendingKind='stop';closeEditor();pick(false);
  setSheet('closed');refresh();
 }
 function clearCurrentRoute(){
@@ -1418,7 +1420,7 @@ function showMyRoutes(){
   if(!archive.items.length){const li=document.createElement('li');li.textContent='Nie masz jeszcze zapisanych tras.';ul.appendChild(li);}
   for(const item of archive.items){
    const li=document.createElement('li'),detail=document.createElement('div'),name=button(item.name,()=>loadNamedRoute(item.id)),date=document.createElement('small'),actions=document.createElement('div');
-   name.className='nt-route-name';date.textContent=new Date(item.updatedAt||item.createdAt).toLocaleString('pl-PL')+' · szkice: '+(Array.isArray(item.manualGaps)?item.manualGaps.length:0)+(archive.activeId===item.id?' · aktualna':'');
+   name.className='nt-route-name';date.textContent=new Date(item.updatedAt||item.createdAt).toLocaleString('pl-PL')+' · szkice: '+(Array.isArray(item.manualGaps)?item.manualGaps.length:0)+(currentRouteId===item.id?' · aktualna':'');
    const openBtn=button('Otwórz',()=>loadNamedRoute(item.id)),editBtn=button('Edytuj',()=>loadNamedRoute(item.id,true)),deleteBtn=button('Usuń',()=>deleteNamedRoute(item.id));
    openBtn.className='nt-route-open';openBtn.insertAdjacentHTML('afterbegin','<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19V5h6l2 2h10v3M3 19l4-9h15l-4 9Z"/></svg>');
    editBtn.insertAdjacentHTML('afterbegin','<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l5-1 12-12-4-4L5 15Z"/></svg>');
@@ -1533,13 +1535,14 @@ function startNewTrip(){
  showToast('Nowa trasa. Wybierz Start.');
 }
 el('quick-new-trip').addEventListener('click',startNewTrip);
-try{
+if(window.parent===window)try{
  const archive=readArchive();
  const active=archive.items.find(x=>x.id===archive.activeId);
  if(active){
   const data=I.unpack(active.data);currentRouteId=active.id;
   trip=syncReturnNames(data.trip,data.trip);routes=data.routes;showResults=segments().some(x=>x.status==='routed');
   const recovered=restoreManualGapDrafts(active.manualGaps);
+  closeBaseline=planFingerprint();
   message('notice','Otworzono zapisaną trasę: '+active.name+'. Ręczne szkice: '+recovered+'.');
  }else if(!localStorage.getItem(ARCHIVE_KEY)&&!archive.items.length){
   const loaded=I.load(OLD_TEST_STORAGE);trip=loaded.trip;routes=loaded.routes;clearManualGapDrafts();
@@ -1583,6 +1586,18 @@ refresh();fit();updateQuick();
  if(map&&window.parent!==window){
   window.NTPlannerViewport=Object.freeze({
    read(){const p=map.getCenter();return {lat:p.lat,lon:p.lng,zoom:map.getZoom()};},
+    prepareClose(){
+     if(busy){showToast('Trwa obliczanie. Zakończ obliczenia przed zamknięciem planera.',true);return false;}
+     let dirty=!!activeGapDraft||!!selected||el('save-dialog').open;
+     try{dirty=dirty||!!(trip.waypoints.length&&(!currentRouteId||closeBaseline!==planFingerprint()));}catch(_){dirty=true;}
+     if(dirty&&!confirm('Zamknąć planer bez zapisywania zmian? Zapisane wcześniej wyprawy pozostaną w Moich trasach. Anuluj, aby wrócić do edycji i zapisać trasę.'))return false;
+     cancelMapTap();
+     for(const id of ['save-dialog','gap-sketch-close-dialog','trips-dialog'])if(el(id).open)el(id).close();
+     resetCurrentRoute();clearStatus();map.closePopup();
+     for(const id of ['notice','radius-test-status','gpx-export-audit','save-toast'])el(id).hidden=true;
+     window.NTPlannerSearchBridge?.hidePanels?.();
+     return true;
+    },
    apply(view){
     if(!view||![view.lat,view.lon,view.zoom].every(Number.isFinite)||Math.abs(view.lat)>85.051129||Math.abs(view.lon)>180||view.zoom<0||view.zoom>19)return false;
     map.invalidateSize({pan:false,animate:false});
@@ -1598,6 +1613,7 @@ refresh();fit();updateQuick();
 const get=id=>document.getElementById(id);
 const layerBox=get('nt-plan-layers-box'),searchBox=get('nt-plan-search-box'),menuBox=get('nt-plan-menu-box'),layerBtn=get('nt-plan-layers-btn'),searchBtn=get('nt-plan-search-btn'),menuBtn=get('nt-plan-tools-btn');
 function hidePanels(){get('nt-plan-search-input').blur();for(const box of [layerBox,searchBox,menuBox])box.hidden=true;for(const btn of [layerBtn,searchBtn,menuBtn])btn.setAttribute('aria-expanded','false');}
+if(window.NTPlannerSearchBridge)window.NTPlannerSearchBridge.hidePanels=hidePanels;
 function toggle(box,button){const opening=box.hidden;hidePanels();box.hidden=!opening;button.setAttribute('aria-expanded',String(opening));}
 layerBtn.addEventListener('click',()=>toggle(layerBox,layerBtn));
 searchBtn.addEventListener('click',()=>toggle(searchBox,searchBtn));
