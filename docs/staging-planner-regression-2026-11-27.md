@@ -69,3 +69,10 @@ Użytkownik zatwierdził pozostanie przy Valhalli na etapie budowy i testów wew
 ## Integracja — lista Moje trasy, 27.11.2026, 09:38 CET
 - PASS na Samsungu: lista zapisanych wypraw dostępna z osadzonego planera; nazwy, daty i liczba szkiców widoczne. Otwarcie Test 3 i Test 2 przywraca różne zapisane geometrie oraz dopasowuje widok mapy. Potwierdzone na trzech zrzutach; nie sprawdzano edycji ani usuwania w tym przypadku. Bez potrzeby ponownego routingu.
 - UX: ujednolicić szerokości przycisków Otwórz / Edytuj / Usuń w kartach listy. Kolejny test: warstwy i formularz + Punkt na głównej mapie, bez zapisu nowych danych.
+
+## Integracja — warstwy, logowanie i dodawanie punktu, 27.11.2026, 09:52 CET
+- PASS: po zamknięciu planera otwarcie i zamknięcie panelu warstw głównej mapy.
+- PASS: przycisk + Punkt bez sesji kieruje do konfiguracji/logowania; ręczne podawanie publicznego klucza pozostaje ograniczeniem prototypu do usunięcia przed MVP.
+- PASS: po zalogowaniu zwykłego użytkownika odczyt czterech własnych punktów z historią moderacji (trzy zatwierdzone publiczne, jeden odrzucony prywatny). Otwarcie formularza wyboru trzech rodzajów punktów. Nie zapisywano nowego punktu w tym teście; nie jest to ponowny pełny audyt RLS.
+- PASS: poprawka [9e80e6bc](https://github.com/Nordic-Trail/nordic-trail-test/commit/9e80e6bcefe055cee25d95e08e15983498c8807a) — użytkownik potwierdził przybliżanie przez szybkie podwójne dotknięcie rysikiem i palcem na głównej mapie Samsunga, pojedyncze dotknięcie otwiera formularz. Nie testowano innych urządzeń ani pełnego zestawu gestów.
+- Następny etap: synchronizacja widoku mapy i planera, z zachowaniem dopasowania zapisanej wyprawy po jej otwarciu.
