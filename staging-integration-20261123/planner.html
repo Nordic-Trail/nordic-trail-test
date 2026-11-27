@@ -484,7 +484,7 @@ function renderEndpointAudit(segs){
  const card=el('route-audit-card'),summary=el('route-audit-summary'),heading=el('route-audit-head');
  const drafts=rows.length-routed.length;
  card.classList.toggle('has-warning',warn.length>0||drafts>0);
- summary.textContent=!rows.length?'Brak odcinków do sprawdzenia.':(!routed.length?'Trasa nieobliczona – szkic.':warn.length?'Brak połączenia: '+warn.length+' z '+routed.length+' obliczonych odcinków.':'Obliczone odcinki kończą się do 50 m od punktów.')+(drafts&&routed.length?' Szkice: '+drafts+'.':'');
+ summary.textContent=!rows.length?'Brak odcinków do sprawdzenia.':(!routed.length?'Trasa nieobliczona – szkic.':warn.length?'Trasa nie dochodzi do wybranego punktu: '+warn.length+' z '+routed.length+' obliczonych odcinków.':'Obliczone odcinki kończą się do 50 m od punktów.')+(drafts&&routed.length?' Szkice: '+drafts+'.':'');
  if(!routed.length){heading.className='';heading.textContent=summary.textContent;el('route-audit-list').replaceChildren();return;}
  heading.className=warn.length?'audit-alert':'audit-clear';
  heading.textContent=warn.length?
@@ -1071,7 +1071,7 @@ async function calculate({automatic=false}={}){
  if(errors)routeStatus('Obliczono '+done+' odcinków. Pozostałe są szkicem. '+reason,true);
  else{
   const gaps=endpointAudit().filter(x=>x.warning);
-  routeStatus(gaps.length?'Brak połączenia przy niektórych punktach. Sprawdź „Brakujące fragmenty trasy”.':'✓ Przebieg obliczony. Sprawdź mapę i wybierz Zapisz. Dostępność dróg niezweryfikowana.',!!gaps.length);
+  routeStatus(gaps.length?'Trasa nie dochodzi do wybranego punktu. Sprawdź „Brakujące fragmenty trasy”.':'✓ Przebieg obliczony. Sprawdź mapę i wybierz Zapisz. Dostępność dróg niezweryfikowana.',!!gaps.length);
  }
 }
 el('fit-trip').addEventListener('click',()=>{
