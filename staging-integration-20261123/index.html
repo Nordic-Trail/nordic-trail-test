@@ -465,7 +465,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 </section>
 <section class="card" id="setup-card">
 <h2>Połączenie STAGING</h2>
-<p class="hint">Wykorzystuje publiczny klucz zapisany wcześniej na stronie STAGING Login w tej samej przeglądarce. Jeśli go nie ma, wklej klucz <code>sb_publishable_...</code> z projektu Nordic-Trail-Staging.</p>
+<p class="hint">Połączenie ze STAGING jest konfigurowane automatycznie. Ręczne wprowadzenie publicznego klucza <code>sb_publishable_...</code> jest opcją awaryjną.</p>
 <form id="setup-form" autocomplete="off">
 <label for="public-key">Klucz publiczny STAGING</label>
 <input id="public-key" type="password" autocomplete="off" spellcheck="false" required placeholder="sb_publishable_...">
@@ -563,6 +563,8 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
 'use strict';
 (function(){
   const STAGING_URL='https://bairmdubhnodwplioxld.supabase.co';
+  // Public client configuration for STAGING only. Database permissions are enforced by RLS.
+  const STAGING_PUBLISHABLE_KEY="sb_publishable_uV5trmiT47sowjIgGkOU8w_IWNH8uCM";
   const CONFIG_KEY='nt-staging-publishable-v1';
   const SESSION_KEY='nt-integration-map-auth-session-20261123-v1';
   const el=id=>document.getElementById(id);
@@ -1696,8 +1698,8 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       return true;
     }
   });
-  let saved=null;try{saved=localStorage.getItem(CONFIG_KEY);}catch(_error){}
-  if(saved&&validKey(saved))connect(saved);
+  // No manual key entry on normal launch; keep existing session isolation.
+  if(validKey(STAGING_PUBLISHABLE_KEY))connect(STAGING_PUBLISHABLE_KEY);
 })();
 </script>
 <script>
