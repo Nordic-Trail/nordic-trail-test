@@ -83,3 +83,8 @@ Użytkownik zatwierdził pozostanie przy Valhalli na etapie budowy i testów wew
 ## Automatyczna konfiguracja Supabase — 27.11.2026
 - Odczyt projektu STAGING potwierdził aktywny stan; RLS w map_points i point_reports włączone, brak INSERT/UPDATE/DELETE dla anon, odczyt punktów ograniczony do zatwierdzonych publicznych lub własnych. Kontrola metadanych i polityk, nie pełny test penetracyjny.
 - Commit 9df40b2e5c0297e6c6425e4bbccb64a8c75bee69: automatyczne połączenie z publicznym kluczem publishable STAGING. Bez kluczy tajnych, bez zmian bazy, polityk i izolacji sesji. Odczyt kodu po zapisie zgodny. Test przeglądarkowy połączenia i logowania pozostaje otwarty.
+
+## Automatyczne połączenie i sesja — 27.11.2026, 12:03 CET
+- PASS na Samsungu: po odświeżeniu aplikacja połączona, trzy zatwierdzone punkty publiczne dostępne bez logowania, formularz logowania dostępny; po zalogowaniu zwykłego użytkownika odczyt czterech własnych punktów z historią moderacji.
+- PASS: użytkownik potwierdził zachowanie zalogowanej sesji po odświeżeniu w tej samej karcie. Nie potwierdzono trwałości sesji po zamknięciu karty ani w innej przeglądarce. Nie zmieniano sessionStorage ani uprawnień. Test automatycznego połączenia w zupełnie nowym profilu bez zapisanego klucza pozostaje otwarty.
+- Na etapie bieżących testów używamy jednej karty i odświeżania. Opcjonalne zapamiętywanie sesji na urządzeniu wymaga osobnego przeglądu bezpieczeństwa przed MVP.
