@@ -62,3 +62,10 @@ Użytkownik zatwierdził pozostanie przy Valhalli na etapie budowy i testów wew
 - PASS: licznik zapytań 6/6 → 3/6 oraz zmiana stanu przycisku na „Trasa obliczona”. Blokada przy 0/6 i częściowe obliczenie przy zbyt małym budżecie nadal wymagają osobnego sprawdzenia; nie zużywać celowo zapytań.
 - PASS: eksport mieszanej wyprawy GPX i import Locus Map (zrzuty 09:29–09:30): 4 punkty, 3 ślady; Samochód — 1 (OSM) 9,7 km; Pieszo — 2 i 3 (OSM) po 384 m. Parking i Punkt 4 widoczne jako osobne punkty w tej samej grupie. Zaliczone dla tego przypadku, nie potwierdza dokładnej zgodności współrzędnych, całej zawartości XML ani legalności przejazdu. Locus wyświetla ślady swoim stylem. Ewentualna poprawka nazwy powrotu: „Punkt 4” zamiast opisowej nazwy przy wyborze punktu na mapie (sprawdzić ścieżkę dodania przed zmianą).
 - Zamykamy podstawowy przypadek pełnej wyprawy mieszanej i eksportu/importu. Nadal otwarte: wygląd rozwiniętej grupy znaczników, dłuższe wyprawy, warunki publicznego API przed udostępnieniem testerom.
+
+## Integracja mapy i planera — 27.11.2026, 09:36 CET
+- PASS: główna mapa → Trasy → widoczna zapisana wyprawa → Zamknij planer → główna mapa → Trasy; zachowany widok wyprawy. Synchronizacja środka i zoomu obu map pozostaje otwarta.
+
+## Integracja — lista Moje trasy, 27.11.2026, 09:38 CET
+- PASS na Samsungu: lista zapisanych wypraw dostępna z osadzonego planera; nazwy, daty i liczba szkiców widoczne. Otwarcie Test 3 i Test 2 przywraca różne zapisane geometrie oraz dopasowuje widok mapy. Potwierdzone na trzech zrzutach; nie sprawdzano edycji ani usuwania w tym przypadku. Bez potrzeby ponownego routingu.
+- UX: ujednolicić szerokości przycisków Otwórz / Edytuj / Usuń w kartach listy. Kolejny test: warstwy i formularz + Punkt na głównej mapie, bez zapisu nowych danych.
