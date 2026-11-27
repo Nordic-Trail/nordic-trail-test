@@ -132,6 +132,9 @@ h3{font-size:15px;margin:13px 0 6px}
 #gap-sketch-tools .buttons{display:flex;flex-wrap:wrap;gap:6px}
 #gap-sketch-tools button{flex:1 1 85px;font-size:12px;min-height:40px}
 #gap-sketch-tools strong{font-size:15px}
+#gap-sketch-delete{width:100%;margin:0 0 8px;border-color:#edc57b;color:#edc57b}
+#gap-sketch-delete[hidden]{display:none!important}
+.nt-manual-via-hit.is-selected .nt-via-dot{border-color:#edc57b;box-shadow:0 0 0 4px #edc57b88,0 1px 8px #1b1537cc}
 .nt-via-marker{width:48px;height:48px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;pointer-events:none}
 .nt-via-marker .nt-via-dot{display:block;width:23px;height:23px;border:3px solid #f4edff;border-radius:50%;background:#7555b5;box-shadow:0 1px 8px #1b1537cc;pointer-events:none}
 .nt-via-marker:hover .nt-via-dot{background:#9d79e9}
@@ -243,6 +246,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <div id="gap-sketch-tools" role="region" aria-label="Ręczny szkic brakującego dojścia" hidden>
 <strong>Ręczny szkic</strong>
 <p id="gap-sketch-hint">Dotknij mapy, aby dodać pierwszy punkt szkicu. To szkic, nie potwierdzona ścieżka.</p>
+<button type="button" class="secondary" id="gap-sketch-delete" hidden>Usuń punkt</button>
 <div class="buttons"><button type="button" class="secondary" id="gap-sketch-undo">Cofnij zmianę</button><button type="button" class="secondary" id="gap-sketch-cancel">Anuluj</button><button type="button" id="gap-sketch-finish">Zakończ szkic</button></div>
 </div>
 <div class="panel" id="planner-sheet" data-sheet="closed">
@@ -853,12 +857,13 @@ function renderManualGapLines(){
      iconSize:[48,48],iconAnchor:[24,24]});
    draft.via.forEach((p,i)=>{
     const marker=L.marker([p.lat,p.lon],{icon,draggable:true,autoPan:false,bubblingMouseEvents:false}).addTo(manualGapLines);
-    marker.on('dragstart',()=>{selectedGapViaIndex=null;rememberGapEdit();});
+    if(marker.getElement())marker.getElement().dataset.gapViaIndex=String(i);
+    marker.on('dragstart',()=>{selectedGapViaIndex=null;rememberGapEdit();updateGapSketchHint();});
     marker.on('click',event=>{
       if(event.originalEvent)L.DomEvent.stopPropagation(event.originalEvent);
       guardedMapTap(event,()=>{selectedGapViaIndex=i;
       updateGapSketchHint();
-      showToast('Punkt '+(i+1)+' zaznaczony. Dotknij nowe miejsce na mapie.');});
+      showToast('Punkt '+(i+1)+' zaznaczony. Przenieś go lub wybierz Usuń punkt.');});
     });
     marker.on('drag',()=>{
       const location=marker.getLatLng();
@@ -888,7 +893,11 @@ function renderManualGapLines(){
 function updateGapSketchHint(){
  if(!activeGapDraft)return;
  const count=activeGapDraft.via.length;
-  el('gap-sketch-hint').textContent=(selectedGapViaIndex!==null?'Wybrano punkt '+(selectedGapViaIndex+1)+'. Dotknij nowego miejsca na mapie, aby go przenieść. Możesz cofnąć zmianę.':count===0?'Dotknij mapy, aby dodać pierwszy punkt szkicu.':'Punkty: '+count+'. Dotknij mapy, aby dodać kolejny punkt. Aby przesunąć fioletowy punkt, przytrzymaj go i przeciągnij lub dotknij go, a potem nowego miejsca na mapie.')+' To szkic, nie potwierdzona ścieżka.';
+ const selected=selectedGapViaIndex!==null&&selectedGapViaIndex>=0&&selectedGapViaIndex<count;
+ el('gap-sketch-hint').textContent=(selected?'Wybrano punkt '+(selectedGapViaIndex+1)+'. Dotknij nowego miejsca na mapie, aby go przenieść, lub wybierz Usuń punkt.':count===0?'Dotknij mapy, aby dodać pierwszy punkt szkicu.':'Punkty: '+count+'. Dotknij mapy, aby dodać kolejny punkt. Przytrzymaj i przeciągnij punkt, aby go przesunąć. Dotknij punktu, aby go wybrać, przenieść lub usunąć.')+' To szkic, nie potwierdzona ścieżka.';
+ el('gap-sketch-delete').hidden=!selected;
+ el('gap-sketch-delete').disabled=!selected;
+ document.querySelectorAll('.nt-manual-via-hit[data-gap-via-index]').forEach(node=>node.classList.toggle('is-selected',selected&&Number(node.dataset.gapViaIndex)===selectedGapViaIndex));
  el('gap-sketch-undo').disabled=!activeGapDraft.undo.length;
 }
 function startManualGapSketch(segmentKey,side){
@@ -911,6 +920,13 @@ el('gap-sketch-cancel').addEventListener('click',()=>{exitGapSketch();showToast(
 el('gap-sketch-undo').addEventListener('click',()=>{
  if(!activeGapDraft||!activeGapDraft.undo.length)return;
  activeGapDraft.via=activeGapDraft.undo.pop();selectedGapViaIndex=null;redraw();updateGapSketchHint();
+});
+el('gap-sketch-delete').addEventListener('click',()=>{
+ if(!activeGapDraft||selectedGapViaIndex===null||selectedGapViaIndex<0||selectedGapViaIndex>=activeGapDraft.via.length)return;
+ cancelMapTap();rememberGapEdit();
+ activeGapDraft.via.splice(selectedGapViaIndex,1);selectedGapViaIndex=null;
+ redraw();updateGapSketchHint();
+ showToast('Punkt szkicu usunięty. Cofnij zmianę, aby go przywrócić.');
 });
 el('gap-sketch-finish').addEventListener('click',()=>{
  if(!activeGapDraft)return;
