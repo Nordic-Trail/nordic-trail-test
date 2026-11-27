@@ -1579,6 +1579,18 @@ try{
  }));
 }catch(error){message('notice','Nie udało się uruchomić mapy: '+String(error.message||error),true);}
 refresh();fit();updateQuick();
+ // Local same-origin viewport bridge; no route edits, storage or routing requests.
+ if(map&&window.parent!==window){
+  window.NTPlannerViewport=Object.freeze({
+   read(){const p=map.getCenter();return {lat:p.lat,lon:p.lng,zoom:map.getZoom()};},
+   apply(view){
+    if(!view||![view.lat,view.lon,view.zoom].every(Number.isFinite)||Math.abs(view.lat)>85.051129||Math.abs(view.lon)>180||view.zoom<0||view.zoom>19)return false;
+    map.invalidateSize({pan:false,animate:false});
+    map.setView([view.lat,view.lon],view.zoom,{animate:false});
+    return true;
+   }
+  });
+ }
 })();
 </script><script>
 (function(){
