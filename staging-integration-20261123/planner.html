@@ -295,7 +295,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
  <details id="advanced-route"><summary>Przywróć szkic trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details></div></details>
 <details class="card nt-accordion" id="route-compute-options" hidden><summary><span>Obliczanie trasy – opcje dodatkowe</span></summary><div class="nt-accordion-body">
 <label class="layer"><input id="route-consent" type="checkbox"> Zgadzam się wysłać współrzędne punktów i typ podróży na publiczny demonstracyjny serwer Valhalla/FOSSGIS. Nie wysyłamy nazw ani danych konta.</label>
-<div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg><span id="route-button-label">Przelicz ponownie</span></button></div>
+<div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg><span id="route-button-label">Przelicz ponownie</span></button></div><p class="hint" id="route-budget-status" role="status" aria-live="polite"></p>
 </div></details><section class="card" aria-label="Anulowanie planowania"><div class="buttons"><button type="button" id="undo-step" class="secondary" style="display:none" hidden disabled>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
 <p id="routing-status" role="status" aria-live="polite" hidden></p></section>
 <details class="card nt-accordion nt-accordion-warning" id="important-limits-section"><summary><span>Ważne ograniczenia</span><small>Dostępność i prawo przejazdu lub przejścia niepotwierdzone.</small></summary><div class="nt-accordion-body"><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></div></details>
@@ -459,10 +459,14 @@ function updateQuick(){
  const routeBtn=el('compute-routes');
  const gaps=endpointAudit(segs).some(x=>x.warning);
  el('route-compute-options').hidden=!segs.length;
- routeBtn.disabled=busy||!segs.length||(done&&!gaps);
+ const available=Math.max(0,MAX_CALLS-calls),exhausted=available===0;
+ routeBtn.disabled=busy||!segs.length||(done&&!gaps)||(!done&&exhausted);
+ const budget=el('route-budget-status');
+ budget.textContent='Pozostałe zapytania testowe: '+available+' z '+MAX_CALLS+'.'+(exhausted?' Nieobliczone odcinki pozostają szkicem.':'');
+ budget.classList.toggle('warning',exhausted);
  routeBtn.classList.toggle('done',done&&!gaps);
  routeBtn.classList.toggle('gap-warning',done&&gaps);
- el('route-button-label').textContent=busy?'Obliczanie…':done&&gaps?'Zobacz brakujące fragmenty':done?'Trasa obliczona':'Przelicz ponownie';
+ el('route-button-label').textContent=busy?'Obliczanie…':done&&gaps?'Zobacz brakujące fragmenty':done?'Trasa obliczona':exhausted?'Wykorzystano limit zapytań':'Przelicz ponownie';
  for(const [id,kind] of [['quick-start','start'],['quick-point','stop'],['quick-goal','finish']]){
   el(id).classList.toggle('active',picking&&pendingKind===kind);
  }
@@ -1104,11 +1108,11 @@ async function calculate({automatic=false}={}){
  }
  const missing=[...new Map(current.filter(s=>s.status==='draft').map(s=>[s.key,s])).values()];
  if(!missing.length){routeStatus('Trasa jest już obliczona.');return;}
+ const available=Math.max(0,MAX_CALLS-calls);
+ if(!available){routeStatus('Wykorzystano limit zapytań w tej sesji testowej. Nieobliczone odcinki pozostają szkicem.',true);updateQuick();return;}
  if(!ensureRouteConsent(!automatic)){
   routeStatus('Szkic trasy — bez zgody na obliczenia online. Możesz go zapisać lub przeliczyć później.',true);return;
  }
- const available=Math.max(0,MAX_CALLS-calls);
- if(!available){routeStatus('Wykorzystano limit zapytań w tej sesji testowej. Nieobliczone odcinki pozostają szkicem.',true);return;}
  const batch=missing.slice(0,Math.min(MAX_SEGMENTS,available));
  if(navigator.onLine===false){routeStatus('Brak internetu. Zachowano szkic do późniejszego przeliczenia.',true);return;}
  if(!automatic)remember();showResults=true;setBusy(true);
