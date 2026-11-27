@@ -53,3 +53,6 @@ Istniejących skryptów regresji Valhalli nie uruchamiano ponownie przy tworzeni
 5. Integracja do main wyłącznie po zaliczeniu wymaganych testów i akceptacji użytkownika. Przy problemie wrócić do bazowego kodu bez nadpisywania lokalnych wypraw.
 
 Koszty dotychczasowego eksperymentu ORS: 0 SEK według wykonanych działań (bez zakupu i bez żywego API). Docelowy termin testowego MVP: 20–22.12.2026.
+
+## Decyzja 27.11.2026 — kontynuujemy Valhallę
+Użytkownik zatwierdził pozostanie przy Valhalli na etapie budowy i testów wewnętrznych. ORS pozostaje odizolowaną alternatywą; prace nad integracją wstrzymane. Priorytet: ukończenie MVP, krótkie reprezentatywne testy, ponowne użycie obliczonych odcinków, ewentualne grupowanie zapytań po zweryfikowaniu poprawności geometrii. Nie zwiększamy limitów ani nie obchodzimy ich. Przed dostępem grupy testerów wyjaśnić z operatorem warunki użycia publicznego serwera. Poprawka UI [e7b1f890](https://github.com/Nordic-Trail/nordic-trail-test/commit/e7b1f8901661993ac7f9780875347dde19bb0954): licznik pozostałych zapytań i blokada ponownego obliczania przy wyczerpaniu limitu; podgląd brakujących fragmentów nadal dostępny przy obliczonej trasie. Test na urządzeniu pozostaje otwarty.
