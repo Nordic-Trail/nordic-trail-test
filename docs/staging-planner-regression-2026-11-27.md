@@ -76,3 +76,10 @@ Użytkownik zatwierdził pozostanie przy Valhalli na etapie budowy i testów wew
 - PASS: po zalogowaniu zwykłego użytkownika odczyt czterech własnych punktów z historią moderacji (trzy zatwierdzone publiczne, jeden odrzucony prywatny). Otwarcie formularza wyboru trzech rodzajów punktów. Nie zapisywano nowego punktu w tym teście; nie jest to ponowny pełny audyt RLS.
 - PASS: poprawka [9e80e6bc](https://github.com/Nordic-Trail/nordic-trail-test/commit/9e80e6bcefe055cee25d95e08e15983498c8807a) — użytkownik potwierdził przybliżanie przez szybkie podwójne dotknięcie rysikiem i palcem na głównej mapie Samsunga, pojedyncze dotknięcie otwiera formularz. Nie testowano innych urządzeń ani pełnego zestawu gestów.
 - Następny etap: synchronizacja widoku mapy i planera, z zachowaniem dopasowania zapisanej wyprawy po jej otwarciu.
+
+## Synchronizacja widoku — 27.11.2026, 09:58 CET
+- PASS na Samsungu: główna mapa Uppsala → planer (ten sam widok) → przesunięcie do Stenhagen → główna mapa (ten sam widok). Commity 8664405 i 24938a96. Zachowanie dopasowania zapisanej wyprawy po tej zmianie wymaga krótkiego testu regresji.
+- Ponowne logowanie po otwieraniu kolejnych linków: sesja w sessionStorage konkretnej karty. Ustalenie: odświeżać stały adres STAGING; mechanizm sesji zachowany do osobnej oceny bezpieczeństwa.
+## Automatyczna konfiguracja Supabase — 27.11.2026
+- Odczyt projektu STAGING potwierdził aktywny stan; RLS w map_points i point_reports włączone, brak INSERT/UPDATE/DELETE dla anon, odczyt punktów ograniczony do zatwierdzonych publicznych lub własnych. Kontrola metadanych i polityk, nie pełny test penetracyjny.
+- Commit 9df40b2e5c0297e6c6425e4bbccb64a8c75bee69: automatyczne połączenie z publicznym kluczem publishable STAGING. Bez kluczy tajnych, bez zmian bazy, polityk i izolacji sesji. Odczyt kodu po zapisie zgodny. Test przeglądarkowy połączenia i logowania pozostaje otwarty.
