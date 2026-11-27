@@ -9,6 +9,17 @@ header{display:flex;justify-content:space-between;align-items:center;gap:15px;pa
 main{max-width:1300px;margin:auto;padding:12px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(330px,.9fr);gap:12px}
 #map{height:min(78dvh,820px);min-height:450px;border:1px solid var(--edge);border-radius:14px;background:#264431}
 .panel{display:grid;align-content:start;gap:12px;min-width:0}.card{padding:14px;border:1px solid var(--edge);border-radius:14px;background:var(--panel)}
+.nt-accordion.card{padding:0;overflow:hidden}
+.nt-accordion>summary{position:relative;display:grid;gap:3px;list-style:none;padding:12px 40px 12px 13px;min-height:48px;cursor:pointer;font-weight:700;font-size:15px;align-content:center}
+.nt-accordion>summary::-webkit-details-marker{display:none}
+.nt-accordion>summary::after{content:'';position:absolute;right:17px;top:17px;width:10px;height:10px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg)}
+.nt-accordion[open]>summary::after{transform:rotate(225deg);top:22px}
+.nt-accordion>summary:focus-visible{outline:2px solid #e4efd7;outline-offset:-3px}
+.nt-accordion>summary small{font-size:12px;line-height:1.35;font-weight:500;color:#d0dfcb;overflow-wrap:anywhere}
+.nt-accordion[open]>summary{border-bottom:1px solid var(--edge)}
+.nt-accordion-body{padding:10px 13px 13px}
+.nt-accordion-warning>summary small,.nt-accordion.has-warning>summary small{color:#ffdaa0}
+.nt-accordion.has-warning{border-color:#edc57b}
 h1,h2{margin:0 0 9px}h1{font-size:20px}h2{font-size:17px}.hint{font-size:13px;color:#c0cdc0;margin:7px 0}
 label{display:block;margin:9px 0 5px;font-size:13px;font-weight:700}input:not([type=checkbox]),select{display:block;width:100%;font:inherit;min-height:44px;padding:9px;background:#102219;color:white;border:1px solid #779179;border-radius:9px}
 button{font:inherit;min-height:44px;border:0;border-radius:9px;padding:9px 12px;background:var(--accent);color:#1b301f;font-weight:750;cursor:pointer}
@@ -259,26 +270,27 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <div id="travel-row"><label for="point-mode">Rodzaj etapu od poprzedniego punktu</label><div class="point-mode-choice"><svg class="ui-icon" aria-hidden="true"><use id="point-mode-icon" href="#nt-walker"/></svg><select id="point-mode"><option value="drive">Samochód</option><option value="walk">Pieszo</option></select></div></div>
 <div class="buttons"><button id="save-point" type="button">Zapisz punkt</button><button id="close-editor" type="button" class="secondary">Zamknij</button></div><button id="delete-point" type="button" class="nt-danger"><svg class="ui-icon" aria-hidden="true"><use href="#nt-trash"/></svg>Usuń punkt</button></section>
 <div hidden><input id="visible-drive" type="checkbox" checked><input id="visible-walk" type="checkbox" checked></div>
-<section class="card" id="trip-edit-section" hidden><h2><svg class="ui-icon" aria-hidden="true"><use href="#nt-trail"/></svg> Edycja trasy</h2><p class="hint">W trybie edycji możesz przeciągać pojedyncze punkty bezpośrednio na mapie. Przeciągaj tylko pinezkę, nie linię. Zmienione odcinki zostaną automatycznie przeliczone, jeśli wyrażono zgodę. Możesz użyć Cofnij.</p><h3>Kolejność punktów</h3><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p>
- <details id="advanced-route"><summary>Przywróć szkic trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details></section>
+<section class="card" id="trip-edit-section" hidden><h2><svg class="ui-icon" aria-hidden="true"><use href="#nt-trail"/></svg> Edycja trasy</h2><p class="hint">W trybie edycji możesz przeciągać pojedyncze punkty bezpośrednio na mapie. Przeciągaj tylko pinezkę, nie linię. Zmienione odcinki zostaną automatycznie przeliczone, jeśli wyrażono zgodę. Możesz użyć Cofnij.</p></section>
+<details class="card nt-accordion" id="point-list-section"><summary><span>Kolejność punktów</span><small id="point-list-count"></small></summary><div class="nt-accordion-body"><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p>
+ <details id="advanced-route"><summary>Przywróć szkic trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details></div></details>
 <section class="card" aria-label="Narzędzia trasy">
 <details id="route-compute-options" hidden><summary>Obliczanie trasy – opcje dodatkowe</summary>
 <label class="layer"><input id="route-consent" type="checkbox"> Zgadzam się wysłać współrzędne punktów i typ podróży na publiczny demonstracyjny serwer Valhalla/FOSSGIS. Nie wysyłamy nazw ani danych konta.</label>
 <div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg><span id="route-button-label">Przelicz ponownie</span></button></div>
 </details><div class="buttons"><button type="button" id="undo-step" class="secondary" style="display:none" hidden disabled>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
 <p id="routing-status" role="status" aria-live="polite" hidden></p></section>
-<section class="card" id="route-audit-card" hidden aria-label="Brakujące fragmenty trasy">
-<h2><svg class="ui-icon" aria-hidden="true"><use href="#nt-trail"/></svg> Brakujące fragmenty trasy</h2>
+<details class="card nt-accordion nt-accordion-warning" id="important-limits-section"><summary><span>Ważne ograniczenia</span><small>Dostępność i prawo przejazdu lub przejścia niepotwierdzone.</small></summary><div class="nt-accordion-body"><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></div></details>
+<details class="card nt-accordion" id="route-audit-card" aria-label="Brakujące fragmenty trasy"><summary><span>Brakujące fragmenty trasy</span><small id="route-audit-summary" role="status"></small></summary><div class="nt-accordion-body">
 <p id="route-audit-head" role="status"></p><ol id="route-audit-list"></ol>
 <p class="hint"><strong>Co oznaczają linie?</strong> Zielona — wyznaczona trasa. Pomarańczowa przerywana — miejsce, w którym trasa nie dochodzi do punktu. Fioletowa przerywana — Twój ręczny szkic. Pomarańczowe i fioletowe fragmenty nie są potwierdzonymi ścieżkami i nie są dodawane do GPX.</p>
 <p class="hint">Pokazane odległości są mierzone w linii prostej — nie oznaczają długości istniejącej ścieżki. Ostrzegamy, jeśli przerwa przekracza 50 m. Nawet gdy trasa kończy się blisko punktu, sprawdź dojście w terenie.</p>
 <details id="route-audit-advanced"><summary>Dodatkowe sprawdzenie trasy (test)</summary><div class="buttons"><button type="button" id="test-radius" class="secondary">Sprawdź, czy jest bliższa ścieżka</button></div><p class="hint">To próba ponownego wyszukania trasy przy mniejszym obszarze dopasowania punktów (50 m). Test wymaga zaznaczenia zgody na wysłanie współrzędnych powyżej. Nie zmienia zapisanej trasy.</p><p id="radius-test-status" role="status" aria-live="polite" hidden></p></details>
-</section>
-<section class="card" id="road-check-card" hidden aria-label="Kontrola klasyfikacji dróg"><h2>Kontrola dróg – test OSM</h2><p class="hint">Wersja 2 · kontrola geometrii Polyline6</p><p class="hint">Kontrola informacyjna etapów samochodowych. Nie zmienia przebiegu ani nie potwierdza prawa przejazdu. NVDB, szlabany i STFS nie są jeszcze sprawdzane. Tylko publiczne punkty testowe, nie prywatne adresy.</p><button type="button" id="road-check-run" class="secondary">Sprawdź klasyfikację dróg</button><p id="road-check-status" role="status" aria-live="polite"></p><ol id="road-check-list"></ol></section><section class="card"><h2>Zapis i eksport</h2><p id="gpx-export-audit" role="status" class="hint">Eksport nie łączy automatycznie przerw między odcinkami.</p>
+</div></details>
+<details class="card nt-accordion" id="road-check-card" hidden aria-label="Kontrola klasyfikacji dróg"><summary><span>Kontrola dróg – test OSM</span><small id="road-check-status" role="status" aria-live="polite"></small></summary><div class="nt-accordion-body"><p class="hint">Wersja 2 · kontrola geometrii Polyline6</p><p class="hint">Kontrola informacyjna etapów samochodowych. Nie zmienia przebiegu ani nie potwierdza prawa przejazdu. NVDB, szlabany i STFS nie są jeszcze sprawdzane. Tylko publiczne punkty testowe, nie prywatne adresy.</p><button type="button" id="road-check-run" class="secondary">Sprawdź klasyfikację dróg</button><ol id="road-check-list"></ol></div></details><details class="card nt-accordion" id="save-export-section"><summary><span>Zapis i eksport</span></summary><div class="nt-accordion-body"><p id="gpx-export-audit" role="status" class="hint">Eksport nie łączy automatycznie przerw między odcinkami.</p>
 <div class="export-actions"><button id="open-my-trips" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-folder"/></svg>Moje trasy</button><div class="export-stack"><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><p class="small-note">GPX zawiera tylko wyznaczone odcinki, każdy osobno, oraz punkty wyprawy. Brakujące fragmenty i ręczne szkice nie są śladami.</p></div></div>
  <div class="buttons"><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
-<p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></section>
-<section class="card"><h2>Ważne ograniczenia</h2><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></section>
+<p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></div></details>
+
 </div></div></main>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../staging-trips/route-model.js"></script>
@@ -470,9 +482,11 @@ function endpointAudit(segs=segments()){
 }
 function renderEndpointAudit(segs){
  const rows=endpointAudit(segs),routed=rows.filter(x=>x.status==='routed'),warn=routed.filter(x=>x.warning);
- const card=el('route-audit-card');card.hidden=!routed.length;
- if(!routed.length)return;
- const heading=el('route-audit-head');
+ const card=el('route-audit-card'),summary=el('route-audit-summary'),heading=el('route-audit-head');
+ const drafts=rows.length-routed.length;
+ card.classList.toggle('has-warning',warn.length>0||drafts>0);
+ summary.textContent=!rows.length?'Brak odcinków do sprawdzenia.':(!routed.length?'Trasa nieobliczona – szkic.':warn.length?'Brak połączenia: '+warn.length+' z '+routed.length+' obliczonych odcinków.':'Obliczone odcinki kończą się do 50 m od punktów.')+(drafts&&routed.length?' Szkice: '+drafts+'.':'');
+ if(!routed.length){heading.className='';heading.textContent=summary.textContent;el('route-audit-list').replaceChildren();return;}
  heading.className=warn.length?'audit-alert':'audit-clear';
  heading.textContent=warn.length?
   'Uwaga: wyznaczona trasa nie dochodzi dokładnie do wszystkich punktów. Problem dotyczy '+warn.length+' z '+routed.length+' odcinków. Zobacz, gdzie brakuje połączenia.':
@@ -678,6 +692,7 @@ function refresh(){
  renderEndpointAudit(all);
   renderRoadCheck(all);
  el('count').textContent=String(trip.waypoints.length);
+ el('point-list-count').textContent='Punkty: '+trip.waypoints.length;
  el('route-results').hidden=!showResults;
  el('start-pick').hidden=trip.waypoints.length>0;
  el('toggle-trip-editor').disabled=busy||trip.waypoints.length===0;
@@ -1018,7 +1033,7 @@ async function calculate({automatic=false}={}){
  if(busy||activeGapDraft)return;
  const current=segments();
  if(current.length&&current.every(x=>x.status==='routed')&&endpointAudit(current).some(x=>x.warning)){
-  setSheet('expanded');
+  el('route-audit-card').open=true;setSheet('expanded');
   requestAnimationFrame(()=>{
    const area=el('sheet-more'),target=el('route-audit-card');
    const offset=area.scrollTop+target.getBoundingClientRect().top-area.getBoundingClientRect().top-12;
@@ -1070,7 +1085,7 @@ el('toggle-trip-editor').addEventListener('click',()=>{
  const panel=el('trip-edit-section');panel.hidden=!panel.hidden;
  el('toggle-trip-editor').setAttribute('aria-expanded',String(!panel.hidden));
  el('toggle-trip-editor').textContent=panel.hidden?'✎ Edycja trasy':'✎ Zamknij edycję';
- if(!panel.hidden){setSheet('expanded');if(window.innerWidth>800)panel.scrollIntoView({behavior:'smooth',block:'start'});}
+ if(!panel.hidden){el('point-list-section').open=true;setSheet('expanded');if(window.innerWidth>800)panel.scrollIntoView({behavior:'smooth',block:'start'});}
  redraw();
 });
 el('clear-routes').addEventListener('click',()=>{
