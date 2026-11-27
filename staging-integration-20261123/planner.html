@@ -241,8 +241,8 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <div id="route-modes" class="stage-buttons" role="group" aria-label="Rodzaj planowanej trasy"><button id="add-drive-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy samochodowej" title="Trasa samochodowa"><svg class="ui-icon" aria-hidden="true"><use href="#nt-car"/></svg><span>Samochód</span></button><button id="add-walk-stage" type="button" class="secondary" aria-pressed="false" aria-label="Narzędzia trasy pieszej" title="Trasa piesza"><svg class="ui-icon" aria-hidden="true"><use href="#nt-walker"/></svg><span>Pieszo</span></button></div></div><div class="buttons map-fit-actions"><button id="fit-trip" type="button" class="secondary">◎ Pokaż całą wyprawę</button></div><p class="hint">Samochód: pomarańczowy · Pieszo: zielony. Linia ciągła = OSM, przerywana = szkic.</p></section>
 <div id="save-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <div id="gap-sketch-tools" role="region" aria-label="Ręczny szkic brakującego dojścia" hidden>
-<strong>Ręczny szkic — EDYCJA PUNKTÓW v2</strong>
-<p id="gap-sketch-hint">Dotknij mapy, aby dodać załamania szkicu.</p>
+<strong>Ręczny szkic</strong>
+<p id="gap-sketch-hint">Dotknij mapy, aby dodać pierwszy punkt szkicu. To szkic, nie potwierdzona ścieżka.</p>
 <div class="buttons"><button type="button" class="secondary" id="gap-sketch-undo">Cofnij zmianę</button><button type="button" class="secondary" id="gap-sketch-cancel">Anuluj</button><button type="button" id="gap-sketch-finish">Zakończ szkic</button></div>
 </div>
 <div class="panel" id="planner-sheet" data-sheet="closed">
@@ -888,7 +888,7 @@ function renderManualGapLines(){
 function updateGapSketchHint(){
  if(!activeGapDraft)return;
  const count=activeGapDraft.via.length;
- el('gap-sketch-hint').textContent=selectedGapViaIndex!==null?'Wybrano punkt '+(selectedGapViaIndex+1)+'. Dotknij nowe miejsce na mapie, aby go przenieść. Możesz cofnąć zmianę.':'Punkty: '+count+'. Przytrzymaj i przeciągnij fioletowy punkt. Alternatywnie dotknij punktu, potem nowego miejsca na mapie. To szkic, nie potwierdzona ścieżka.';
+  el('gap-sketch-hint').textContent=(selectedGapViaIndex!==null?'Wybrano punkt '+(selectedGapViaIndex+1)+'. Dotknij nowego miejsca na mapie, aby go przenieść. Możesz cofnąć zmianę.':count===0?'Dotknij mapy, aby dodać pierwszy punkt szkicu.':'Punkty: '+count+'. Dotknij mapy, aby dodać kolejny punkt. Aby przesunąć fioletowy punkt, przytrzymaj go i przeciągnij lub dotknij go, a potem nowego miejsca na mapie.')+' To szkic, nie potwierdzona ścieżka.';
  el('gap-sketch-undo').disabled=!activeGapDraft.undo.length;
 }
 function startManualGapSketch(segmentKey,side){
