@@ -88,3 +88,8 @@ Użytkownik zatwierdził pozostanie przy Valhalli na etapie budowy i testów wew
 - PASS na Samsungu: po odświeżeniu aplikacja połączona, trzy zatwierdzone punkty publiczne dostępne bez logowania, formularz logowania dostępny; po zalogowaniu zwykłego użytkownika odczyt czterech własnych punktów z historią moderacji.
 - PASS: użytkownik potwierdził zachowanie zalogowanej sesji po odświeżeniu w tej samej karcie. Nie potwierdzono trwałości sesji po zamknięciu karty ani w innej przeglądarce. Nie zmieniano sessionStorage ani uprawnień. Test automatycznego połączenia w zupełnie nowym profilu bez zapisanego klucza pozostaje otwarty.
 - Na etapie bieżących testów używamy jednej karty i odświeżania. Opcjonalne zapamiętywanie sesji na urządzeniu wymaga osobnego przeglądu bezpieczeństwa przed MVP.
+
+## Integracja — warstwy i karty OSM, 27.11.2026, 12:11 CET
+- PASS na Samsungu: wyświetlenie pilotażowych oznaczeń Tumba–Lida, grupowanie i przybliżenie obszaru, widoczne znaczniki po przybliżeniu.
+- PASS: karty bariery (barrier=lift_gate) i odcinka drogi (highway=service, access=no), źródło OSM/ODbL, identyfikator, daty paczki, brak weryfikacji terenowej, jawny brak danych nawierzchni i ostrzeżenie o dostępności prawnej; przewijanie karty i powrót do mapy. Odnośnik OSM widoczny, nie sprawdzano otwarcia. Dane pochodzą z paczki 11.11.2026, nie są odczytem na żywo ani potwierdzeniem rzeczywistego zakazu.
+- Pozostała kontrola zachowania aktywnych warstw po przejściu do planera i powrocie. Bez nowych zapytań do Valhalli i bez zmian bazy.
