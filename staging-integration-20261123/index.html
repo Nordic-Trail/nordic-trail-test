@@ -776,6 +776,38 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'&&!el('point-sheet').hidden&&!writingDraft)clearSelection();
   });
+  // Allow Leaflet to recognize a double tap before opening the point form.
+  const POINT_TAP_DELAY=450,POINT_TAP_RADIUS=28;
+  let queuedPointTap=null;
+  function cancelPointTap(){
+    if(queuedPointTap){clearTimeout(queuedPointTap.timer);queuedPointTap=null;}
+  }
+  function queuePointTap(event){
+    const p=event.containerPoint;
+    if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
+    if(queuedPointTap){
+      const first=queuedPointTap;
+      cancelPointTap();
+      if(Math.hypot(first.x-p.x,first.y-p.y)<=POINT_TAP_RADIUS)return;
+    }
+    const tap={x:p.x,y:p.y,user:activeUser,db,selectedPoint,movingPoint};
+    tap.timer=setTimeout(()=>{
+      if(queuedPointTap!==tap)return;
+      queuedPointTap=null;
+      if(tap.user!==activeUser||tap.db!==db||tap.selectedPoint!==selectedPoint||tap.movingPoint!==movingPoint||
+        writingDraft||!activeUser||!db||!el('point-sheet').hidden||!el('nt-osm-detail-sheet').hidden||
+        !el('nt-integrated-route-overlay').hidden||activeSpiderMarker)return;
+      selectPointOnMap(event);
+    },POINT_TAP_DELAY);
+    queuedPointTap=tap;
+  }
+  if(map){
+    map.on('dblclick movestart zoomstart dragstart popupopen',cancelPointTap);
+    document.addEventListener('pointerdown',event=>{
+      if(!map.getContainer().contains(event.target)||event.target.closest?.('button,a,input,select,.leaflet-control'))cancelPointTap();
+    },true);
+    map.getContainer().addEventListener('pointercancel',cancelPointTap,true);
+  }
   if(map)map.on('click',event=>{
     // Dismissing OSM evidence must never create an authenticated draft.
     if(!el('nt-osm-detail-sheet').hidden){
@@ -799,6 +831,9 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       message('map-action-status','Aby dodać punkt, połącz się ze STAGING i zaloguj na konto testowe.',true);
       return;
     }
+    queuePointTap(event);
+  });
+  function selectPointOnMap(event){
     const lat=Number(event.latlng.lat.toFixed(6)),lon=Number(event.latlng.lng.toFixed(6));
     if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)return;
     const hadPoint=!!selectedPoint;
@@ -819,7 +854,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
     dismissMapNotice();el('point-sheet-status').hidden=true;
     show('point-sheet',true);
     adjustMapToPanel();
-  });
+  }
 
   async function loadMyPoints(user=activeUser,request=seq){
     const list=el('my-points');
@@ -1634,6 +1669,7 @@ html.nt-page-scroll-locked,body.nt-page-scroll-locked{overflow:hidden!important;
       el('workspace').scrollIntoView({behavior:'smooth',block:'start'});
       return;
     }
+    cancelPointTap();
     if(writingDraft)return;
     if(selectedPoint){
       movingPoint=false;
