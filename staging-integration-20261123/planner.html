@@ -124,7 +124,7 @@ h3{font-size:15px;margin:13px 0 6px}
 }
 @media(prefers-reduced-motion:reduce){.panel#planner-sheet,#route-modes{transition:none!important}}
 .nt-dialog{color:#f1f4e9;background:#1b3224;border:1px solid #b5cba9;border-radius:16px;padding:20px;width:min(94vw,430px);max-height:80dvh;box-shadow:0 18px 55px #07150cbb}.nt-dialog::backdrop{background:#08160dc9}.nt-dialog h2{margin:0 0 12px}.nt-dialog label{font-size:14px}.nt-dialog input{width:100%;background:#0d2115;color:white;border:1px solid #b0c8ae;border-radius:9px;min-height:48px;font-size:16px;padding:9px}.nt-dialog .buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.nt-dialog button{min-width:0}.nt-dialog .secondary{background:#2f4937;color:white;border:1px solid #78977a}#named-routes-list{list-style:none;padding:0;margin:10px 0;overflow-y:auto;max-height:55dvh;display:grid;gap:9px}#named-routes-list li{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#294633;padding:9px;border-radius:9px}#named-routes-list li div{min-width:0;overflow-wrap:anywhere}#named-routes-list li small{display:block;color:#c2d3c2}#named-routes-list li button{min-height:42px;flex:none}#compute-routes.gap-warning{background:#e5b978;color:#2d2516;border:1px solid #805a22}
-#route-audit-card{border-color:#ad9860}
+#route-audit-card.has-warning{border-color:#edc57b}
 #route-audit-list button{display:block;margin:6px 0;max-width:100%;min-height:40px;padding:6px 10px;font-size:12px;background:#c5d6a5;color:#243321}
 #radius-test-status{white-space:pre-line;padding:8px 10px;font-size:13px;background:#294533;border-radius:7px;line-height:1.5}
 #gap-sketch-tools{position:fixed;z-index:960;top:calc(78px + env(safe-area-inset-top));left:10px;right:10px;max-width:590px;margin:auto;padding:13px 15px;border-radius:13px;border:1px solid #d3e9bd;background:rgba(24,53,38,.94);box-shadow:0 6px 20px #05160a88;color:#eff7ed}
@@ -204,7 +204,7 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 #auto-route-status{font-size:12px;line-height:1.3;margin:6px 0 0;color:#e1ecd9}
 #auto-route-status.error{color:#ffdab1}
 #auto-route-status[hidden],#route-compute-options[hidden],#undo-step[hidden]{display:none!important}
-#route-compute-options summary{cursor:pointer;padding:9px 0;color:#e1ecd9}
+#route-compute-options>summary{color:#e1ecd9}
 </style></head>
 <body><svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
 <symbol id="nt-car" viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M4.9,18.9 L4.9,22.7 L9.7,23.2 L10.2,26.1 L9.2,28.4 L6.4,28.9 L4.5,30.3 L4.5,37.0 L14,37 L15.4,39.8 L18.2,39.8 L19.2,40.8 L18.7,43.2 L14.9,43.2 L13.5,41.7 L13,39.4 L4.5,39.4 L4,51.7 L4.5,54.5 L5.9,56 L12.1,56 L13.5,54.5 L14,47.4 L50,47.4 L50.5,54.5 L51.9,56 L57.6,56 L59.5,54.5 L59.5,39.4 L51,39.4 L50.5,42.2 L49.1,43.2 L45.8,43.2 L44.8,42.2 L44.8,40.8 L45.8,39.8 L48.6,39.8 L48.6,38.4 L50,37 L59.5,37 L59.5,30.3 L57.6,28.9 L54.8,28.4 L53.8,25.6 L54.3,23.2 L59.1,22.7 L59.1,18.9 L54.3,18.5 L53.4,21.3 L52.4,20.4 L50.5,10.4 L49.1,8.5 L46.7,7.6 L17.3,7.6 L14.9,8.5 L13.5,10.9 L11.6,19.9 L10.6,21.3 L9.7,20.8 L9.7,18.5 Z M47.7,26.5 L50,26.5 L51.5,27.5 L52.9,30.3 L52.4,32.2 L49.1,34.6 L46.2,33.7 L44.8,31.8 L45.3,28.4 Z M39.6,26.5 L41.5,27.5 L41.5,36.5 L40.5,37.5 L38.6,36.5 L38.6,27.5 Z M36.3,26.5 L38.2,27.5 L38.2,36.5 L37.2,37.5 L35.3,36.5 L35.3,28 Z M33.4,26.5 L34.8,27.5 L34.8,36.5 L33.9,37.5 L32.9,37.5 L32,36 L32.5,27.5 Z M30.1,26.5 L31.5,27.5 L31.5,36.5 L30.6,37.5 L28.7,36 L29.2,27.5 Z M27.3,26.5 L28.7,27.5 L28.7,36.5 L27.7,37.5 L25.8,36.5 L26.3,27.5 Z M23.5,26.5 L25.4,27.5 L25.4,36.5 L24.4,37.5 L22.5,36.5 L22.5,27.5 Z M14,26.5 L17.3,27 L19.2,29.4 L18.7,32.7 L16.3,34.6 L13.5,34.1 L11.1,30.8 L12.1,28 Z M13,20.8 L14.9,12.8 L16.3,10.9 L47.7,10.9 L49.1,12.8 L51,21.8 L13.5,22.3 Z"/></symbol>
@@ -273,11 +273,10 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 <section class="card" id="trip-edit-section" hidden><h2><svg class="ui-icon" aria-hidden="true"><use href="#nt-trail"/></svg> Edycja trasy</h2><p class="hint">W trybie edycji możesz przeciągać pojedyncze punkty bezpośrednio na mapie. Przeciągaj tylko pinezkę, nie linię. Zmienione odcinki zostaną automatycznie przeliczone, jeśli wyrażono zgodę. Możesz użyć Cofnij.</p></section>
 <details class="card nt-accordion" id="point-list-section"><summary><span>Kolejność punktów</span><small id="point-list-count"></small></summary><div class="nt-accordion-body"><ol id="points"></ol><p id="empty" class="hint">Brak punktów. Dodaj pierwszy na mapie.</p>
  <details id="advanced-route"><summary>Przywróć szkic trasy</summary><p class="hint">Powrót do szkicu usuwa wyznaczone odcinki OSM tylko z bieżącej edycji.</p><button type="button" id="clear-routes" class="secondary">Wróć do szkicu</button></details></div></details>
-<section class="card" aria-label="Narzędzia trasy">
-<details id="route-compute-options" hidden><summary>Obliczanie trasy – opcje dodatkowe</summary>
+<details class="card nt-accordion" id="route-compute-options" hidden><summary><span>Obliczanie trasy – opcje dodatkowe</span></summary><div class="nt-accordion-body">
 <label class="layer"><input id="route-consent" type="checkbox"> Zgadzam się wysłać współrzędne punktów i typ podróży na publiczny demonstracyjny serwer Valhalla/FOSSGIS. Nie wysyłamy nazw ani danych konta.</label>
 <div class="buttons"><button type="button" id="compute-routes"><svg class="ui-icon" aria-hidden="true"><use href="#nt-route"/></svg><span id="route-button-label">Przelicz ponownie</span></button></div>
-</details><div class="buttons"><button type="button" id="undo-step" class="secondary" style="display:none" hidden disabled>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
+</div></details><section class="card" aria-label="Anulowanie planowania"><div class="buttons"><button type="button" id="undo-step" class="secondary" style="display:none" hidden disabled>Cofnij</button><button type="button" id="cancel-planning" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-cancel"/></svg>Anuluj</button></div>
 <p id="routing-status" role="status" aria-live="polite" hidden></p></section>
 <details class="card nt-accordion nt-accordion-warning" id="important-limits-section"><summary><span>Ważne ograniczenia</span><small>Dostępność i prawo przejazdu lub przejścia niepotwierdzone.</small></summary><div class="nt-accordion-body"><p class="warning">To testowy planer tras i szkiców, nie nawigacja. Planer nie sprawdza dróg, znaków, prawa przejazdu ani dostępności biwaku. Jazda poza drogami jest w Szwecji co do zasady zabroniona na gruncie bezśnieżnym. Weryfikuj warunki i ograniczenia na miejscu.</p><p class="hint">Mapa OpenStreetMap wymaga internetu. Brak funkcji offline w tym prototypie.</p></div></details>
 <details class="card nt-accordion" id="route-audit-card" aria-label="Brakujące fragmenty trasy"><summary><span>Brakujące fragmenty trasy</span><small id="route-audit-summary" role="status"></small></summary><div class="nt-accordion-body">
@@ -288,8 +287,8 @@ html.nt-embedded .nt-map-tool-panel{top:calc(72px + env(safe-area-inset-top));ma
 </div></details>
 <details class="card nt-accordion" id="road-check-card" hidden aria-label="Kontrola klasyfikacji dróg"><summary><span>Kontrola dróg – test OSM</span><small id="road-check-status" role="status" aria-live="polite"></small></summary><div class="nt-accordion-body"><p class="hint">Wersja 2 · kontrola geometrii Polyline6</p><p class="hint">Kontrola informacyjna etapów samochodowych. Nie zmienia przebiegu ani nie potwierdza prawa przejazdu. NVDB, szlabany i STFS nie są jeszcze sprawdzane. Tylko publiczne punkty testowe, nie prywatne adresy.</p><button type="button" id="road-check-run" class="secondary">Sprawdź klasyfikację dróg</button><ol id="road-check-list"></ol></div></details><details class="card nt-accordion" id="save-export-section"><summary><span>Zapis i eksport</span></summary><div class="nt-accordion-body"><p id="gpx-export-audit" role="status" class="hint">Eksport nie łączy automatycznie przerw między odcinkami.</p>
 <div class="export-actions"><button id="open-my-trips" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-folder"/></svg>Moje trasy</button><div class="export-stack"><button id="export-gpx" type="button" class="secondary"><svg class="ui-icon" aria-hidden="true"><use href="#nt-download"/></svg>Pobierz plik trasy</button><p class="small-note">GPX zawiera tylko wyznaczone odcinki, każdy osobno, oraz punkty wyprawy. Brakujące fragmenty i ręczne szkice nie są śladami.</p></div></div>
- <div class="buttons"><button id="new-trip" type="button" class="secondary">Nowa wyprawa</button></div><p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
-<p class="hint">Nowy zapis v2 nie zmienia starego zapisu v1. Planów nie przesyłamy do Supabase.</p></div></details>
+ <p id="action-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
+<p class="hint">Trasy są zapisywane lokalnie w tej przeglądarce.</p></div></details>
 
 </div></div></main>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -458,7 +457,7 @@ function chooseMode(mode){
 }
 function setBusy(value){
  busy=value;
- for(const id of ['start-pick','cancel-pick','save-point','open-my-trips','export-gpx','new-trip','compute-routes','test-radius','clear-routes','add-drive-stage','add-walk-stage','undo-step','cancel-planning']){
+ for(const id of ['start-pick','cancel-pick','save-point','open-my-trips','export-gpx','compute-routes','test-radius','clear-routes','add-drive-stage','add-walk-stage','undo-step','cancel-planning']){
   el(id).disabled=value;
  }
  if(!value){el('start-pick').disabled=trip.waypoints.length>=M.MAX_POINTS;el('undo-step').disabled=!history.length;}updateQuick();el('road-check-run').disabled=value||!segments().some(x=>x.mode==='drive'&&x.status==='routed')||!window.NTPlannerRoadAudit||!window.NTRoadAudit;
@@ -1463,7 +1462,6 @@ function startNewTrip(){
  message('action-status','Nowa trasa. Zapisane trasy pozostają w Moich trasach.');
  showToast('Nowa trasa. Wybierz Start.');
 }
-el('new-trip').addEventListener('click',startNewTrip);
 el('quick-new-trip').addEventListener('click',startNewTrip);
 try{
  const archive=readArchive();
