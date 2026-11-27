@@ -1102,24 +1102,24 @@ async function calculate({automatic=false}={}){
   openGapAudit();
   return;
  }
- const missing=segments().filter(s=>s.status==='draft');
+ const missing=[...new Map(current.filter(s=>s.status==='draft').map(s=>[s.key,s])).values()];
  if(!missing.length){routeStatus('Trasa jest już obliczona.');return;}
  if(!ensureRouteConsent(!automatic)){
   routeStatus('Szkic trasy — bez zgody na obliczenia online. Możesz go zapisać lub przeliczyć później.',true);return;
  }
- if(missing.length>MAX_SEGMENTS||missing.length>MAX_CALLS-calls){
-  routeStatus('Limit wersji testowej: 4 odcinki i 6 zapytań na sesję. Nieobliczone odcinki pozostają szkicem.',true);return;
- }
+ const available=Math.max(0,MAX_CALLS-calls);
+ if(!available){routeStatus('Wykorzystano limit zapytań w tej sesji testowej. Nieobliczone odcinki pozostają szkicem.',true);return;}
+ const batch=missing.slice(0,Math.min(MAX_SEGMENTS,available));
  if(navigator.onLine===false){routeStatus('Brak internetu. Zachowano szkic do późniejszego przeliczenia.',true);return;}
  if(!automatic)remember();showResults=true;setBusy(true);
  routeStatus('Obliczanie przebiegu trasy…');
  let done=0,errors=0,reason='';
  try{
-  for(let i=0;i<missing.length;i++){
-   const s=missing[i],wait=Math.max(0,MIN_INTERVAL-(Date.now()-lastRequestTime));
+  for(let i=0;i<batch.length;i++){
+   const s=batch[i],wait=Math.max(0,MIN_INTERVAL-(Date.now()-lastRequestTime));
    if(wait)await delay(wait);
    if(!el('route-consent').checked){errors++;reason='Zgoda została wycofana.';break;}
-   routeStatus('Obliczanie odcinka '+(i+1)+' z '+missing.length+'…');
+   routeStatus('Obliczanie odcinka '+(i+1)+' z '+batch.length+'…');
    calls++;lastRequestTime=Date.now();
    try{routes[s.key]=await requestRoute(s);done++;refresh();}
    catch(error){
@@ -1130,7 +1130,11 @@ async function calculate({automatic=false}={}){
    }
   }
  }finally{setBusy(false);refresh();fit();}
- if(errors)routeStatus('Obliczono '+done+' odcinków. Pozostałe są szkicem. '+reason,true);
+ const remaining=segments().filter(s=>s.status==='draft').length;
+ if(errors)routeStatus('Obliczono '+done+' odcinków. Pozostałe nieobliczone: '+remaining+'. '+reason,true);
+ else if(remaining){
+  routeStatus('Pozostałe nieobliczone odcinki: '+remaining+'. '+(calls>=MAX_CALLS?'Wykorzystano limit zapytań w tej sesji testowej. Zachowano szkic.':'Możesz przeliczyć kolejne odcinki. Pozostałe zapytania w sesji: '+(MAX_CALLS-calls)+'.'),true);
+ }
  else{
   const gaps=endpointAudit().filter(x=>x.warning);
   routeStatus(gaps.length?'Trasa nie dochodzi do wybranego punktu. Sprawdź „Brakujące fragmenty trasy”.':'✓ Przebieg obliczony. Sprawdź mapę i wybierz Zapisz. Dostępność dróg niezweryfikowana.',!!gaps.length);
