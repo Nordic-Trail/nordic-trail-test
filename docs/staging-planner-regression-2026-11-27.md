@@ -93,3 +93,9 @@ Użytkownik zatwierdził pozostanie przy Valhalli na etapie budowy i testów wew
 - PASS na Samsungu: wyświetlenie pilotażowych oznaczeń Tumba–Lida, grupowanie i przybliżenie obszaru, widoczne znaczniki po przybliżeniu.
 - PASS: karty bariery (barrier=lift_gate) i odcinka drogi (highway=service, access=no), źródło OSM/ODbL, identyfikator, daty paczki, brak weryfikacji terenowej, jawny brak danych nawierzchni i ostrzeżenie o dostępności prawnej; przewijanie karty i powrót do mapy. Odnośnik OSM widoczny, nie sprawdzano otwarcia. Dane pochodzą z paczki 11.11.2026, nie są odczytem na żywo ani potwierdzeniem rzeczywistego zakazu.
 - Pozostała kontrola zachowania aktywnych warstw po przejściu do planera i powrocie. Bez nowych zapytań do Valhalli i bez zmian bazy.
+
+## Integracja — zachowanie warstw i czysty planer, 27.11.2026, 12:23 CET
+- PASS: aktywne oznaczenia OSM Tumba–Lida powracają po zamknięciu planera (zrzuty 12:13). Oznaczenia nie są jeszcze wyświetlane wewnątrz planera.
+- Zatwierdzona zasada UX: osadzony planer otwiera się z czystą mapą, bez automatycznego wczytywania ostatniej wyprawy. Zapisane wyprawy dostępne przez Moje trasy. Zamknięcie z niezapisanymi zmianami wymaga potwierdzenia.
+- Commity ed848111 i 101d8b2f: nowy cykl otwierania i zamykania planera; zachowanie archiwum, widoku i budżetu zapytań.
+- PASS: użytkownik potwierdził czysty widok po zamknięciu i ponownym otwarciu planera z wcześniej wczytaną wyprawą. Ostrzeżenie o niezapisanych zmianach i otwarcie archiwum po zmianie wymagają jeszcze testu regresji.
